@@ -1,0 +1,17 @@
+{
+  "name": "Rottenberg-Monopoly",
+  "short_name": "Rottenberg",
+  "description": "Monopoly über Rottenberg im Spessart: bis zu 4 Spieler, Minigames, Dorfchat und Rangliste.",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#16301f",
+  "theme_color": "#16301f",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
