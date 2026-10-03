@@ -649,9 +649,17 @@ function mayAct(ids){
   return ids.some(id=>S.players[id]&&S.players[id].uid===app.uid);
 }
 function canAct(){return mayAct()&&app.S.phase!=="duel"&&app.S.phase!=="trade";}
+/* Sofortiger Spielerwechsel: ist im Zug nichts mehr zu entscheiden, gibt derselbe Spielzug direkt an den Nächsten weiter.
+   Die letzte Karte bleibt mit Namen sichtbar, damit alle sehen, was passiert ist. */
+function autoPass(S){
+  if(S.status!=="playing"||S.phase!=="end"||canDuel(S))return S;
+  const c=S.card,who=cur(S).name;actEnd(S);
+  if(c&&!S.card)S.card=Object.assign({},c,{t:who+": "+c.t});
+  return S;
+}
 function commit(fn,ids){
   if(!mayAct(ids))return;
-  const next=fn(JSON.parse(JSON.stringify(app.S)));
+  const next=autoPass(fn(JSON.parse(JSON.stringify(app.S))));
   next.rev=(next.rev||0)+1;
   app.S=next;render();
   if(app.mode==="local")store.set("rbm-local",next);
@@ -848,8 +856,8 @@ async function commitLeased(fn,ids){
   if(!mayAct(ids))return;
   if(app.mode==="local"){commit(fn,ids);return;}
   const ref=app.db.doc("games/"+app.code);
-  try{const opt=fn(JSON.parse(JSON.stringify(app.S)));opt.rev=(app.S.rev||0)+1;app.S=opt;render();}catch(e){}
-  try{await withLease(ref,async()=>{const s=await ref.get();const c=JSON.parse(JSON.stringify(s.data()));const next=fn(c);next.rev=(c.rev||0)+1;app.S=next;render();await ref.set(next);if(next.status==="over")saveResult(next);});}
+  try{const opt=autoPass(fn(JSON.parse(JSON.stringify(app.S))));opt.rev=(app.S.rev||0)+1;app.S=opt;render();}catch(e){}
+  try{await withLease(ref,async()=>{const s=await ref.get();const c=JSON.parse(JSON.stringify(s.data()));const next=autoPass(fn(c));next.rev=(c.rev||0)+1;app.S=next;render();await ref.set(next);if(next.status==="over")saveResult(next);});}
   catch(e){toast("Das hat nicht geklappt, bitte nochmal tippen.");render();}
 }
 function tradePanel(){
@@ -928,7 +936,7 @@ function postGame(){
   S.players.forEach(p=>{if(p.bankrupt)return;const d=app.disp[p.id];if(d==null||RM||((p.pos-d+N)%N)>12)app.disp[p.id]=p.pos;});
   updateTokens();
   if(!app.hopT&&S.players.some(p=>!p.bankrupt&&app.disp[p.id]!==p.pos)){
-    app.hopT=setInterval(()=>{let m=false;const S2=app.S;if(S2)S2.players.forEach(p=>{if(!p.bankrupt&&app.disp[p.id]!==p.pos){app.disp[p.id]=(app.disp[p.id]+1)%N;m=true;}});updateTokens();if(!m){clearInterval(app.hopT);app.hopT=null;}},140);
+    app.hopT=setInterval(()=>{let m=false;const S2=app.S;if(S2)S2.players.forEach(p=>{if(!p.bankrupt&&app.disp[p.id]!==p.pos){app.disp[p.id]=(app.disp[p.id]+1)%N;m=true;}});updateTokens();if(!m){clearInterval(app.hopT);app.hopT=null;}},85);
   }
   if(S.rollId&&S.rollId!==app.seenRoll){if(app.seenRoll!=null)animDice(S.dice);app.seenRoll=S.rollId;}
   renderBar();
