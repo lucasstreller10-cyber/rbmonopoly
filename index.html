@@ -138,11 +138,29 @@ body.has-bar .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .crest.hd{width:clamp(48px,14vw,72px);flex:none}
 .mg{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
 .mg button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+.track{position:relative;width:min(100%,260px);height:44px;border-radius:22px;background:repeating-linear-gradient(90deg,#3c6b3f 0 18px,#35603a 18px 36px);border:2px solid #6b4a2a;overflow:hidden}
+.track .runner{position:absolute;top:4px;font-size:28px;transform:scaleX(-1);transition:left .08s linear}
+.track .flag{position:absolute;right:6px;top:8px;font-size:22px}
+.feet{display:flex;gap:10px}.feet button{min-width:110px;padding:14px 10px;font-size:16px}.feet button.used{opacity:.55;transform:scale(.96)}
+.tree{position:relative;width:min(100%,270px);height:190px;border-radius:14px;background:linear-gradient(#1e3d27,#173020 70%,#4a3520 70%);overflow:hidden;touch-action:manipulation}
+.tree .crown{position:absolute;left:50%;top:-14px;transform:translateX(-50%);font-size:70px;opacity:.55;pointer-events:none}
+.tree.splat{animation:splat .25s}@keyframes splat{50%{background-color:#5a2a1a}}
+.apple{position:absolute;top:-8px;width:46px;height:46px;padding:0;border:0;background:none;font-size:32px;line-height:46px;animation:fall 1.8s linear forwards;touch-action:manipulation}
+.apple.caught{animation:none;transform:scale(1.4);transition:transform .2s}
+@keyframes fall{from{transform:translateY(0) rotate(0)}to{transform:translateY(150px) rotate(200deg)}}
+.bells{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;width:min(100%,150px)}
+.bells button{aspect-ratio:1/1;font-size:26px;border-radius:50%;background:radial-gradient(circle at 40% 35%,color-mix(in srgb,var(--bell) 70%,white),var(--bell));border:3px solid rgba(0,0,0,.35);opacity:.8;padding:0}
+.bells button:disabled{opacity:.55}
+.bells button.ring{animation:ring .42s ease;opacity:1;box-shadow:0 0 22px var(--bell)}
+.bells button.wrong{background:#555}
+@keyframes ring{0%{transform:scale(1) rotate(0)}30%{transform:scale(1.15) rotate(-14deg)}60%{transform:scale(1.1) rotate(12deg)}100%{transform:scale(1) rotate(0)}}
+@media (prefers-reduced-motion:reduce){.apple{animation-duration:3s!important}.bells button.ring{animation:none}}
+.quip{font-size:12px;font-style:italic;color:var(--gold);opacity:.9;max-width:92%}
 .whack{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:min(100%,210px)}
 .whack button{aspect-ratio:1/1;font-size:30px;padding:0;border-radius:50%;background:radial-gradient(circle at 50% 60%,#1d140b 0 45%,#4a3520 46% 100%);border:2px solid #6b4a2a}
 .whack button.boar{background:radial-gradient(circle at 50% 60%,#5a3d22 0 45%,#7a5530 46% 100%);animation:pop .25s ease}
 .bigq{font-family:var(--f-display);font-size:clamp(24px,8vw,38px);color:var(--paper);font-variant-numeric:tabular-nums;line-height:1.1}
-.center:has(#mg-area) .crest,.center:has(#mg-area) .mark,.center:has(#mg-area) .dice,.center:has(#mg-area) .turnchip{display:none}
+.center:has(#mg-area) .crest,.center:has(#mg-area) .mark,.center:has(#mg-area) .dice,.center:has(#mg-area) .turnchip,.center:has(#mg-area) .card,.center:has(#mg-area) .msg,.center:has(#mg-area) .quip{display:none}
 .center .mark{font-family:var(--f-display);font-size:clamp(12px,3.4vw,18px);color:var(--gold);line-height:1}
 .center .mark small{display:block;font-family:var(--f-body);font-size:10px;letter-spacing:.14em;color:var(--dim-on-forest);text-transform:uppercase;margin-top:3px}
 .turnchip{display:flex;align-items:center;gap:6px;font-weight:800;font-size:clamp(12px,3.4vw,16px)}
@@ -332,8 +350,8 @@ const CHALLENGES=[
  {t:"Schnick-Schnack-Schnuck",x:"Spiel gegen den Spieler links von dir. Gewinnst du, ist die Challenge geschafft.",w:50,l:30},
  {t:"Dorfhymne",x:"Sing 15 Sekunden lang ein Lied über Rottenberg, Text frei erfunden.",w:60,l:20}
 ];
-const SOLO={whack:{g:"Triff mindestens 8 Wildsäue.",ok:v=>v>=8},stopp:{g:"Stoppe zwischen 4,75 und 5,25 Sekunden.",ok:v=>Math.abs(v-5000)<=250},rechnen:{g:"Schaffe mindestens 7 Punkte.",ok:v=>v>=7},farben:{g:"Schaffe mindestens 8 Punkte.",ok:v=>v>=8},reflex:{g:"Reagiere schneller als 0,40 Sekunden.",ok:v=>v<400},tap:{g:"Pumpe mindestens 35-mal in 5 Sekunden.",ok:v=>v>=35},schaetz:{g:"Liege höchstens 10 % daneben.",ok:(v,c)=>Math.abs(v-SCHAETZ[c.q].a)<=Math.max(1,SCHAETZ[c.q].a*.1)},huetchen:{g:"Finde den Taler unter einem von drei Bembeln.",ok:()=>Math.random()<1/3,w:150,l:30}};
-function valText(k,v,c){if(k==="reflex")return v>=5000?"zu früh getippt":(v/1000).toFixed(2).replace(".",",")+" s";if(k==="stopp")return (v/1000).toFixed(2).replace(".",",")+" s";if(k==="tap")return v+"× gepumpt";if(k==="whack")return v+" Treffer";if(k==="rechnen"||k==="farben")return v+" Punkte";if(k==="schaetz")return Number(v).toLocaleString("de-DE")+" getippt, richtig: "+SCHAETZ[c.q].a.toLocaleString("de-DE");return "Bembel "+v;}
+const SOLO={rennen:{g:"Schaffe mindestens 40 Schritte.",ok:v=>v>=40},faengt:{g:"Fange mindestens 12 Äppler.",ok:v=>v>=12},glocken:{g:"Schaffe mindestens 5 Runden.",ok:v=>v>=5},whack:{g:"Triff mindestens 8 Wildsäue.",ok:v=>v>=8},stopp:{g:"Stoppe zwischen 4,75 und 5,25 Sekunden.",ok:v=>Math.abs(v-5000)<=250},rechnen:{g:"Schaffe mindestens 7 Punkte.",ok:v=>v>=7},farben:{g:"Schaffe mindestens 8 Punkte.",ok:v=>v>=8},reflex:{g:"Reagiere schneller als 0,40 Sekunden.",ok:v=>v<400},tap:{g:"Pumpe mindestens 35-mal in 5 Sekunden.",ok:v=>v>=35},schaetz:{g:"Liege höchstens 10 % daneben.",ok:(v,c)=>Math.abs(v-SCHAETZ[c.q].a)<=Math.max(1,SCHAETZ[c.q].a*.1)},huetchen:{g:"Finde den Taler unter einem von drei Bembeln.",ok:()=>Math.random()<1/3,w:150,l:30}};
+function valText(k,v,c){if(k==="reflex")return v>=5000?"zu früh getippt":(v/1000).toFixed(2).replace(".",",")+" s";if(k==="stopp")return (v/1000).toFixed(2).replace(".",",")+" s";if(k==="tap")return v+"× gepumpt";if(k==="rennen")return v+" Schritte";if(k==="faengt")return v+" Äppler";if(k==="glocken")return v+" Runden";if(k==="whack")return v+" Treffer";if(k==="rechnen"||k==="farben")return v+" Punkte";if(k==="schaetz")return Number(v).toLocaleString("de-DE")+" getippt, richtig: "+SCHAETZ[c.q].a.toLocaleString("de-DE");return "Bembel "+v;}
 function startChallenge(S){
   const kind=pick(Object.keys(SOLO)),c={kind,w:SOLO[kind].w||80,l:SOLO[kind].l||40};if(kind==="schaetz")c.q=Math.floor(Math.random()*SCHAETZ.length);
   S.challenge=c;S.phase="challenge";
@@ -519,9 +537,9 @@ function actEnd(S){
 }
 function actBuild(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||f.t!=="prop"||o.h>=MAXH||!ownsGroup(S,p.id,f.g)||p.money<houseCost(f)||S.phase==="buy")return S;p.money-=houseCost(f);o.h++;log(S,p.name+" baut "+(o.h===MAXH?"ein Hotel":"ein Haus")+" auf "+f.n+".");return S;}
 function actSell(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||o.h<1)return S;o.h--;p.money+=houseCost(f)/2;log(S,p.name+" verkauft ein Haus auf "+f.n+".");return S;}
-const DUELS={zufall:"🎲 Zufalls-Minigame",whack:"🐗 Wildsau-Jagd",stopp:"⏱️ Stopp bei 5 Sekunden",rechnen:"🧮 Kopfrechen-Sprint",farben:"🎨 Farb-Chaos",reflex:"⚡ Wildsau-Reflex",tap:"🍎 Äppler-Pumpen",schaetz:"🤔 Schätzen",huetchen:"🍺 Bembel-Hütchenspiel",ssp:"✊ Schnick-Schnack-Schnuck",wuerfel:"🎲 Würfel-Duell"};
+const DUELS={zufall:"🎲 Zufalls-Minigame",rennen:"🏁 Wildsau-Rennen",faengt:"🍏 Äppler-Fangen",glocken:"🔔 Klosterglocken",whack:"🐗 Wildsau-Jagd",stopp:"⏱️ Stopp bei 5 Sekunden",rechnen:"🧮 Kopfrechen-Sprint",farben:"🎨 Farb-Chaos",reflex:"⚡ Wildsau-Reflex",tap:"🍎 Äppler-Pumpen",schaetz:"🤔 Schätzen",huetchen:"🍺 Bembel-Hütchenspiel",ssp:"✊ Schnick-Schnack-Schnuck",wuerfel:"🎲 Würfel-Duell"};
 const KIND_N=k=>DUELS[k].replace(/^\S+\s/,"");
-const MINI={whack:"Hau in 10 Sekunden so viele Wildsäue wie möglich.",stopp:"Die Uhr läuft los und verschwindet nach 1,5 Sekunden. Stoppe so nah wie möglich an 5,00 Sekunden.",rechnen:"20 Sekunden Kopfrechnen. Richtig +1, falsch −1.",farben:"15 Sekunden: Tippe die Farbe, in der das Wort geschrieben ist, nicht das Wort. Richtig +1, falsch −1.",huetchen:"Unter einem von drei Bembeln liegt ein Taler. Tippt geheim auf einen Bembel. Wer ihn allein findet, gewinnt.",ssp:"Wählt geheim Schere, Stein oder Papier.",reflex:"Tippe so schnell wie möglich, sobald die Wildsau auftaucht. Wer zu früh tippt, kassiert 5 Sekunden Strafe.",tap:"Pumpe 5 Sekunden lang so oft wie möglich auf den Äppler-Knopf.",schaetz:"Schätzfrage: Wer näher dran ist, gewinnt."};
+const MINI={rennen:"Tippe abwechselnd LINKS und RECHTS, so schnell du kannst. Jeder richtige Schritt bringt deine Wildsau weiter. 7 Sekunden.",faengt:"Äppler fallen vom Baum. Tipp sie an, bevor sie auf den Boden klatschen. 12 Sekunden.",glocken:"Die Klosterglocken spielen eine Melodie. Tippe sie nach. Jede Runde wird sie länger. Ein Fehler, und es ist vorbei.",whack:"Hau in 10 Sekunden so viele Wildsäue wie möglich.",stopp:"Die Uhr läuft los und verschwindet nach 1,5 Sekunden. Stoppe so nah wie möglich an 5,00 Sekunden.",rechnen:"20 Sekunden Kopfrechnen. Richtig +1, falsch −1.",farben:"15 Sekunden: Tippe die Farbe, in der das Wort geschrieben ist, nicht das Wort. Richtig +1, falsch −1.",huetchen:"Unter einem von drei Bembeln liegt ein Taler. Tippt geheim auf einen Bembel. Wer ihn allein findet, gewinnt.",ssp:"Wählt geheim Schere, Stein oder Papier.",reflex:"Tippe so schnell wie möglich, sobald die Wildsau auftaucht. Wer zu früh tippt, kassiert 5 Sekunden Strafe.",tap:"Pumpe 5 Sekunden lang so oft wie möglich auf den Äppler-Knopf.",schaetz:"Schätzfrage: Wer näher dran ist, gewinnt."};
 const SCHAETZ=[
  {q:"Wie hoch ist der Rottenberg in Metern?",a:408},{q:"In welchem Jahr wurde die Rottenberger Pestkapelle gebaut?",a:1632},{q:"In welchem Jahr kam Rottenberg zu Hösbach?",a:1978},
  {q:"In welchem Jahr wurde die alte Rottenberger Schule gebaut?",a:1818},{q:"Wie hoch ist der Gräfenberg in Metern?",a:364},{q:"Wie hoch ist der Klosterberg in Metern?",a:383},
@@ -547,7 +565,7 @@ function actDuelInput(S,pid,val){
   if(d.kind==="ssp"){detail=A.name+": "+a+", "+B.name+": "+b+".";if(a!==b)W=SSP_BEATS[a]===b?A:B;}
   else if(d.kind==="reflex"){detail=A.name+": "+(a>=5000?"zu früh!":a+" ms")+", "+B.name+": "+(b>=5000?"zu früh!":b+" ms")+".";if(a!==b)W=a<b?A:B;}
   else if(d.kind==="stopp"){const sec=v=>(v/1000).toFixed(2).replace(".",",")+" s";detail=A.name+": "+sec(a)+", "+B.name+": "+sec(b)+".";const da=Math.abs(a-5000),db=Math.abs(b-5000);if(da!==db)W=da<db?A:B;}
-  else if(d.kind==="whack"||d.kind==="rechnen"||d.kind==="farben"){const u=d.kind==="whack"?" Treffer":" Punkte";detail=A.name+": "+a+u+", "+B.name+": "+b+u+".";if(a!==b)W=a>b?A:B;}
+  else if(["whack","rechnen","farben","rennen","faengt","glocken"].includes(d.kind)){const u={whack:" Treffer",rennen:" Schritte",faengt:" Äppler",glocken:" Runden"}[d.kind]||" Punkte";detail=A.name+": "+a+u+", "+B.name+": "+b+u+".";if(a!==b)W=a>b?A:B;}
   else if(d.kind==="huetchen"){const ball=1+Math.floor(Math.random()*3);detail="Der Taler lag unter Bembel "+ball+". "+A.name+" tippte "+a+", "+B.name+" tippte "+b+".";if((a===ball)!==(b===ball))W=a===ball?A:B;}
   else if(d.kind==="tap"){detail=A.name+": "+a+"×, "+B.name+": "+b+"× gepumpt.";if(a!==b)W=a>b?A:B;}
   else{const q=SCHAETZ[d.q],da=Math.abs(a-q.a),db=Math.abs(b-q.a);detail="Richtig: "+fmt(q.a)+". "+A.name+": "+fmt(a)+", "+B.name+": "+fmt(b)+".";if(da!==db)W=da<db?A:B;}
@@ -566,6 +584,7 @@ function actDuelStart(S,to,stake,kind){
   const d={from:p.id,to:o.id,stake,kind,state:"ask",prev:S.phase};
   if(kind==="challenge"){const c=pick(CHALLENGES.filter(c=>c.t!=="Kellner-Dienst"));d.ct=c.t;d.cx=c.x;}
   if(kind==="schaetz")d.q=Math.floor(Math.random()*SCHAETZ.length);
+  if(kind==="glocken")d.q=1+Math.floor(Math.random()*1e6);
   S.duel=d;S.duelUsed=true;S.phase="duel";
   S.card={deck:"duel",t:"⚔ Herausforderung!",x:p.name+" fordert "+o.name+" zum "+KIND_N(kind)+" um "+stake+" € heraus."+(d.ct?" Aufgabe: "+d.cx:"")};
   log(S,p.name+" fordert "+o.name+" heraus: "+KIND_N(kind)+" um "+stake+" €.");
@@ -663,7 +682,7 @@ function commit(fn,ids){
   next.rev=(next.rev||0)+1;
   app.S=next;render();
   if(app.mode==="local")store.set("rbm-local",next);
-  else{const ref=app.db.doc("games/"+app.code);writeChain=writeChain.then(()=>ref.set(next)).catch(e=>toast("Zug konnte nicht gespeichert werden ("+(e&&e.code||"Fehler")+")."));}
+  else{const ref=app.db.doc("games/"+app.code);ref.set(next).catch(e=>toast("Zug konnte nicht gespeichert werden ("+(e&&e.code||"Fehler")+")."));}
   if(next.status==="over")saveResult(next);
 }
 
@@ -784,7 +803,7 @@ function centerHTML(){
   }else{
     acts=`<div class="note waitturn"><span class="avatar" style="background:${p.color}">${tokSvg(tokOf(p))}</span>${esc(p.name)} ist dran …</div>`;
   }
-  const card=S.card?`<div class="card ${S.card.deck}"><b>${esc(S.card.t)}</b>${esc(S.card.x)}</div>`:`<div class="msg">${esc(S.log[0]||"")}</div>`;
+  const q=S.card?"":quipFor(S),card=S.card?`<div class="card ${S.card.deck}"><b>${esc(S.card.t)}</b>${esc(S.card.x)}</div>`:`<div class="msg">${esc(S.log[0]||"")}</div>${q?`<div class="quip">„${esc(q)}“</div>`:""}`;
   return `<div class="wm" aria-hidden="true">${WAPPEN}</div><div class="crest">${WAPPEN}</div><div class="mark">Rottenberg<small>Runde ${S.round}${S.maxRounds?" von "+S.maxRounds:""} · Kasse ${fmt(S.pot)} €</small></div>
    <div class="turnchip"><span class="avatar" style="background:${p.color}">${tokSvg(tokOf(p))}</span>${esc(p.name)}${p.jail?" · Bunker":""}</div>
    ${S.dice[0]?`<div class="dice" id="dice"><span>${DICE[S.dice[0]]}</span><span>${DICE[S.dice[1]]}</span></div>`:""}
@@ -810,16 +829,35 @@ function mgBegin(ctx,pid,kind,q){
   if(kind==="stopp"){m.stage="go";m.t0=now;}
   if(kind==="rechnen"){m.stage="go";m.end=now+20000;m.pq=mathQ();}
   if(kind==="farben"){m.stage="go";m.end=now+15000;newInk(m);}
-  if(["whack","stopp","rechnen","farben"].includes(kind))m.iv=setInterval(()=>mgTick(m),80);
+  if(kind==="rennen"){m.stage="go";m.end=now+7000;m.last=null;}
+  if(kind==="faengt"){m.stage="go";m.end=now+12000;m.nextA=now+300;m.aid=0;}
+  if(kind==="glocken"){let x=q||(1+Math.floor(Math.random()*1e6));m.rng=()=>(x=(x*16807)%2147483647)%4;m.seq=[m.rng(),m.rng()];m.round=0;startBells(m);}
+  if(["whack","stopp","rechnen","farben","rennen","faengt"].includes(kind))m.iv=setInterval(()=>mgTick(m),80);
   render();
 }
 function mgTick(m){
   if(mg!==m){clearInterval(m.iv);return;}const now=performance.now();
   if(m.kind==="stopp"){const t=now-m.t0,el=document.getElementById("mg-clock");if(el)el.textContent=t<1500?(t/1000).toFixed(2).replace(".",","):"?,??";if(t>15000)miniSubmit(Math.round(t));return;}
-  if(now>=m.end){miniSubmit(m.kind==="whack"?m.count:m.score);return;}
+  if(now>=m.end){miniSubmit(["whack","rennen","faengt"].includes(m.kind)?m.count:m.score);return;}
   const l=document.getElementById("mg-left");if(l)l.textContent=leftS(m);
+  if(m.kind==="faengt"&&now>=m.nextA){m.nextA=now+Math.max(330,620-m.count*18);dropApple(m);}
   if(m.kind==="whack"&&now>=m.next){m.hole=newHole(m.hole);m.next=now+Math.max(450,800-m.count*30);mgRefresh();}
 }
+function dropApple(m){
+  const box=document.getElementById("mg-tree");if(!box)return;const b=document.createElement("button");
+  b.className="apple";b.dataset.a="mg-apple";b.textContent=Math.random()<.15?"🍐":"🍎";b.style.left=(6+Math.random()*80)+"%";
+  const dur=Math.max(1.05,1.9-m.count*.04);b.style.animationDuration=dur+"s";b.setAttribute("aria-label","Äppler fangen");
+  b.addEventListener("animationend",()=>{b.remove();const r=document.getElementById("mg-tree");if(r&&mg===m){r.classList.remove("splat");void r.offsetWidth;r.classList.add("splat");}});
+  box.appendChild(b);
+}
+function startBells(m){
+  m.stage="show";m.pos=0;mgRefresh();let k=0;
+  const step=()=>{if(mg!==m)return;if(k>=m.seq.length){m.stage="input";m.pos=0;mgRefresh();return;}
+    flashBell(m.seq[k]);k++;m.to=setTimeout(step,Math.max(330,560-m.round*25));};
+  m.to=setTimeout(step,650);
+}
+const BELLS=[["#e0453a","Rot"],["#3fae5a","Grün"],["#4a8bf0","Blau"],["#f0c419","Gelb"]];
+function flashBell(i){const el=document.querySelector(`[data-a="mg-bell"][data-v="${i}"]`);if(!el)return;el.classList.remove("ring");void el.offsetWidth;el.classList.add("ring");try{navigator.vibrate&&navigator.vibrate(25);}catch(e){}}
 function mgRefresh(){const el=document.getElementById("mg-area");if(el&&mg)el.innerHTML=mgBody();}
 function mgBody(){
   const m=mg,k=m.kind;
@@ -828,6 +866,9 @@ function mgBody(){
   if(k==="schaetz")return `<div class="row" style="justify-content:center"><input id="mg-num" type="number" inputmode="numeric" style="width:8em"><button class="gold" data-a="mg-send">Tipp abgeben</button></div>`;
   if(k==="reflex")return m.stage==="go"?`<button class="primary" data-a="mg-hit" style="font-size:24px;padding:16px 24px">🐗 JETZT!</button>`:`<button class="ghost" data-a="mg-hit" style="padding:16px 24px">Warte auf die Wildsau …</button>`;
   if(k==="tap")return `<button class="gold" data-a="mg-tap" style="font-size:22px;padding:18px 26px">🍎 Pumpen! <span id="mg-count">${m.count}</span></button><div class="note" id="mg-time">${m.stage==="go"?"Läuft …":"Die Zeit startet beim ersten Tippen."}</div>`;
+  if(k==="rennen"){const pct=Math.min(100,m.count*1.6);return `<div class="track"><span class="flag">🏁</span><span class="runner" style="left:calc(${pct}% - ${pct*.28}px)">🐗</span></div><div class="feet"><button class="gold ${m.last==="L"?"used":""}" data-a="mg-foot" data-v="L">👣 LINKS</button><button class="gold ${m.last==="R"?"used":""}" data-a="mg-foot" data-v="R">RECHTS 👣</button></div><div class="note">Schritte: <b id="mg-score">${m.count}</b> · noch <span id="mg-left">${leftS(m)}</span></div>`;}
+  if(k==="faengt")return `<div class="tree" id="mg-tree"><span class="crown">🌳</span></div><div class="note">Gefangen: <b id="mg-score">${m.count}</b> · noch <span id="mg-left">${leftS(m)}</span></div>`;
+  if(k==="glocken")return `<div class="bells">${BELLS.map((c,i)=>`<button data-a="mg-bell" data-v="${i}" style="--bell:${c[0]}" aria-label="Glocke ${c[1]}" ${m.stage!=="input"?"disabled":""}>🔔</button>`).join("")}</div><div class="note">${m.stage==="input"?"Jetzt du! ":"Hör gut zu … "}Runde <b>${m.round+1}</b> · ${m.seq.length} Töne</div>`;
   if(k==="whack")return `<div class="whack">${[...Array(9)].map((_,h)=>`<button data-a="mg-whack" data-h="${h}" class="${h===m.hole?"boar":""}" aria-label="Loch ${h+1}">${h===m.hole?"🐗":""}</button>`).join("")}</div><div class="note">Treffer: <b>${m.count}</b> · noch <span id="mg-left">${leftS(m)}</span></div>`;
   if(k==="stopp")return `<div class="bigq" id="mg-clock">0,00</div><button class="primary" data-a="mg-stop" style="font-size:20px;padding:12px 26px">⏱️ Stopp!</button>`;
   if(k==="rechnen")return `<div class="bigq">${m.pq.t} = ?</div><div class="acts">${m.pq.opts.map(v=>`<button class="gold" data-a="mg-ans" data-v="${v}" style="min-width:64px;font-size:18px">${v}</button>`).join("")}</div><div class="note">Punkte: <b>${m.score}</b> · noch <span id="mg-left">${leftS(m)}</span></div>`;
@@ -957,11 +998,11 @@ function duelPanel(){
 }
 function renderGame(){
   const S=app.S;if(!S)return header()+`<p>Lade Spiel …</p>`;
-  const cells=BOARD.map((f,i)=>{
+  const cellArr=BOARD.map((f,i)=>{
     const [r,c]=cellPos(i),o=S.props[i],corner=CORNERS.includes(i);
     const strip=f.g?`<div class="strip" style="background:${GROUPS[f.g].c}">${o&&o.h?(o.h===MAXH?'<i class="hotel"></i>':"<i></i>".repeat(o.h)):""}</div>`:"";
     return `<button class="cell ${corner?"corner":""} ${o?"owned":""} ${app.sel===i?"sel":""}" style="grid-row:${r};grid-column:${c};${o?"--own:"+S.players[o.owner].color:""}" data-a="sel" data-i="${i}" aria-label="${esc(f.n)}">${strip}${f.fx?`<span class="fxb">${f.fx==="challenge"?"★":"!"}</span>`:""}${f.ic?`<div class="ic">${f.ic}</div>`:""}<div class="nm">${esc(S_(f.s))}</div>${ownable(f)?`<div class="pr">${f.p}</div>`:f.t==="tax"?`<div class="pr">−${f.a}</div>`:f.t==="pot"?`<div class="pr">${fmt(S.pot)}</div>`:f.t==="loewe"?`<div class="pr">−10</div>`:""}<div class="tok" id="t${i}"></div></button>`;
-  }).join("");
+  });
   const players=S.players.map(p=>{
     const props=Object.keys(S.props).filter(i=>S.props[i].owner===p.id).map(Number).sort((a,b)=>a-b);
     return `<div class="pl ${p.id===S.turn&&S.status==="playing"?"now":""} ${p.bankrupt?"out":""}" id="pl${p.id}"><div class="top"><span class="avatar" style="background:${p.color}">${tokSvg(tokOf(p))}</span><span>${esc(p.name)}</span></div>
@@ -969,13 +1010,32 @@ function renderGame(){
     <div class="chips">${props.map(i=>`<i data-a="sel" data-i="${i}" title="${esc(BOARD[i].n)}" style="background:${BOARD[i].g?GROUPS[BOARD[i].g].c:"var(--paper-2)"}"></i>`).join("")}</div></div>`;
   }).join("");
   const over=S.status==="over"?`<section class="panel"><h2>Endstand</h2><div class="podium">${S.ranking.map(r=>`<div><span class="pl-place">${r.place}.</span><span class="dot" style="background:${r.color}"></span><b>${esc(r.name)}</b><span class="w">${r.bankrupt?"pleite":fmt(r.worth)+" €"}</span></div>`).join("")}</div><p class="note">Das Ergebnis steht jetzt in der Rangliste.</p><h2>Rangliste</h2>${lbHTML()}</section>`:"";
-  return `<div class="row" style="justify-content:space-between"><div class="eyebrow">Rottenberg-Monopoly${app.mode==="online"?" · Code "+esc(app.code):" · reihum"}</div><div class="row" style="gap:6px">${app.mode==="online"?`<button class="ghost small" data-a="tochat">💬 Chat</button>`:""}<button class="ghost small" data-a="zoom">${app.zoom?"🔍 Klein":"🔍 Groß"}</button><button class="ghost small" data-a="home">Menü</button></div></div>
-  <div class="boardwrap"><div class="board ${app.zoom?"zoom":""}">${cells}<div class="center">${centerHTML()}</div></div></div>
-  ${app.sel!=null?fieldSheet(app.sel):""}
-  ${duelPanel()}${tradePanel()}${over}<div class="players">${players}</div>
-  ${rulesHTML()}`;
+  const top=`<div class="row" style="justify-content:space-between"><div class="eyebrow">Rottenberg-Monopoly${app.mode==="online"?" · Code "+esc(app.code):" · reihum"}</div><div class="row" style="gap:6px">${app.mode==="online"?`<button class="ghost small" data-a="tochat">💬 Chat</button>`:""}<button class="ghost small" data-a="zoom">${app.zoom?"🔍 Klein":"🔍 Groß"}</button><button class="ghost small" data-a="home">Menü</button></div></div>`;
+  const center=centerHTML(),below=`${app.sel!=null?fieldSheet(app.sel):""}${duelPanel()}${tradePanel()}${over}<div class="players">${players}</div>${rulesHTML()}`;
+  app.gp={top,cells:cellArr,center,below,zoom:!!app.zoom};
+  return `<div id="g-top">${top}</div><div class="boardwrap"><div class="board ${app.zoom?"zoom":""}">${cellArr.join("")}<div class="center" id="g-center">${center}</div></div></div><div id="g-below">${below}</div>`;
+}
+/* Flüssiges Neuzeichnen: im laufenden Spiel werden nur die Teile ersetzt, die sich wirklich geändert haben. */
+function patchGame(){
+  const old=app.gp,S=app.S;
+  if(!old||!S||!document.getElementById("g-center"))return false;
+  renderGame();const gp=app.gp;
+  if(gp.zoom!==old.zoom||gp.cells.length!==old.cells.length){app.gp=null;return false;}
+  if(gp.top!==old.top)document.getElementById("g-top").innerHTML=gp.top;
+  const board=document.querySelector(".board");let changed=false;
+  gp.cells.forEach((h,i)=>{if(h!==old.cells[i]){const el=board.querySelector(`.cell[data-i="${i}"]`);if(el){el.outerHTML=h;changed=true;}}});
+  if(gp.center!==old.center)document.getElementById("g-center").innerHTML=gp.center;
+  if(gp.below!==old.below){
+    const keep={};document.querySelectorAll("#g-below input,#g-below select").forEach(el=>{if(el.id)keep[el.id]=el.type==="checkbox"?el.checked:el.value});
+    document.getElementById("g-below").innerHTML=gp.below;
+    for(const id in keep){const el=document.getElementById(id);if(!el)continue;if(el.type==="checkbox")el.checked=keep[id];else if(id!=="t-to")el.value=keep[id];}
+  }
+  if(changed)app.tokSig=null;
+  return true;
 }
 function render(){
+  if(app.screen==="game"&&app.lastScreen==="game"&&patchGame()){renderChat();postGame();return;}
+  app.lastScreen=app.screen;if(app.screen!=="game")app.gp=null;
   const v={home:renderHome,local:renderLocal,create:renderCreate,join:renderJoin,lobby:renderLobby,game:renderGame}[app.screen]();
   const keep={};document.querySelectorAll("#app input,#app select").forEach(el=>{if(el.id)keep[el.id]=el.type==="checkbox"?el.checked:el.value});
   const bw=document.querySelector(".boardwrap"),scr=bw?[bw.scrollLeft,bw.scrollTop]:null;
@@ -996,6 +1056,15 @@ async function loadOpen(){
   if(app.screen==="join")render();
 }
 const CODECH="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function applyGame(d){
+  if(!d||d.status==="lobby"||!app.S||app.code==null)return;
+  if((app.S.rev||0)>=(d.rev||0))return;
+  app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
+}
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState!=="visible"||app.mode!=="online"||!app.db||!app.code)return;
+  app.db.doc("games/"+app.code).get().then(s=>{if(s.exists)applyGame(s.data());}).catch(()=>{});
+});
 function watchGame(code){
   if(unsubGame)unsubGame();resetFx();app.code=code;app.mode="online";app.lobby=null;app.S=null;store.set("rbm-online",code);watchChat(code);
   unsubGame=app.db.doc("games/"+code).onSnapshot(snap=>{
@@ -1018,9 +1087,16 @@ async function withLease(ref,fn){
 /* ---------- Eingaben ---------- */
 document.addEventListener("change",ev=>{if(ev.target&&ev.target.id==="t-to"){app.tradeTo=+ev.target.value;render();}});
 /* Minigame-Tipper reagieren schon beim Antippen (pointerdown), nicht erst beim Loslassen: schneller und ohne verschluckte Doppeltipper. */
-const FAST=new Set(["mg-whack","mg-stop","mg-ans","mg-ink","mg-hit","mg-tap"]);
+const FAST=new Set(["mg-foot","mg-apple","mg-bell","mg-whack","mg-stop","mg-ans","mg-ink","mg-hit","mg-tap"]);
 function mgFast(a,b){
   switch(a){
+    case "mg-foot":if(mg&&mg.kind==="rennen"){const v=b.dataset.v;if(v!==mg.last){mg.count++;mg.last=v;}else{mg.count=Math.max(0,mg.count-1);}
+      const r=document.querySelector(".track .runner"),pct=Math.min(100,mg.count*1.6);if(r)r.style.left=`calc(${pct}% - ${pct*.28}px)`;
+      document.querySelectorAll('[data-a="mg-foot"]').forEach(x=>x.classList.toggle("used",x.dataset.v===mg.last));const sc=document.getElementById("mg-score");if(sc)sc.textContent=mg.count;}break;
+    case "mg-apple":if(mg&&mg.kind==="faengt"){mg.count++;b.classList.add("caught");b.dataset.a="";b.textContent="✨";setTimeout(()=>b.remove(),250);const sc=document.getElementById("mg-score");if(sc)sc.textContent=mg.count;try{navigator.vibrate&&navigator.vibrate(15);}catch(e){}}break;
+    case "mg-bell":if(mg&&mg.kind==="glocken"&&mg.stage==="input"){const v=+b.dataset.v;flashBell(v);
+      if(v!==mg.seq[mg.pos]){const m=mg;m.stage="done";b.classList.add("wrong");setTimeout(()=>{if(mg===m)miniSubmit(m.round);},500);break;}
+      mg.pos++;if(mg.pos>=mg.seq.length){mg.round++;mg.seq.push(mg.rng());const m=mg;m.stage="show";setTimeout(()=>{if(mg===m)startBells(m);},350);mgRefresh();}}break;
     case "mg-whack":if(mg&&mg.kind==="whack"&&+b.dataset.h===mg.hole){mg.count++;mg.hole=newHole(mg.hole);mg.next=performance.now()+Math.max(450,800-mg.count*30);mgRefresh();}break;
     case "mg-stop":if(mg&&mg.kind==="stopp")miniSubmit(Math.round(performance.now()-mg.t0));break;
     case "mg-ans":if(mg&&mg.kind==="rechnen"){mg.score+=(+b.dataset.v===mg.pq.a)?1:-1;mg.pq=mathQ();mgRefresh();}break;
@@ -1113,8 +1189,34 @@ document.addEventListener("click",async ev=>{
 });
 
 /* ---------- Dorfchat ---------- */
-const STICKERS={tadan:["🦁","Tadan!"],rollmisch:["🎲","Rollmisch!"],wildsau:["🐗","Wildsau!"],bunker:["🚬","Ab in den Bunker!"],tor:["⚽","Tooor!"],prost:["🍎","Prost, Freddy!"],pleite:["💸","Pleitegeier"],baron:["👑","Baron von Rottenberg"],heul:["😭","Heul doch"],glocke:["🔔","Halleluja!"]};
-const SPRUECHE=["Des is fei net fair!","Freddy hätt des anders gemacht.","Ab in den Bunker mit dir, Big A wartet schon!","Wer zuletzt würfelt, würfelt am besten.","Rollmisch for life!","Ich kauf den Gipfel und dann gute Nacht.","Mei Oma würfelt besser.","Heut geht die Runde im Marry auf mich. Also, im Spiel.","So schnell rennt nicht mal das Wildschwein.","Kerwa ist erst, wenn ich pleite bin.","Mir gehört bald ganz Rottenberg, ihr dürft mieten.","Glück ist, wenn der Bus nach Hösbach wartet."];
+const STICKERS={tadan:["🦁","Tadan!"],kilian:["🏛️","Kilian, schreib des auf!"],schnapper:["🫣","Glück gehabt"],aeppler:["🍏","Äppler her!"],gisbert:["🐸","Gisberts Frosch"],peck:["🏗️","Peck baut des"],rollmisch:["🎲","Rollmisch!"],wildsau:["🐗","Wildsau!"],bunker:["🚬","Ab in den Bunker!"],tor:["⚽","Tooor!"],prost:["🍎","Prost, Freddy!"],pleite:["💸","Pleitegeier"],baron:["👑","Baron von Rottenberg"],heul:["😭","Heul doch"],glocke:["🔔","Halleluja!"]};
+const SPRUECHE=[
+ "Des is fei net fair!","Freddy hätt des anders gemacht.","Ab in den Bunker mit dir, Big A wartet schon!","Rollmisch for life!",
+ "Mei Oma würfelt besser, und die is 93.","Heut geht die Runde im Marry auf mich. Also, im Spiel.","So schnell rennt nicht mal die Wildsau vom Gräfenberg.",
+ "Mir gehört bald ganz Rottenberg, ihr dürft mieten.","Glück is, wenn der Bus nach Hösbach wartet.","Kilian, schreib des auf!",
+ "Bei mir zahlst du Miete, bei Freddy zahlst du Runde.","Ich hab mehr Häuser als der Hofberg Bäume.","Des war kein Pech, des war Taktik.",
+ "Wer im Bunker sitzt, soll nicht mit Bembeln werfen.","Ich würfel nur, wenn Rosel mir ne Brezel gibt.","Hermann Pfeufer hätte des mit einer Hand gewonnen.",
+ "Peck baut schneller als du würfelst.","Gisbert hat angerufen, er will seinen Frosch zurück.","Bernd Glaab hat dich gesehen. Nur so.",
+ "Tadan! Und weg is des Geld.","Äppler auf, Würfel raus!","Des is hier Rottenberg, net Monaco.","Ich kauf den Bambuspark und mach ne Hängematte rein.",
+ "Wenn ich pleite bin, zieh ich nach Feldkahl.","Du würfelst wie ein Kalkwerk-Lkw rückwärts einparkt.","Halleluja, endlich ne Sechs!",
+ "Im Grünen Tal gibt's Schnitzel, bei mir gibt's Miete.","Erst Kerwa, dann Karriere.","Kopf hoch, im Biergarten wartet die Kasse.",
+ "Freddy sagt: Wer zuletzt lacht, hat die Bäckerei Rosel.","Big A hat noch nen Platz im Bunker frei. Für dich.","Hör auf zu rechnen, des is ein Würfelspiel!",
+ "Ich hab nen Plan. Er heißt Holler.","Mit dem Glück würd ich heut Lotto spielen. Oder auch net.","Rollmisch-Regel Nummer 1: Niemals nüchtern verhandeln."
+];
+/* Dorfkommentar: ein Spruch passend zum letzten Ereignis, für alle Handys gleich (hängt nur am Spielstand). */
+const QUIPS=[
+ [/zahlt \d+ Miete/,["Autsch, des tut weh im Geldbeutel.","Miete is wie Äppler: Irgendwann muss jeder zahlen.","Da freut sich einer über die Einnahme.","Des Geld siehst du nie wieder."]],
+ [/kauft /,["Neuer Grundbesitzer! Kilian reibt sich schon die Hände.","Gekauft wie gesehen, Rückgabe nur beim Bürgermeister.","Der Rottenberg-Baron in Ausbildung.","Gute Wahl. Sagt zumindest der Verkäufer."]],
+ [/Bunker/,["Grüß Big A von uns!","Im Bunker is es wenigstens warm.","Drei Runden Urlaub, quasi.","Pasch würfeln oder 50 € zahlen, so läuft des hier."]],
+ [/Kasse im Biergarten ab|räumt die Kasse/,["Jackpot im Biergarten! Runde geht auf dich.","Prost! Des Geld war eh zu viel in der Kasse.","Freddy ist neidisch."]],
+ [/über Los|genau auf Los/,["Zahltag! Rollmisch-Rente kassiert.","Wieder 200 im Säckel.","Los is des schönste Feld."]],
+ [/Minigame-Feld/,["Jetzt wird's sportlich!","Fordere wen raus, sonst bist du ein Feigling.","Die Wildsau will Blut sehen. Oder wenigstens Geld."]],
+ [/Pasch/,["Pasch! Noch mal, du Glückspilz.","Doppelt hält besser."]],
+ [/gewinnt/,["Gewonnen is gewonnen, da gibt's nix zu diskutieren.","Revanche? Gibt's nächste Runde."]],
+ [/pleite/,["Pleite, aber mit Stil.","Jetzt hilft nur noch Kilian."]],
+ [/würfelt \d/,["Weiter geht's.","Ganz Rottenberg schaut zu.","Na, des kann sich sehen lassen.","Nix passiert. Auch mal schön."]]
+];
+function quipFor(S){const t=S.log[0]||"";const hit=QUIPS.find(([re])=>re.test(t));if(!hit)return "";const pool=hit[1];return pool[(S.lc||0)%pool.length];}
 let unsubChat=null,chatSeen=0,chatMsgs=[];
 document.getElementById("stickers").innerHTML=Object.entries(STICKERS).map(([k,v])=>`<button type="button" data-a="sticker" data-s="${k}">${v[0]} ${esc(v[1])}</button>`).join("")+`<button type="button" data-a="spruch">🎤 Zufallsspruch</button>`;
 function myName(){const S=app.S||app.lobby;const me=S&&S.players.find(p=>p.uid===app.uid);return me?me.name:(store.get("rbm-me")||"Jemand");}

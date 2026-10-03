@@ -10,7 +10,7 @@
       if(!cfg||!cfg.apiKey||!window.firebase)return null;
       firebase.initializeApp(cfg);
       const auth=firebase.auth(),fs=firebase.firestore();
-      try{fs.enablePersistence({synchronizeTabs:true}).catch(()=>{});}catch(e){}
+      /* Kein IndexedDB-Cache: auf Handys schneller, das Spiel braucht ohnehin eine Verbindung. */
       const u=auth.currentUser||await new Promise((res,rej)=>{const off=auth.onAuthStateChanged(x=>{if(x){off();res(x);}});auth.signInAnonymously().catch(rej);});
       return {fs,uid:u.uid};
     })().catch(e=>{console.warn("Firebase nicht verfügbar",e);return null;});
