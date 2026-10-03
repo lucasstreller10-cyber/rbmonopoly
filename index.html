@@ -301,6 +301,9 @@ const BOARD=[
 const N=BOARD.length;
 const COLORS=["#d6452a","#2f74e0","#efc02b","#9354d8"];
 const MAXH=5;
+/* Rottenberg-Aufschlag: alle Mieten doppelt so hoch wie im Original-Monopoly (Lucas' Wunsch). */
+const RENT_X=2;BOARD.forEach(f=>{if(f.r)f.r=f.r.map(x=>x*RENT_X);});
+const BUS_BASE=25*RENT_X,WERK1=4*RENT_X,WERK2=10*RENT_X;
 const ownable=f=>f.t==="prop"||f.t==="bus"||f.t==="werk";
 const houseCost=f=>f.hc||100;
 const WAPPEN=`<svg viewBox="0 0 200 240" role="img" aria-label="Wappen von Rottenberg"><defs><clipPath id="wclip"><path d="M10 10H190V120C190 185 140 220 100 236C60 220 10 185 10 120Z"/></clipPath></defs>
@@ -436,8 +439,8 @@ function ownsGroup(S,pid,g){return BOARD.every((f,i)=>f.g!==g||(S.props[i]&&S.pr
 function rent(S,i){
   const f=BOARD[i],o=S.props[i];
   if(f.t==="prop"){let r=f.r[o.h];if(o.h===0&&ownsGroup(S,o.owner,f.g))r*=2;return r;}
-  if(f.t==="bus"){const n=BOARD.filter((b,j)=>b.t==="bus"&&S.props[j]&&S.props[j].owner===o.owner).length;return 25*Math.pow(2,n-1);}
-  if(f.t==="werk"){const n=BOARD.filter((b,j)=>b.t==="werk"&&S.props[j]&&S.props[j].owner===o.owner).length;return (n>1?10:4)*((S.dice[0]+S.dice[1])||7);}
+  if(f.t==="bus"){const n=BOARD.filter((b,j)=>b.t==="bus"&&S.props[j]&&S.props[j].owner===o.owner).length;return BUS_BASE*Math.pow(2,n-1);}
+  if(f.t==="werk"){const n=BOARD.filter((b,j)=>b.t==="werk"&&S.props[j]&&S.props[j].owner===o.owner).length;return (n>1?WERK2:WERK1)*((S.dice[0]+S.dice[1])||7);}
   return 0;
 }
 function pay(S,from,to,amt){
@@ -711,7 +714,7 @@ function lbHTML(){
 function header(){return `<header class="row" style="gap:14px;flex-wrap:nowrap"><div class="crest hd">${WAPPEN}</div><div class="stack" style="gap:6px;min-width:0"><div class="eyebrow">Rollmisch-Edition · Spessart · 408 m ü. NN</div><h1>Rotten<span>berg</span>-Monopoly</h1></div></header>`;}
 function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary><ul>
 <li>Tippe auf ein Feld für Preise, Mieten und zum Bauen. ★ heißt Challenge, ! heißt Ereignis.</li><li>2 bis 4 Spieler, jeder startet mit 1.500 €. Über Los gibt es 200, wer genau auf Los landet, bekommt 400.</li>
-<li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen.</li>
+<li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Rottenberg-Aufschlag: Alle Mieten sind doppelt so hoch wie im Original.</li>
 <li>Pasch heißt nochmal würfeln. Drei Pasche hintereinander: ab in den Bunker bei Big A, dort wird erstmal gemeinsam einer geraucht. Raus kommst du mit Pasch, 50 € oder Freikarte.</li>
 <li><b>Rollmisch!</b> Wer eine Doppel-Eins würfelt, kassiert 50 von jedem Mitspieler.</li>
 <li><b>Biergarten</b> ist Frei Parken: Wer dort landet, räumt die Kasse ab, in der alle Strafen landen.</li><li><b>Tadan!</b> Wer im Gasthaus zum Löwen („Marry“) landet, gibt Freddy, der Dorflegende, einen aus und zahlt 10 € in die Kasse im Biergarten.</li>
@@ -763,8 +766,8 @@ function fieldSheet(i){
   const grp=f.g?GROUPS[f.g]:null;
   let body="";
   if(f.t==="prop"){body=`<table><tr><td>Kaufpreis</td><td>${f.p} €</td></tr><tr><td>Miete</td><td>${f.r[0]} € (ganze Gruppe ${f.r[0]*2} €)</td></tr>${[1,2,3,4].map(h=>`<tr><td>mit ${h} ${h>1?"Häusern":"Haus"}</td><td>${fmt(f.r[h])} €</td></tr>`).join("")}<tr><td>mit Hotel</td><td>${fmt(f.r[5])} €</td></tr><tr><td>Haus oder Hotel bauen</td><td>je ${houseCost(f)} €</td></tr></table>`;}
-  else if(f.t==="bus")body=`<table><tr><td>Kaufpreis</td><td>${f.p} €</td></tr>${[1,2,3,4].map(n=>`<tr><td>Miete mit ${n} Haltestelle${n>1?"n":""}</td><td>${25*Math.pow(2,n-1)} €</td></tr>`).join("")}</table>`;
-  else if(f.t==="werk")body=`<table><tr><td>Kaufpreis</td><td>${f.p} €</td></tr><tr><td>Miete mit 1 Werk</td><td>4 × Augenzahl</td></tr><tr><td>mit beiden Werken</td><td>10 × Augenzahl</td></tr></table>`;
+  else if(f.t==="bus")body=`<table><tr><td>Kaufpreis</td><td>${f.p} €</td></tr>${[1,2,3,4].map(n=>`<tr><td>Miete mit ${n} Haltestelle${n>1?"n":""}</td><td>${BUS_BASE*Math.pow(2,n-1)} €</td></tr>`).join("")}</table>`;
+  else if(f.t==="werk")body=`<table><tr><td>Kaufpreis</td><td>${f.p} €</td></tr><tr><td>Miete mit 1 Werk</td><td>${WERK1} × Augenzahl</td></tr><tr><td>mit beiden Werken</td><td>${WERK2} × Augenzahl</td></tr></table>`;
   else body=`<p class="note">${{start:"Über Los gibt es 200 €, genau drauf 400 €.",klatsch:"Ziehe eine Dorfklatsch-Karte.",wahn:"Ziehe eine Spessart-Wahnsinn-Karte. Hier wird es verrückt.",tax:"Zahle "+f.a+" € in die Kasse im Biergarten.",jail:"Nur zu Besuch, oder du sitzt bei Big A im Bunker fest. Dort wird gemeinsam einer geraucht. Raus mit Pasch, 50 € oder Freikarte.",pot:"Frei Parken: Wer hier landet, nimmt die ganze Kasse mit, gerade "+S.pot+" €.",loewe:"Tadan! Du gibst Freddy, der Dorflegende, einen aus: 10 € in die Kasse im Biergarten.",gojail:"Direkt in den Bunker bei Big A, kein Geld über Los."}[f.t]}</p>`;
   let own="";
   if(o){const ow=S.players[o.owner];own=`<p class="row" style="gap:6px"><span class="dot" style="background:${ow.color}"></span>Gehört ${esc(ow.name)}${o.h?` · ${o.h===MAXH?"Hotel":o.h===1?"1 Haus":o.h+" Häuser"}`:""}</p>`;}
