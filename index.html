@@ -476,6 +476,7 @@ const CARDS={
   {t:"Waldfest-Geburtstag",x:"Du feierst deinen Geburtstag auf dem Waldfest und gibst für alle aus. Zahle 250 €.",f:(S,p)=>pay(S,p,null,250)},
   {t:"Waldfestzeit!",x:"Satorys Lotta fährt nach dem Waldfest in deinen Zaun. Die Reparatur kostet 250 €.",f:(S,p)=>pay(S,p,null,250)},
   {t:"Bunker-Party bei Big A!",x:"Big A ruft: Alle ab in den Bunker, jetzt wird erstmal gemeinsam einer geraucht! Alle Spieler sitzen im Bunker.",f:(S,p)=>{alive(S).forEach(q=>sendJail(S,q));}},
+  {t:"Bennys Bausparvertrag",x:"Benny überredet dich zum Bausparen: 10 Runden lang zahlst du jeweils 50 € ein. Danach gibt es 650 € zurück, also 30 % Zinsen.",f:(S,p)=>bausparStart(S,p)},
   {t:"Steinharte Brötchen",x:"Die Brötchen vom Bäcker sind steinhart. Zahnbehandlung: Zahle 50 €.",f:(S,p)=>pay(S,p,null,50)},
   {t:"Bernd Glaab",x:"Bernd Glaab erwischt dich ohne Eintritt auf dem Sportplatz. Du setzt eine Runde aus.",f:(S,p)=>{p.skip=Math.max(p.skip||0,1);p.skipWhy="glaab";S.again=false;log(S,p.name+" wurde von Bernd Glaab erwischt und setzt eine Runde aus.");}},
   {t:"Freddy und die Katze",x:"Du siehst, wie Freddy über eine Katze fällt. Das Video geht im Dorf viral: +50 €",f:(S,p)=>{p.money+=50}},
@@ -547,6 +548,19 @@ function rent0(S,i){
   if(f.t==="bus"){const n=BOARD.filter((b,j)=>b.t==="bus"&&S.props[j]&&S.props[j].owner===o.owner).length;return BUS_BASE*Math.pow(2,n-1);}
   if(f.t==="werk"){const n=BOARD.filter((b,j)=>b.t==="werk"&&S.props[j]&&S.props[j].owner===o.owner).length;return (n>1?WERK2:WERK1)*((S.dice[0]+S.dice[1])||7);}
   return 0;
+}
+/* Bennys Bausparvertrag: 10 Raten à 50 €, die erste sofort, dann eine pro neuer Runde. Danach 650 € zurück (30 % Zinsen). */
+const BS_RATE=50,BS_N=10,BS_OUT=650;
+function bausparStart(S,p){
+  if(p.bs){p.money+=50;log(S,"Benny freut sich: "+p.name+"s Bausparvertrag läuft schon. Er legt 50 € Treuebonus drauf.");return;}
+  p.bs={paid:0};bausparRate(S,p);
+}
+function bausparRate(S,p){
+  if(!p.bs||p.bankrupt)return;
+  if(p.bs.paid>=BS_N*BS_RATE){p.money+=BS_OUT;p.bs=null;log(S,"🏦 Bennys Bausparvertrag ist fällig: "+p.name+" bekommt "+BS_OUT+" € ausgezahlt!");return;}
+  p.money-=BS_RATE;p.bs.paid+=BS_RATE;const n=p.bs.paid/BS_RATE;
+  log(S,"🏦 "+p.name+" zahlt "+BS_RATE+" € in den Bausparvertrag ("+n+"/"+BS_N+").");
+  if(p.money<0)settle(S,p,null);
 }
 function pay(S,from,to,amt){
   if(from.bankrupt||amt<=0)return;
@@ -690,7 +704,7 @@ function actEnd(S){
     if(q.sleep>0){q.sleep--;if(q.sleep){log(S,q.name+" pennt im Bunker weiter (noch "+q.sleep+").");continue;}q.jail=false;q.jailTurns=0;log(S,q.name+" wacht im Bunker auf, reibt sich die Augen und darf raus.");continue;}
     if(q.skip>0){q.skip--;log(S,q.name+(q.skipWhy==="glaab"?" muss bei Bernd Glaab nachsitzen und setzt aus":" hängt in Hermann Pfeufers eiserner Kralle und setzt aus")+(q.skip?" (noch "+q.skip+")":" (jetzt frei)")+".");continue;}break;}
   S.turn=t;
-  if(S.round!==r0&&!(S.maxRounds&&S.round>S.maxRounds)){S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));if(S.round%3===0||(S.maxRounds&&S.round===S.maxRounds))roundEvent(S);}
+  if(S.round!==r0&&!(S.maxRounds&&S.round>S.maxRounds)){alive(S).forEach(q=>bausparRate(S,q));S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));if(S.round%3===0||(S.maxRounds&&S.round===S.maxRounds))roundEvent(S);}
   if(S.maxRounds&&S.round>S.maxRounds){S.round=S.maxRounds;finish(S);return S;}
   S.phase="roll";if(S.round!==r0&&S.round%10===0&&alive(S).length>1)tourStart(S);return S;
 }
@@ -802,14 +816,14 @@ function actTradeAnswer(S,yes){
   S.card={deck:"trade",t:"🏛️ Getauscht!",x:"Kilian stempelt ab. "+A.name+" zahlt 10 € Gebühr."};
   pay(S,A,null,10);if(S.status==="playing"&&cur(S).bankrupt)S.phase="end";return S;
 }
-function worth(S,p){if(p.bankrupt)return 0;let w=p.money;Object.keys(S.props).forEach(i=>{const o=S.props[i];if(o.owner===p.id)w+=BOARD[i].p+o.h*houseCost(BOARD[i]);});return w;}
+function worth(S,p){if(p.bankrupt)return 0;let w=p.money+(p.bs?p.bs.paid:0);Object.keys(S.props).forEach(i=>{const o=S.props[i];if(o.owner===p.id)w+=BOARD[i].p+o.h*houseCost(BOARD[i]);});return w;}
 /* Aussteigen: Straßen des Spielers werden frei (Häuser weg), er scheidet aus. */
 function actQuit(S,pid){
   const p=S.players[pid];if(S.status!=="playing"||!p||p.bankrupt)return S;
   if(S.duel&&(S.duel.from===pid||S.duel.to===pid)){const d=S.duel;S.duel=null;S.phase=d.prev;}
   if(S.trade&&(S.trade.from===pid||S.trade.to===pid)){const t=S.trade;S.trade=null;S.phase=t.prev;}
   Object.keys(S.props).forEach(i=>{if(S.props[i].owner===pid)delete S.props[i];});
-  p.bankrupt=true;p.left=true;p.bankruptAt=++S.seq;p.money=0;p.jail=false;p.skip=0;p.sleep=0;
+  p.bankrupt=true;p.left=true;p.bankruptAt=++S.seq;p.money=0;p.bs=null;p.jail=false;p.skip=0;p.sleep=0;
   if(S.abort)delete S.abort[pid];
   log(S,p.name+" steigt aus. Seine Straßen sind wieder frei.");
   const rest=alive(S);
@@ -1527,7 +1541,7 @@ function renderBar(){
   if(!p){bar.hidden=true;document.body.classList.remove("has-bar");app.barPid=null;return;}
   app.barPid=p.id;const n=Object.values(S.props).filter(o=>o.owner===p.id).length;
   const place=1+S.players.filter(q=>!q.bankrupt&&worth(S,q)>worth(S,p)).length;
-  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.id===S.turn?" · du bist dran":""}</span></div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
+  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.bs?` · 🏦 ${p.bs.paid/BS_RATE}/${BS_N}`:""}${p.id===S.turn?" · du bist dran":""}</span></div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
 }
 /* Flüssiger Spielerwechsel: ist im Zug nichts mehr zu entscheiden, geht es nach kurzer Pause automatisch weiter. */
 const AUTO_MS=2600;
@@ -1674,7 +1688,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v17";
+const BUILD="rbm-v18";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
