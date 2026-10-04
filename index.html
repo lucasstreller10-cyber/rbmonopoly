@@ -155,6 +155,31 @@ body.has-bar .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .bells button.wrong{background:#555}
 @keyframes ring{0%{transform:scale(1) rotate(0)}30%{transform:scale(1.15) rotate(-14deg)}60%{transform:scale(1.1) rotate(12deg)}100%{transform:scale(1) rotate(0)}}
 @media (prefers-reduced-motion:reduce){.apple{animation-duration:3s!important}.bells button.ring{animation:none}}
+.gtop{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.gtop .eyebrow{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.gbtns{display:flex;gap:6px;flex:none}
+.gbtns button{padding:7px 10px;font-size:14px}
+.panel.quit{border:2px solid var(--gold)}
+.acts2{display:flex;flex-wrap:wrap;gap:8px}
+.abortnote{align-self:stretch;border:1.5px dashed var(--gold)!important}
+.pl.out .money{text-decoration:line-through;opacity:.6}
+html{-webkit-text-size-adjust:100%}
+body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+@media (max-width:600px){
+  .wrap{padding-inline:8px;gap:10px;padding-top:calc(8px + env(safe-area-inset-top,0px))}
+  #app{padding-bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+  .board{gap:1.5px;padding:1.5px;border-radius:10px}
+  #app .players{grid-template-columns:repeat(auto-fit,minmax(84px,1fr))}
+  .center .crest,.center .mark{display:none}
+  .center .dice span{font-size:clamp(26px,9vw,40px)}
+  #mybar{padding:7px 12px calc(7px + env(safe-area-inset-bottom,0px));gap:10px}
+  #mybar .avatar.big{width:34px;height:34px}
+  #mybar .bal{font-size:22px}
+  #mybar .who b{font-size:14px}
+  input,select{font-size:16px}
+  .panel{padding:14px}
+  .center{padding:5px;gap:4px}
+}
 .quip{font-size:12px;font-style:italic;color:var(--gold);opacity:.9;max-width:92%}
 .whack{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:min(100%,210px)}
 .whack button{aspect-ratio:1/1;font-size:30px;padding:0;border-radius:50%;background:radial-gradient(circle at 50% 60%,#1d140b 0 45%,#4a3520 46% 100%);border:2px solid #6b4a2a}
@@ -301,8 +326,8 @@ const BOARD=[
 const N=BOARD.length;
 const COLORS=["#d6452a","#2f74e0","#efc02b","#9354d8"];
 const MAXH=5;
-/* Rottenberg-Aufschlag: alle Mieten doppelt so hoch wie im Original-Monopoly (Lucas' Wunsch). */
-const RENT_X=2;BOARD.forEach(f=>{if(f.r)f.r=f.r.map(x=>x*RENT_X);});
+/* Rottenberg-Aufschlag (Lucas' Wunsch): Grundmiete ×5 (billigste Straße 10 €), Mieten mit Häusern/Hotel ×3 des Originals. */
+const RENT_X=2;BOARD.forEach(f=>{if(f.r)f.r=f.r.map((x,k)=>x*(k===0?5:3));});
 const BUS_BASE=25*RENT_X,WERK1=4*RENT_X,WERK2=10*RENT_X;
 const ownable=f=>f.t==="prop"||f.t==="bus"||f.t==="werk";
 const houseCost=f=>f.hc||100;
@@ -647,12 +672,36 @@ function actTradeAnswer(S,yes){
   pay(S,A,null,10);if(S.status==="playing"&&cur(S).bankrupt)S.phase="end";return S;
 }
 function worth(S,p){if(p.bankrupt)return 0;let w=p.money;Object.keys(S.props).forEach(i=>{const o=S.props[i];if(o.owner===p.id)w+=BOARD[i].p+o.h*houseCost(BOARD[i]);});return w;}
+/* Aussteigen: Straßen des Spielers werden frei (Häuser weg), er scheidet aus. */
+function actQuit(S,pid){
+  const p=S.players[pid];if(S.status!=="playing"||!p||p.bankrupt)return S;
+  if(S.duel&&(S.duel.from===pid||S.duel.to===pid)){const d=S.duel;S.duel=null;S.phase=d.prev;}
+  if(S.trade&&(S.trade.from===pid||S.trade.to===pid)){const t=S.trade;S.trade=null;S.phase=t.prev;}
+  Object.keys(S.props).forEach(i=>{if(S.props[i].owner===pid)delete S.props[i];});
+  p.bankrupt=true;p.left=true;p.bankruptAt=++S.seq;p.money=0;p.jail=false;p.skip=0;p.sleep=0;
+  if(S.abort)delete S.abort[pid];
+  log(S,p.name+" steigt aus. Seine Straßen sind wieder frei.");
+  const rest=alive(S);
+  if(!rest.length){S.unranked=true;finish(S);return S;}
+  if(rest.length===1){finish(S);return S;}
+  if(abortReady(S))return S;
+  if(S.turn===pid){S.challenge=null;S.wantBuy=false;S.phase="end";actEnd(S);}
+  return S;
+}
+/* Abbruch für alle: zählt nicht für die Rangliste, sobald alle Übrigen zustimmen. */
+function abortReady(S){const rest=alive(S);if(rest.length&&rest.every(p=>S.abort&&S.abort[p.id])){S.unranked=true;S.duel=null;S.trade=null;log(S,"Alle wollen aufhören. Das Spiel wird beendet und zählt nicht.");finish(S);return true;}return false;}
+function actAbortVote(S,pid,yes){
+  if(S.status!=="playing"||!S.players[pid]||S.players[pid].bankrupt)return S;
+  S.abort=S.abort||{};if(yes){S.abort[pid]=true;log(S,S.players[pid].name+" will das Spiel beenden.");}else delete S.abort[pid];
+  abortReady(S);return S;
+}
+function actAbortAll(S){if(S.status!=="playing")return S;S.abort={};alive(S).forEach(p=>S.abort[p.id]=true);abortReady(S);return S;}
 function finish(S){
   S.status="over";S.phase="over";S.finishedAt=Date.now();
-  const r=S.players.map(p=>({name:p.name,color:p.color,worth:worth(S,p),bankrupt:p.bankrupt,ba:p.bankruptAt}));
+  const r=S.players.map(p=>({name:p.name,color:p.color,worth:worth(S,p),bankrupt:p.bankrupt,left:!!p.left,ba:p.bankruptAt}));
   r.sort((a,b)=>(a.bankrupt-b.bankrupt)||(a.bankrupt?b.ba-a.ba:b.worth-a.worth));
   S.ranking=r.map((x,i)=>Object.assign(x,{place:i+1}));
-  log(S,"Spielende! "+S.ranking[0].name+" ist der neue Rottenberg-Baron.");
+  if(!S.unranked)log(S,"Spielende! "+S.ranking[0].name+" ist der neue Rottenberg-Baron.");
 }
 
 /* ---------- App-Zustand ---------- */
@@ -691,6 +740,7 @@ function commit(fn,ids){
 
 /* ---------- Rangliste ---------- */
 async function saveResult(S){
+  if(S.unranked)return;
   const id=(app.mode==="online"?S.code:"local")+"-"+S.finishedAt;
   if(app.savedResult===id)return;app.savedResult=id;
   const doc={at:S.finishedAt,mode:app.mode,rounds:S.round,ranking:S.ranking.map(r=>({name:r.name,worth:r.worth,place:r.place,bankrupt:r.bankrupt}))};
@@ -714,7 +764,7 @@ function lbHTML(){
 function header(){return `<header class="row" style="gap:14px;flex-wrap:nowrap"><div class="crest hd">${WAPPEN}</div><div class="stack" style="gap:6px;min-width:0"><div class="eyebrow">Rollmisch-Edition · Spessart · 408 m ü. NN</div><h1>Rotten<span>berg</span>-Monopoly</h1></div></header>`;}
 function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary><ul>
 <li>Tippe auf ein Feld für Preise, Mieten und zum Bauen. ★ heißt Challenge, ! heißt Ereignis.</li><li>2 bis 4 Spieler, jeder startet mit 1.500 €. Über Los gibt es 200, wer genau auf Los landet, bekommt 400.</li>
-<li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Rottenberg-Aufschlag: Alle Mieten sind doppelt so hoch wie im Original.</li>
+<li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Rottenberg-Aufschlag: Die billigste Miete sind 10 €, alle Mieten liegen deutlich über dem Original.</li>
 <li>Pasch heißt nochmal würfeln. Drei Pasche hintereinander: ab in den Bunker bei Big A, dort wird erstmal gemeinsam einer geraucht. Raus kommst du mit Pasch, 50 € oder Freikarte.</li>
 <li><b>Rollmisch!</b> Wer eine Doppel-Eins würfelt, kassiert 50 von jedem Mitspieler.</li>
 <li><b>Biergarten</b> ist Frei Parken: Wer dort landet, räumt die Kasse ab, in der alle Strafen landen.</li><li><b>Tadan!</b> Wer im Gasthaus zum Löwen („Marry“) landet, gibt Freddy, der Dorflegende, einen aus und zahlt 10 € in die Kasse im Biergarten.</li>
@@ -782,7 +832,7 @@ function fieldSheet(i){
 function centerHTML(){
   const S=app.S,p=cur(S),act=canAct();
   if(S.status==="over"){
-    return `<div class="mark">Spielende</div><div class="msg">${esc(S.ranking[0].name)} ist Rottenberg-Baron!</div><div class="acts"><button class="gold" data-a="home">Zur Startseite</button></div>`;
+    return `<div class="mark">Spielende</div><div class="msg">${S.unranked?"Spiel abgebrochen, zählt nicht.":esc(S.ranking[0].name)+" ist Rottenberg-Baron!"}</div><div class="acts"><button class="gold" data-a="home">Zur Startseite</button></div>`;
   }
   let acts="";
   if(act){
@@ -987,8 +1037,25 @@ function postGame(){
   S.players.forEach(p=>{const pr=app.prevMoney[p.id];if(pr!=null&&pr!==p.money)floater(p.id,p.money-pr);app.prevMoney[p.id]=p.money;});
   const lc=S.lc||0;if(app.seenLc!=null&&lc>app.seenLc)showBanner(S.log.slice(0,Math.min(lc-app.seenLc,S.log.length)));app.seenLc=lc;
   const key=S.card?S.card.t+S.card.x:"";if(key&&key!==app.cardKey){const el=document.querySelector(".center .card");if(el)el.classList.add("flip");}app.cardKey=key;
-  if(S.status==="over"&&!app.confetti){app.confetti=true;confetti();}
+  if(S.status==="over"&&!app.confetti){app.confetti=true;if(!S.unranked)confetti();}
   turnAlert();armAutoEnd();
+}
+function quitPanel(){
+  const S=app.S;if(!app.quitOpen||!S||S.status!=="playing")return "";
+  const mine=S.players.filter(p=>!p.bankrupt&&(app.mode==="local"||p.uid===app.uid));
+  const rest=alive(S),votes=rest.filter(p=>S.abort&&S.abort[p.id]).length;
+  if(app.mode==="local")return `<section class="panel quit"><h2>⏻ Spiel beenden</h2>
+    <p class="note">Wer aussteigt, scheidet aus, seine Straßen werden wieder frei.</p>
+    <div class="acts2">${mine.map(p=>`<button class="ghost" data-a="quit" data-p="${p.id}">${esc(p.name)} steigt aus</button>`).join("")}</div>
+    <button class="primary" data-a="abort-all">Spiel für alle beenden (zählt nicht)</button>
+    <button class="ghost small" data-a="quit-close">Weiterspielen</button></section>`;
+  const voted=mine.length&&mine.every(p=>S.abort&&S.abort[p.id]);
+  return `<section class="panel quit"><h2>⏻ Spiel beenden</h2>
+    <p class="note">Aussteigen: Du scheidest aus, deine Straßen werden frei, die anderen spielen weiter.</p>
+    <div class="acts2">${mine.map(p=>`<button class="ghost" data-a="quit" data-p="${p.id}">${mine.length>1?esc(p.name)+" steigt aus":"Ich steige aus"}</button>`).join("")}</div>
+    <p class="note">Oder alle hören gemeinsam auf. Wenn alle zustimmen, endet das Spiel und zählt nicht für die Rangliste. Stimmen: <b>${votes}/${rest.length}</b></p>
+    <button class="${voted?"ghost":"primary"}" data-a="abort-vote" data-v="${voted?0:1}">${voted?"Zustimmung zurückziehen":"Alle sollen aufhören"}</button>
+    <button class="ghost small" data-a="quit-close">Weiterspielen</button></section>`;
 }
 function duelPanel(){
   const S=app.S;if(!app.duelOpen||!canAct()||!canDuel(S))return "";
@@ -1009,12 +1076,13 @@ function renderGame(){
   const players=S.players.map(p=>{
     const props=Object.keys(S.props).filter(i=>S.props[i].owner===p.id).map(Number).sort((a,b)=>a-b);
     return `<div class="pl ${p.id===S.turn&&S.status==="playing"?"now":""} ${p.bankrupt?"out":""}" id="pl${p.id}"><div class="top"><span class="avatar" style="background:${p.color}">${tokSvg(tokOf(p))}</span><span>${esc(p.name)}</span></div>
-    <div class="money">${p.bankrupt?"pleite":fmt(p.money)}</div><div class="where">${p.bankrupt?"ausgeschieden":esc(BOARD[p.pos].n)}${p.jail?" (sitzt)":""}${p.jailCards?" · Freikarte":""}${p.bonus?" · Kerwa-Zuschlag":""}${p.skip?(p.skipWhy==="glaab"?" · setzt aus":" · Kralle ("+p.skip+")"):""}${p.sleep?" · pennt ("+p.sleep+")":""}</div>
+    <div class="money">${p.left?"raus":p.bankrupt?"pleite":fmt(p.money)}</div><div class="where">${p.bankrupt?"ausgeschieden":esc(BOARD[p.pos].n)}${p.jail?" (sitzt)":""}${p.jailCards?" · Freikarte":""}${p.bonus?" · Kerwa-Zuschlag":""}${p.skip?(p.skipWhy==="glaab"?" · setzt aus":" · Kralle ("+p.skip+")"):""}${p.sleep?" · pennt ("+p.sleep+")":""}</div>
     <div class="chips">${props.map(i=>`<i data-a="sel" data-i="${i}" title="${esc(BOARD[i].n)}" style="background:${BOARD[i].g?GROUPS[BOARD[i].g].c:"var(--paper-2)"}"></i>`).join("")}</div></div>`;
   }).join("");
-  const over=S.status==="over"?`<section class="panel"><h2>Endstand</h2><div class="podium">${S.ranking.map(r=>`<div><span class="pl-place">${r.place}.</span><span class="dot" style="background:${r.color}"></span><b>${esc(r.name)}</b><span class="w">${r.bankrupt?"pleite":fmt(r.worth)+" €"}</span></div>`).join("")}</div><p class="note">Das Ergebnis steht jetzt in der Rangliste.</p><h2>Rangliste</h2>${lbHTML()}</section>`:"";
-  const top=`<div class="row" style="justify-content:space-between"><div class="eyebrow">Rottenberg-Monopoly${app.mode==="online"?" · Code "+esc(app.code):" · reihum"}</div><div class="row" style="gap:6px">${app.mode==="online"?`<button class="ghost small" data-a="tochat">💬 Chat</button>`:""}<button class="ghost small" data-a="zoom">${app.zoom?"🔍 Klein":"🔍 Groß"}</button><button class="ghost small" data-a="home">Menü</button></div></div>`;
-  const center=centerHTML(),below=`${app.sel!=null?fieldSheet(app.sel):""}${duelPanel()}${tradePanel()}${over}<div class="players">${players}</div>${rulesHTML()}`;
+  const over=S.status==="over"?`<section class="panel"><h2>Endstand</h2><div class="podium">${S.ranking.map(r=>`<div><span class="pl-place">${r.place}.</span><span class="dot" style="background:${r.color}"></span><b>${esc(r.name)}</b><span class="w">${r.left?"ausgestiegen":r.bankrupt?"pleite":fmt(r.worth)+" €"}</span></div>`).join("")}</div><p class="note">${S.unranked?"Das Spiel wurde abgebrochen und zählt nicht für die Rangliste.":"Das Ergebnis steht jetzt in der Rangliste."}</p><h2>Rangliste</h2>${lbHTML()}</section>`:"";
+  const top=`<div class="gtop"><div class="eyebrow">${app.mode==="online"?esc(app.code)+" · ":""}Runde ${S.round}${S.maxRounds?"/"+S.maxRounds:""}</div><div class="gbtns">${app.mode==="online"?`<button class="ghost small" data-a="tochat" aria-label="Chat">💬</button>`:""}<button class="ghost small" data-a="zoom" aria-label="${app.zoom?"Brett verkleinern":"Brett vergrößern"}">${app.zoom?"🔍−":"🔍+"}</button>${S.status==="playing"?`<button class="ghost small" data-a="quit-open">⏻ Beenden</button>`:""}<button class="ghost small" data-a="home" aria-label="Menü">☰</button></div></div>`;
+  const abortNote=S.status==="playing"&&S.abort&&Object.keys(S.abort).length&&!app.quitOpen?`<button class="ghost small abortnote" data-a="quit-open">⏻ ${Object.keys(S.abort).length} von ${alive(S).length} wollen aufhören. Tippen zum Abstimmen</button>`:"";
+  const center=centerHTML(),below=`${quitPanel()}${abortNote}${app.sel!=null?fieldSheet(app.sel):""}${duelPanel()}${tradePanel()}${over}<div class="players">${players}</div>${rulesHTML()}`;
   app.gp={top,cells:cellArr,center,below,zoom:!!app.zoom};
   return `<div id="g-top">${top}</div><div class="boardwrap"><div class="board ${app.zoom?"zoom":""}">${cellArr.join("")}<div class="center" id="g-center">${center}</div></div></div><div id="g-below">${below}</div>`;
 }
@@ -1166,6 +1234,12 @@ document.addEventListener("click",async ev=>{
     case "sell":commit(S=>actSell(S,i));break;
     case "tochat":document.getElementById("chatwrap").scrollIntoView({behavior:"smooth"});break;
     case "zoom":app.zoom=!app.zoom;render();if(app.zoom){const S=app.S,c=document.querySelector(`.cell[data-i="${cur(S).pos}"]`);if(c)c.scrollIntoView({block:"nearest",inline:"center"});}break;
+    case "quit-open":app.quitOpen=true;stopAutoEnd();render();window.scrollTo({top:0,behavior:"smooth"});break;
+    case "quit-close":app.quitOpen=false;render();break;
+    case "quit":{const pid=+b.dataset.p;app.quitOpen=false;commitLeased(S=>actQuit(S,pid),[pid]);break;}
+    case "abort-vote":{const yes=b.dataset.v==="1",ids=app.S.players.filter(p=>!p.bankrupt&&p.uid===app.uid).map(p=>p.id);if(!ids.length)break;
+      commitLeased(S=>{ids.forEach(id=>actAbortVote(S,id,yes));return S;},ids);break;}
+    case "abort-all":app.quitOpen=false;commit(S=>actAbortAll(S),app.S.players.map(p=>p.id));break;
     case "trade-open":stopAutoEnd();app.tradeOpen=true;app.duelOpen=false;render();setTimeout(()=>{const el=document.getElementById("t-to");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});},50);break;
     case "trade-close":app.tradeOpen=false;render();break;
     case "trade-go":{const to=+document.getElementById("t-to").value;const ids=pre=>[...document.querySelectorAll(`input[id^="${pre}"]:checked`)].map(el=>+el.id.slice(2));
