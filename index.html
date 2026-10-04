@@ -210,10 +210,11 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 @keyframes achin2{from{opacity:0;transform:translate(-50%,10px)}}
 .news{border:2px solid var(--gold)}.news ul{margin:6px 0 10px;padding-left:4px;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px}
 .wheelbox{position:relative;width:min(58%,170px);aspect-ratio:1;margin:2px auto}
-.wheel{width:100%;height:100%;border-radius:50%;border:4px solid var(--gold);box-shadow:0 6px 20px rgba(0,0,0,.45);position:relative;animation:wspin 3s cubic-bezier(.12,.6,.15,1) forwards}
+.wheel{width:100%;height:100%;border-radius:50%;border:4px solid var(--gold);box-shadow:0 6px 20px rgba(0,0,0,.45);position:relative;animation:wspin 4s cubic-bezier(.12,.6,.15,1) forwards}
 .wheel span{position:absolute;left:50%;top:50%;width:60px;margin:-8px 0 0 -30px;text-align:center;font-size:10.5px;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.7);transform-origin:50% 50%}
 .wptr{position:absolute;left:50%;top:-12px;transform:translateX(-50%);color:var(--gold);font-size:22px;z-index:2;text-shadow:0 2px 3px rgba(0,0,0,.6)}
 @keyframes wspin{from{transform:rotate(0)}to{transform:rotate(var(--end))}}
+body.busy .center .acts button{pointer-events:none;opacity:.55;transition:opacity .2s}
 .countdown{display:flex;flex-direction:column;align-items:center;gap:4px}
 .countdown span{font-family:var(--f-display);font-size:clamp(56px,20vw,96px);color:var(--gold);line-height:1;animation:pop .6s ease}
 .countdown small{color:var(--dim-on-forest);font-size:12px}
@@ -900,8 +901,9 @@ function cpuKick(){
   clearTimeout(app.cpuT);app.cpuT=null;const S=app.S;
   if(app.mode!=="local"||app.screen!=="game"||mg)return;
   const id=cpuActor(S);if(id==null)return;
-  const wait=(S.phase==="roll"?(S.card?1700:1000):S.phase==="duel"?1300:900)+(app.wheelT?3000:0);
-  app.cpuT=setTimeout(()=>{app.cpuT=null;if(app.S!==S||mg)return;cpuCommit(T=>cpuMove(T,id));},wait);
+  const wait=(S.phase==="roll"?(S.card?2300:1400):S.phase==="duel"?1700:1300)+(app.wheelT?4000:0);
+  const go=()=>{app.cpuT=null;if(app.S!==S||mg)return;if(app.hopT||document.body.classList.contains("busy")){app.cpuT=setTimeout(go,600);return;}cpuCommit(T=>cpuMove(T,id));};
+  app.cpuT=setTimeout(go,wait);
 }
 function cpuCommit(fn){
   const next=autoPass(fn(JSON.parse(JSON.stringify(app.S))));next.rev=(next.rev||0)+1;
@@ -1267,7 +1269,7 @@ function centerHTML(){
   }
   if(app.wheelSeen==null)app.wheelSeen=S.wheel?S.wheel.k:0;
   const spin=!!S.wheel&&S.wheel.k!==app.wheelSeen;
-  if(spin&&!app.wheelT){const k=S.wheel.k;app.wheelT=setTimeout(()=>{app.wheelT=null;app.wheelSeen=k;render();},3300);}
+  if(spin&&!app.wheelT){const k=S.wheel.k;app.wheelT=setTimeout(()=>{app.wheelT=null;app.wheelSeen=k;render();},4300);}
   const q=S.card?"":quipFor(S),card=spin?wheelHTML(S.wheel):S.card?`<div class="card ${S.card.deck}"><b>${esc(S.card.t)}</b>${esc(S.card.x)}</div>`:`<div class="msg">${esc(S.log[0]||"")}</div>${q?`<div class="quip">„${esc(q)}“</div>`:""}`;
   return `<div class="wm" aria-hidden="true">${WAPPEN}</div><div class="crest">${WAPPEN}</div><div class="mark">Rottenberg<small>Runde ${S.round}${S.maxRounds?" von "+S.maxRounds:""} · Kasse ${fmt(S.pot)} €</small></div>
    <div class="turnchip"><span class="avatar" style="background:${p.color}">${tokSvg(tokOf(p))}</span>${esc(p.name)}${p.jail?" · Bunker":""}</div>
@@ -1420,10 +1422,12 @@ function updateTokens(){
   for(let i=0;i<N;i++){const el=document.getElementById("t"+i);if(el)el.innerHTML="";}
   S.players.forEach(p=>{if(p.bankrupt)return;const el=document.getElementById("t"+(app.disp[p.id]??p.pos));if(el)el.insertAdjacentHTML("beforeend",`<b class="av ${p.id===S.turn&&S.status==="playing"?"now":""}" style="background:${p.color}" title="${esc(p.name)}">${tokSvg(tokOf(p))}</b>`);});
 }
+const MOVE={hop:170,dice:850,settle:350};
+function setBusy(on){clearTimeout(setBusy.t);if(on)document.body.classList.add("busy");else setBusy.t=setTimeout(()=>document.body.classList.remove("busy"),MOVE.settle);}
 function animDice(final){
   const el=document.getElementById("dice");if(!el||RM)return;const sp=el.querySelectorAll("span");let k=0;el.classList.add("tumble");
-  const t=setInterval(()=>{k++;if(k>=9){clearInterval(t);el.classList.remove("tumble");const e2=document.getElementById("dice");if(e2){const s2=e2.querySelectorAll("span");s2[0].textContent=DICE[final[0]];s2[1].textContent=DICE[final[1]];}return;}
-    const e2=document.getElementById("dice");if(e2){const s2=e2.querySelectorAll("span");s2[0].textContent=DICE[d6()];s2[1].textContent=DICE[d6()];}},60);
+  const t=setInterval(()=>{k++;if(k>=12){clearInterval(t);el.classList.remove("tumble");const e2=document.getElementById("dice");if(e2){const s2=e2.querySelectorAll("span");s2[0].textContent=DICE[final[0]];s2[1].textContent=DICE[final[1]];}return;}
+    const e2=document.getElementById("dice");if(e2){const s2=e2.querySelectorAll("span");s2[0].textContent=DICE[d6()];s2[1].textContent=DICE[d6()];}},70);
 }
 function floater(pid,diff){
   ["pl"+pid,app.barPid===pid?"mybar":null].forEach(id=>{const el=id&&document.getElementById(id);if(!el)return;
@@ -1432,7 +1436,7 @@ function floater(pid,diff){
 const BANNERS=[[/Spielende/,"👑 BARON!"],[/ROLLMISCH/,"🎲 ROLLMISCH!"],[/Schlussrunde/,"🏁 SCHLUSSRUNDE!"],[/Dorfmeisterschaft!/,"🏆 DORFMEISTERSCHAFT!"],[/Glücksrad: .*(Straße|Kasse: \+|\+200)/,"🎰 JACKPOT!"],[/Dorf-Ereignis/,"🎪 DORF-EREIGNIS!"],[/pleite/,"💸 PLEITE!"],[/TOOOR/,"⚽ TOOOR!"],[/Tadan/,"🦁 TADAN!"],[/räumt die Kasse/,"🍻 JACKPOT!"],[/Kilian beglaubigt/,"🏛️ GETAUSCHT!"],[/Peck liefert/,"🏗️ PECK LIEFERT!"],[/Blitzer am Schwimmbad/,"📸 GEBLITZT!"],[/eiserner Kralle fest/,"🦾 DIE KRALLE!"],[/sitzt im Bunker/,"🚬 BUNKER!"],[/gewinnt .*€/,"⚔ SIEG!"],[/\(Pasch\)/,"🎲 PASCH!"]];
 function showBanner(lines){
   if(RM)return;const txt=lines.join("\n");const hit=BANNERS.find(([re])=>re.test(txt));if(!hit)return;
-  const b=document.getElementById("banner");b.innerHTML=`<span>${esc(hit[1])}</span>`;b.hidden=false;clearTimeout(showBanner.t);showBanner.t=setTimeout(()=>b.hidden=true,1500);
+  const b=document.getElementById("banner");b.innerHTML=`<span>${esc(hit[1])}</span>`;b.hidden=false;clearTimeout(showBanner.t);showBanner.t=setTimeout(()=>b.hidden=true,2000);
 }
 function confetti(){
   if(RM)return;const box=document.getElementById("confetti");const cols=["#e6b43d","#d6452a","#2f74e0","#efc02b","#9354d8","#3f9b5f"];
@@ -1476,10 +1480,12 @@ function postGame(){
   const S=app.S;if(app.screen!=="game"||!S){renderBar();return;}
   S.players.forEach(p=>{if(p.bankrupt)return;const d=app.disp[p.id];if(d==null||RM||((p.pos-d+N)%N)>12)app.disp[p.id]=p.pos;});
   updateTokens();
+  /* Ruhigeres Tempo: erst rollen die Würfel aus, dann hüpft die Figur Feld für Feld. Solange gesperrt, sind die Knöpfe in der Mitte kurz inaktiv. */
+  if(S.rollId&&S.rollId!==app.seenRoll){if(app.seenRoll!=null&&!RM){animDice(S.dice);app.holdUntil=performance.now()+MOVE.dice;}app.seenRoll=S.rollId;}
   if(!app.hopT&&S.players.some(p=>!p.bankrupt&&app.disp[p.id]!==p.pos)){
-    app.hopT=setInterval(()=>{let m=false;const S2=app.S;if(S2)S2.players.forEach(p=>{if(!p.bankrupt&&app.disp[p.id]!==p.pos){app.disp[p.id]=(app.disp[p.id]+1)%N;m=true;}});updateTokens();if(!m){clearInterval(app.hopT);app.hopT=null;}},85);
-  }
-  if(S.rollId&&S.rollId!==app.seenRoll){if(app.seenRoll!=null)animDice(S.dice);app.seenRoll=S.rollId;}
+    setBusy(true);
+    app.hopT=setInterval(()=>{if(performance.now()<(app.holdUntil||0))return;let m=false;const S2=app.S;if(S2)S2.players.forEach(p=>{if(!p.bankrupt&&app.disp[p.id]!==p.pos){app.disp[p.id]=(app.disp[p.id]+1)%N;m=true;}});updateTokens();if(!m){clearInterval(app.hopT);app.hopT=null;setBusy(false);}},MOVE.hop);
+  }else if(!app.hopT&&performance.now()<(app.holdUntil||0)){setBusy(true);setTimeout(()=>{if(!app.hopT)setBusy(false);},app.holdUntil-performance.now());}
   renderBar();
   S.players.forEach(p=>{const pr=app.prevMoney[p.id];if(pr!=null&&pr!==p.money)floater(p.id,p.money-pr);app.prevMoney[p.id]=p.money;});
   const lc=S.lc||0;if(app.seenLc!=null&&lc>app.seenLc){const nl=S.log.slice(0,Math.min(lc-app.seenLc,S.log.length));showBanner(nl);playLog(nl);botTalk(S,nl);}app.seenLc=lc;
