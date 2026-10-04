@@ -542,6 +542,7 @@ function rent0(S,i){
 function pay(S,from,to,amt){
   if(from.bankrupt||amt<=0)return;
   from.money-=amt; if(to)to.money+=amt; else S.pot+=amt;
+  {const a=st(S,from.id);a.low=a.low==null?from.money:Math.min(a.low,from.money);}
   if(from.money<0)settle(S,from,to);
 }
 function settle(S,p,cred){
@@ -568,7 +569,7 @@ function land(S,p,depth){
   if(ownable(f)){
     const o=S.props[p.pos];
     if(!o){if(p.money>=f.p)canBuy=true;else log(S,p.name+" kann sich "+f.n+" nicht leisten.");}
-    else if(o.owner!==p.id){const ow=S.players[o.owner];let r=rent(S,p.pos);if(ow.bonus){r*=2;ow.bonus=false;log(S,"Waldfest-Zuschlag! Doppelte Miete.");}log(S,p.name+" zahlt "+r+" Miete an "+ow.name+".");{const a=st(S,p.id),b=st(S,ow.id);a.rp+=r;b.rg+=r;b.rgMax=Math.max(b.rgMax,r);if(r>a.mx){a.mx=r;a.mxf=p.pos;a.mxto=ow.id;}}pay(S,p,ow,r);}
+    else if(o.owner!==p.id){const ow=S.players[o.owner];let r=rent(S,p.pos);if(ow.bonus){r*=2;ow.bonus=false;log(S,"Waldfest-Zuschlag! Doppelte Miete.");}log(S,p.name+" zahlt "+r+" Miete an "+ow.name+".");{const a=st(S,p.id),b=st(S,ow.id);a.rp+=r;b.rg+=r;b.rgMax=Math.max(b.rgMax,r);if(evNow(S)&&evNow(S).k==="kerwa")b.wf=(b.wf||0)+r;if(r>a.mx){a.mx=r;a.mxf=p.pos;a.mxto=ow.id;}}pay(S,p,ow,r);}
   }else if(f.t==="tax"){log(S,p.name+" zahlt "+f.a+" ("+f.n+") in die Kasse im Biergarten.");pay(S,p,null,f.a);}
   else if(f.t==="pot"){if(S.pot>0){log(S,p.name+" räumt die Kasse im Biergarten ab: +"+S.pot+" €!");{const a=st(S,p.id);a.pot+=S.pot;a.potMax=Math.max(a.potMax,S.pot);}p.money+=S.pot;S.pot=0;}else log(S,p.name+" parkt am Dorfplatz. Die Kasse ist leer.");}
   else if(f.t==="gojail"){sendJail(S,p);}
@@ -599,7 +600,7 @@ function actChallenge(S,val){
 function actPenalty(S,dir){
   const p=cur(S);if(S.phase!=="penalty")return S;
   const k=pick(["links","Mitte","rechts"]);
-  if(k!==dir){p.money+=60;log(S,"TOOOR! "+p.name+" schießt nach "+dir+", der Torwart springt nach "+k+": +60 €.");S.card={deck:"ch",t:"Tooor!",x:"Nach "+dir+" geschossen, der Torwart war "+(k==="Mitte"?"in der Mitte":k)+". +60 €"};}
+  if(k!==dir){p.money+=60;st(S,p.id).tor=(st(S,p.id).tor||0)+1;log(S,"TOOOR! "+p.name+" schießt nach "+dir+", der Torwart springt nach "+k+": +60 €.");S.card={deck:"ch",t:"Tooor!",x:"Nach "+dir+" geschossen, der Torwart war "+(k==="Mitte"?"in der Mitte":k)+". +60 €"};}
   else{log(S,"Gehalten! "+p.name+" schießt nach "+dir+": −20 €.");S.card={deck:"ch",t:"Gehalten!",x:"Der Torwart ahnt die Ecke. 20 € in die Kasse."};pay(S,p,null,20);}
   return resume(S);
 }
@@ -612,11 +613,11 @@ function actCasino(S){
   else if(k===1){x="100 € gehen in die Kasse im Biergarten.";pay(S,p,null,100);}
   else if(k===2){p.money+=50;x="+50 €.";}
   else if(k===3){const g=S.pot;p.money+=g;S.pot=0;x=g?"Die ganze Kasse im Biergarten: +"+g+" €!":"Die Kasse ist leider leer.";}
-  else if(k===4){x="Ab in den Bunker bei Big A!";sendJail(S,p);}
+  else if(k===4){st(S,p.id).wb=(st(S,p.id).wb||0)+1;x="Ab in den Bunker bei Big A!";sendJail(S,p);}
   else if(k===5){p.money+=100;x="+100 €.";}
   else if(k===6){x="50 € gehen in die Kasse im Biergarten.";pay(S,p,null,50);}
   else{const free=BOARD.map((f,i)=>i).filter(i=>BOARD[i].t==="prop"&&!S.props[i]);
-    if(free.length){const i=pick(free);S.props[i]={owner:p.id,h:0};x="Gratis-Straße: "+BOARD[i].n+" gehört jetzt "+p.name+"!";}else{p.money+=150;x="Keine Straße mehr frei, dafür +150 €.";}}
+    if(free.length){const i=pick(free);S.props[i]={owner:p.id,h:0};st(S,p.id).ws=(st(S,p.id).ws||0)+1;x="Gratis-Straße: "+BOARD[i].n+" gehört jetzt "+p.name+"!";}else{p.money+=150;x="Keine Straße mehr frei, dafür +150 €.";}}
   log(S,"Glücksrad: "+p.name+" dreht "+WHEEL[k].l+". "+x);S.card={deck:"ch",t:"🎡 "+WHEEL[k].l,x};
   S.phase="x";settlePhase(S);return S;
 }
@@ -663,7 +664,7 @@ function actRoll(S){
     else S.phase="end";
     return S;
   }
-  if(dbl){st(S,p.id).dbl++;S.doubles++;if(S.doubles>=3){log(S,"Dritter Pasch in Folge, das ist verdächtig! Ab in den Bunker.");sendJail(S,p);S.phase="end";return S;}}
+  if(dbl){st(S,p.id).dbl++;S.doubles++;if(S.doubles>=3){st(S,p.id).p3=(st(S,p.id).p3||0)+1;log(S,"Dritter Pasch in Folge, das ist verdächtig! Ab in den Bunker.");sendJail(S,p);S.phase="end";return S;}}
   if(a===1&&b===1){st(S,p.id).rm++;log(S,"ROLLMISCH! Doppel-Eins: jeder zahlt "+p.name+" 50.");others(S,p).forEach(o=>pay(S,o,p,50));}
   S.again=dbl;
   move(S,p,a+b);settlePhase(S);return S;
@@ -787,7 +788,7 @@ function actTradeAnswer(S,yes){
   const ok=t.give.props.every(i=>S.props[i]&&S.props[i].owner===A.id&&!S.props[i].h)&&t.get.props.every(i=>S.props[i]&&S.props[i].owner===B.id&&!S.props[i].h)&&A.money>=t.give.money&&B.money>=t.get.money;
   if(!yes||!ok){log(S,B.name+" lehnt den Tausch ab.");S.card={deck:"trade",t:"Abgelehnt",x:B.name+" will nicht. Kilian legt die Akte zu."};return S;}
   t.give.props.forEach(i=>S.props[i].owner=B.id);t.get.props.forEach(i=>S.props[i].owner=A.id);
-  A.money+=t.get.money-t.give.money;B.money+=t.give.money-t.get.money;
+  A.money+=t.get.money-t.give.money;st(S,A.id).tr=(st(S,A.id).tr||0)+1;st(S,B.id).tr=(st(S,B.id).tr||0)+1;B.money+=t.give.money-t.get.money;
   log(S,"Kilian beglaubigt den Tausch: "+A.name+" gibt "+tradeDesc(S,t.give)+", "+B.name+" gibt "+tradeDesc(S,t.get)+".");
   S.card={deck:"trade",t:"🏛️ Getauscht!",x:"Kilian stempelt ab. "+A.name+" zahlt 10 € Gebühr."};
   pay(S,A,null,10);if(S.status==="playing"&&cur(S).bankrupt)S.phase="end";return S;
@@ -1038,7 +1039,26 @@ const ACH=[
  ["sau25","🐗","Wildsau-Schreck","Hol 25 Punkte bei der Wildsau-Jagd."],
  ["glocke","🔔","Glöckner vom Rottenberg","Schaffe 10 Runden Klosterglocken."],
  ["stopp","⏱️","Atomuhr","Stoppe höchstens 0,02 Sekunden neben 5,00."],
- ["serie","🔥","Im Flow","Schaffe eine 15er-Serie beim Rechnen oder Farb-Chaos."]
+ ["serie","🔥","Im Flow","Schaffe eine 15er-Serie beim Rechnen oder Farb-Chaos."],
+ ["gluck","🍀","Glückspilz","Gewinne am Glücksrad eine Gratis-Straße."],
+ ["pech","🎰","Pechvogel","Dreh dich am Glücksrad direkt in den Bunker."],
+ ["meister","🏆","Dorfmeister","Gewinne eine Dorfmeisterschaft."],
+ ["waldfest","🌲","Waldfest-Wirt","Kassiere während des Waldfests 300 € Miete."],
+ ["phoenix","🐦‍🔥","Phönix aus dem Spessart","Gewinne, nachdem du schon unter 100 € warst."],
+ ["sauber","😇","Weiße Weste","Gewinne, ohne ein einziges Mal im Bunker zu sitzen."],
+ ["blitz","⚡","Blitzsieg","Gewinne ohne Rundenlimit in höchstens 15 Runden."],
+ ["monopol","🗺️","Halb Rottenberg","Besitze 3 ganze Farbgruppen gleichzeitig."],
+ ["hotels3","🏙️","Hotelkette","Besitze 3 Hotels gleichzeitig."],
+ ["bus4","🚌","Busunternehmer","Besitze alle 4 Bushaltestellen."],
+ ["immo","🏦","Immobilienkönig","Kassiere 5.000 € Miete in einer Partie."],
+ ["tausch","🤝","Kilians Liebling","Schließe 3 Tauschgeschäfte in einer Partie ab."],
+ ["tor3","⚽","Elfmeterkönig","Verwandle 3 Elfmeter in einer Partie."],
+ ["pasch3","🚔","Verdächtig","Würfle 3 Pasche hintereinander."],
+ ["hase","🐔","Angsthase","Kneife 3-mal in einer Partie vor einem Duell."],
+ ["marathon","🏃","Marathon","Spiele eine Partie mit 40 oder mehr Runden."],
+ ["stamm","🍺","Stammspieler","Spiele 10 Partien zu Ende."],
+ ["serie3","👑","Dynastie","Gewinne 3 Partien hintereinander."],
+ ["kiebitz","👀","Kiebitz","Schau bei einem Online-Spiel zu."]
 ];
 function unlock(k){const a=store.get("rbm-ach")||{};if(a[k])return;a[k]=Date.now();store.set("rbm-ach",a);const d=ACH.find(x=>x[0]===k);if(!d)return;
   const el=document.createElement("div");el.className="achtoast";el.innerHTML=`<span>${d[1]}</span><div><small>Erfolg freigeschaltet</small><b>${esc(d[2])}</b></div>`;document.body.appendChild(el);setTimeout(()=>el.classList.add("out"),3200);setTimeout(()=>el.remove(),3800);sfx("ach");}
@@ -1046,9 +1066,20 @@ function meIds(S){return S.players.filter(p=>app.mode==="online"?p.uid===app.uid
 function achCheck(S){
   if(!S||!S.players||!S.st&&S.status!=="over")return;const me=meIds(S);if(!me.length)return;
   for(const id of me){const p=S.players[id],a=(S.st&&S.st[id])||{};
+    if(a.ws)unlock("gluck");if(a.wb)unlock("pech");if(a.tw)unlock("meister");if((a.wf||0)>=300)unlock("waldfest");if((a.rg||0)>=5000)unlock("immo");
+    if((a.tr||0)>=3)unlock("tausch");if((a.tor||0)>=3)unlock("tor3");if(a.p3)unlock("pasch3");if((a.kn||0)>=3)unlock("hase");
+    if(!p.bankrupt){const own=Object.keys(S.props).filter(i=>S.props[i].owner===id);
+      if(Object.keys(GROUPS).filter(g=>ownsGroup(S,id,g)).length>=3)unlock("monopol");if(own.filter(i=>S.props[i].h===MAXH).length>=3)unlock("hotels3");
+      const bus=BOARD.map((f,i)=>f.t==="bus"?i:-1).filter(i=>i>=0);if(bus.length&&bus.every(i=>S.props[i]&&S.props[i].owner===id))unlock("bus4");}
     if(a.rm)unlock("roll");if((a.potMax||0)>=300)unlock("kasse");if((a.rgMax||0)>=1000)unlock("hai");if((a.dw||0)>=5)unlock("duell5");if((a.jail||0)>=3)unlock("bunker3");
     if(!p.bankrupt){if(Object.values(S.props).some(o=>o.owner===id&&o.h===MAXH))unlock("hotel");if(Object.keys(GROUPS).some(g=>ownsGroup(S,id,g)))unlock("gruppe");if(worth(S,p)>=10000)unlock("reich");}}
   if(S.status==="over"&&!S.unranked&&S.ranking&&S.ranking[0].id!=null){unlock("erst");const w=S.ranking[0];
+    if(app.achGame!==S.finishedAt){app.achGame=S.finishedAt;const won=me.includes(w.id);
+      const seen=store.get("rbm-gdone")||[];if(!seen.includes(S.finishedAt)){seen.push(S.finishedAt);store.set("rbm-gdone",seen.slice(-50));
+        const n=(store.get("rbm-gcount")||0)+1;store.set("rbm-gcount",n);if(n>=10)unlock("stamm");
+        const k=won?(store.get("rbm-wstreak")||0)+1:0;store.set("rbm-wstreak",k);if(k>=3)unlock("serie3");}
+      if(S.round>=40)unlock("marathon");
+      if(won){const a=(S.st&&S.st[w.id])||{};if(a.low!=null&&a.low<100)unlock("phoenix");if(!a.jail)unlock("sauber");if(!S.maxRounds&&S.round<=15)unlock("blitz");}}
     if(me.includes(w.id)){unlock("sieg");if(S.vsCpu&&S.players.length===4)unlock("cpu3");if(S.vsCpu&&S.cpuLvl===3)unlock("schwer");if(S.players[w.id].money<100)unlock("knapp");}}
 }
 function achMini(k,v){
@@ -1152,7 +1183,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Tippe auf ein Feld für Preise, Mieten und zum Bauen. ★ heißt Challenge, ! heißt Ereignis.</li><li>2 bis 4 Spieler, jeder startet mit 1.500 €. Über Los gibt es 200, wer genau auf Los landet, bekommt 400.</li>
 <li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Die Mieten sind wie im Original, mit 4 Häusern und Hotel etwas günstiger. Die billigste Miete sind 10 €.</li>
 <li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Waldfest (Mieten +50 %), Sommerloch (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
-<li><b>📜 Spielbericht und 🏅 Erfolge:</b> Am Ende gibt es Auszeichnungen wie Miethai oder Duellkönig und den Verlauf aller Vermögen. Auf jedem Handy sammelst du 18 Erfolge.</li>
+<li><b>📜 Spielbericht und 🏅 Erfolge:</b> Am Ende gibt es Auszeichnungen wie Miethai oder Duellkönig und den Verlauf aller Vermögen. Auf jedem Handy sammelst du 37 Erfolge.</li>
 <li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, dreht am Glücksrad: Geld, die Kasse, eine Gratis-Straße, aber auch Minus oder der Bunker.</li>
 <li><b>🏆 Dorfmeisterschaft:</b> Jede 10. Runde spielen alle dasselbe Minispiel, ohne Einsatz. Platz 1 bekommt 300 € oder abwechselnd eine freie Straße, Platz 2 150 €, Platz 3 75 €.</li>
 <li><b>👀 Zuschauen:</b> Bei Online-Spielen kann jeder mit dem Code oder über „Laufende Spiele“ zuschauen, ohne mitzuspielen, und im Chat mitreden.</li>
@@ -1168,12 +1199,12 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==8?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
-   <li>🔊 Sound für Würfel, Geld, Duelle und Minispiele (oben im Spiel abschaltbar)</li>
-   <li>🎪 Dorf-Ereignisse jede dritte Runde und eine 🏁 Schlussrunde, in der alles doppelt zählt</li>
-   <li>📜 Spielbericht mit Auszeichnungen und Vermögenskurve, zum Teilen</li>
-   <li>🏅 18 Erfolge zum Sammeln und 🔁 Revanche mit einem Tipp</li>
-   <li>🤖 Freddy, Big A und Kilian reden jetzt mit und machen dir Kaufangebote</li></ul>
+  const news=store.get("rbm-news")!==9?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>🎰 Rottenberger Casino mit Glücksrad</li>
+   <li>🏆 Dorfmeisterschaft jede 10. Runde: alle gegen alle, ohne Einsatz</li>
+   <li>👀 Bei Online-Spielen zuschauen, ohne mitzuspielen</li>
+   <li>🏅 Jetzt 37 Erfolge, zum Beispiel Phönix aus dem Spessart, Hotelkette oder Dynastie</li>
+   <li>🌲 Waldfest, 🔊 Sound, 📜 Spielbericht, 🔁 Revanche und redende Computergegner</li></ul>
    <button class="ghost small" data-a="news-ok">Alles klar</button></section>`:"";
   return header()+news+`<p class="lead">Kaufe die Feldkahler Straße, das Marry und den Bambuspark, überlebe den Bunker bei Big A, Wildschwein-Alarm und Dorfklatsch, gib Freddy im Marry einen aus und werde Rottenberg-Baron.</p>
   <section class="panel"><h2>Neues Spiel</h2><div class="big-choice">
@@ -1655,7 +1686,7 @@ document.addEventListener("click",async ev=>{
     case "go-local":go("local");break;
     case "go-cpu":go("cpu");break;
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",8);render();break;
+    case "news-ok":store.set("rbm-news",9);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
@@ -1704,7 +1735,7 @@ document.addEventListener("click",async ev=>{
       const nm=document.getElementById("myname");if(nm&&nm.value.trim())store.set("rbm-me",nm.value.trim());
       const s=await app.db.doc("games/"+code).get();if(!s.exists){app.err="Spiel "+code+" gibt es nicht.";render();break;}
       if(s.data().status!=="playing"&&s.data().status!=="over"){app.err="Das Spiel hat noch nicht begonnen. Tritt bei oder warte, bis es losgeht.";render();break;}
-      app.savedResult=null;watchGame(code,true);go("game");
+      app.savedResult=null;watchGame(code,true);go("game");unlock("kiebitz");
       setTimeout(()=>{if(app.code===code&&isSpect())sendChat({kind:"text",text:"schaut jetzt zu."});},1200);break;}
     case "add-seat":{
       const name=document.getElementById("extra").value.trim();if(!name)break;const ref=app.db.doc("games/"+app.code);
