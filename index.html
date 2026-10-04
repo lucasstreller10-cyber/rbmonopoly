@@ -467,6 +467,8 @@ const CARDS={
   {t:"Hochwasser",x:"Der Güntersbach tritt über die Ufer. Zahle 25 pro Haus, das du besitzt.",f:(S,p)=>{const h=Object.values(S.props).filter(o=>o.owner===p.id).reduce((a,o)=>a+o.h,0);if(h)pay(S,p,null,25*h);}},
   {t:"Freddys Geschichten",x:"Freddy, die Dorflegende, erzählt am Tresen von früher. Du bleibst bis zum Schluss: Ziehe ins Gasthaus zum Löwen.",f:(S,p,d)=>moveTo(S,p,23,d)},
   {t:"Waldfest-Geburtstag",x:"Du feierst deinen Geburtstag auf dem Waldfest und gibst für alle aus. Zahle 250 €.",f:(S,p)=>pay(S,p,null,250)},
+  {t:"Waldfestzeit!",x:"Satorys Lotta fährt nach dem Waldfest in deinen Zaun. Die Reparatur kostet 250 €.",f:(S,p)=>pay(S,p,null,250)},
+  {t:"Bunker-Party bei Big A!",x:"Big A ruft: Alle ab in den Bunker, jetzt wird erstmal gemeinsam einer geraucht! Alle Spieler sitzen im Bunker.",f:(S,p)=>{alive(S).forEach(q=>sendJail(S,q));}},
   {t:"Steinharte Brötchen",x:"Die Brötchen vom Bäcker sind steinhart. Zahnbehandlung: Zahle 50 €.",f:(S,p)=>pay(S,p,null,50)},
   {t:"Bernd Glaab",x:"Bernd Glaab erwischt dich ohne Eintritt auf dem Sportplatz. Du setzt eine Runde aus.",f:(S,p)=>{p.skip=Math.max(p.skip||0,1);p.skipWhy="glaab";S.again=false;log(S,p.name+" wurde von Bernd Glaab erwischt und setzt eine Runde aus.");}},
   {t:"Freddy und die Katze",x:"Du siehst, wie Freddy über eine Katze fällt. Das Video geht im Dorf viral: +50 €",f:(S,p)=>{p.money+=50}},
