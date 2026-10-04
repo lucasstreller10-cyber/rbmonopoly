@@ -663,7 +663,7 @@ function tourResolve(S){
 function settlePhase(S){const p=cur(S);if(S.status!=="playing"||S.phase==="buy"||S.phase==="challenge"||S.phase==="penalty"||S.phase==="casino")return;S.phase=(S.again&&!p.jail&&!p.bankrupt)?"roll":"end";}
 function actRoll(S){
   const p=cur(S);if(S.phase!=="roll"||S.status!=="playing")return S;
-  const a=d6(),b=d6(),dbl=a===b;S.dice=[a,b];S.card=null;S.miniHere=false;S.wantBuy=false;S.rollId=(S.rollId||0)+1;
+  const a=d6(),b=d6(),dbl=a===b;S.dice=[a,b];S.card=null;S.miniHere=false;S.wantBuy=false;S.rollId=(S.rollId||0)+1;S.rollBy=p.id;
   log(S,p.name+" würfelt "+a+" + "+b+(dbl?" (Pasch)":"")+".");
   if(p.jail){
     if(dbl){p.jail=false;p.jailTurns=0;log(S,"Pasch! "+p.name+" kommt aus dem Bunker raus.");S.again=false;move(S,p,a+b);settlePhase(S);return S;}
@@ -911,7 +911,7 @@ function cpuKick(){
   if(app.mode!=="local"||app.screen!=="game"||mg)return;
   const id=cpuActor(S);if(id==null)return;
   const wait=(S.phase==="roll"?(S.card?2300:1400):S.phase==="duel"?1700:1300)+(app.wheelT?4000:0);
-  const go=()=>{app.cpuT=null;if(app.S!==S||mg)return;if(app.hopT||document.body.classList.contains("busy")){app.cpuT=setTimeout(go,600);return;}cpuCommit(T=>cpuMove(T,id));};
+  const go=()=>{app.cpuT=null;if(app.S!==S||mg)return;if(app.hopT||document.body.classList.contains("busy")){app.cpuT=setTimeout(go,250);return;}cpuCommit(T=>cpuMove(T,id));};
   app.cpuT=setTimeout(go,wait);
 }
 function cpuCommit(fn){
@@ -1488,7 +1488,9 @@ function updateTokens(){
   S.players.forEach(p=>{if(p.bankrupt)return;const el=document.getElementById("t"+(app.disp[p.id]??p.pos));if(el)el.insertAdjacentHTML("beforeend",`<b class="av ${p.id===S.turn&&S.status==="playing"?"now":""}" style="background:${p.color}" title="${esc(p.name)}">${tokSvg(tokOf(p))}</b>`);});
 }
 const MOVE={hop:170,dice:850,settle:350};
-function setBusy(on){clearTimeout(setBusy.t);if(on)document.body.classList.add("busy");else setBusy.t=setTimeout(()=>document.body.classList.remove("busy"),MOVE.settle);}
+function setBusy(on,now){clearTimeout(setBusy.t);if(on)document.body.classList.add("busy");else if(now)document.body.classList.remove("busy");else setBusy.t=setTimeout(()=>document.body.classList.remove("busy"),MOVE.settle);}
+/* Gesperrt wird nur, solange der Würfelnde selbst noch dran ist. Ist der Zug schon beim Nächsten, läuft die Figur nur noch als Animation und blockiert niemanden. */
+const lockMine=S=>!!S&&S.status==="playing"&&(!S.rollBy||(cur(S)&&cur(S).id===S.rollBy));
 function animDice(final){
   const el=document.getElementById("dice");if(!el||RM)return;const sp=el.querySelectorAll("span");let k=0;el.classList.add("tumble");
   const t=setInterval(()=>{k++;if(k>=12){clearInterval(t);el.classList.remove("tumble");const e2=document.getElementById("dice");if(e2){const s2=e2.querySelectorAll("span");s2[0].textContent=DICE[final[0]];s2[1].textContent=DICE[final[1]];}return;}
@@ -1547,10 +1549,11 @@ function postGame(){
   updateTokens();
   /* Ruhigeres Tempo: erst rollen die Würfel aus, dann hüpft die Figur Feld für Feld. Solange gesperrt, sind die Knöpfe in der Mitte kurz inaktiv. */
   if(S.rollId&&S.rollId!==app.seenRoll){if(app.seenRoll!=null&&!RM){animDice(S.dice);app.holdUntil=performance.now()+MOVE.dice;}app.seenRoll=S.rollId;}
+  if(!lockMine(S))setBusy(false,true);
   if(!app.hopT&&S.players.some(p=>!p.bankrupt&&app.disp[p.id]!==p.pos)){
-    setBusy(true);
-    app.hopT=setInterval(()=>{if(performance.now()<(app.holdUntil||0))return;let m=false;const S2=app.S;if(S2)S2.players.forEach(p=>{if(!p.bankrupt&&app.disp[p.id]!==p.pos){app.disp[p.id]=(app.disp[p.id]+1)%N;m=true;}});updateTokens();if(!m){clearInterval(app.hopT);app.hopT=null;setBusy(false);}},MOVE.hop);
-  }else if(!app.hopT&&performance.now()<(app.holdUntil||0)){setBusy(true);setTimeout(()=>{if(!app.hopT)setBusy(false);},app.holdUntil-performance.now());}
+    if(lockMine(S))setBusy(true);
+    app.hopT=setInterval(()=>{if(performance.now()<(app.holdUntil||0))return;let m=false;const S2=app.S;if(S2)S2.players.forEach(p=>{if(!p.bankrupt&&app.disp[p.id]!==p.pos){app.disp[p.id]=(app.disp[p.id]+1)%N;m=true;}});updateTokens();if(!m){clearInterval(app.hopT);app.hopT=null;setBusy(false);}else if(!lockMine(S2))setBusy(false,true);},MOVE.hop);
+  }else if(!app.hopT&&performance.now()<(app.holdUntil||0)&&lockMine(S)){setBusy(true);setTimeout(()=>{if(!app.hopT)setBusy(false);},app.holdUntil-performance.now());}
   renderBar();
   S.players.forEach(p=>{const pr=app.prevMoney[p.id];if(pr!=null&&pr!==p.money)floater(p.id,p.money-pr);app.prevMoney[p.id]=p.money;});
   const lc=S.lc||0;if(app.seenLc!=null&&lc>app.seenLc){const nl=S.log.slice(0,Math.min(lc-app.seenLc,S.log.length));showBanner(nl);playLog(nl);botTalk(S,nl);if(nl.some(l=>/zahlt 500 € nach|kassiert Grundsteuer/.test(l)))setTimeout(kilianThumb,700);}app.seenLc=lc;
