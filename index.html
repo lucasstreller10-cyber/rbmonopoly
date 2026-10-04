@@ -104,6 +104,7 @@ label{font-size:13px;color:var(--dim-on-forest);display:flex;flex-direction:colu
 .float.plus{color:#8ff0a0}.float.minus{color:#ffa08c}
 @keyframes floatUp{0%{opacity:0;transform:translateY(6px) scale(.8)}15%{opacity:1;transform:translateY(0) scale(1.15)}100%{opacity:0;transform:translateY(-34px) scale(1)}}
 .pl{position:relative;overflow:hidden}
+.upd{position:fixed;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:40;background:var(--gold);color:#1b2a1f;border:0;border-radius:999px;padding:9px 16px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.45)}
 #banner{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:8}
 #banner span{font-family:var(--f-display);font-size:clamp(34px,11vw,72px);color:var(--gold);text-shadow:0 4px 0 var(--sand),0 10px 30px rgba(0,0,0,.6);animation:bannerPop 1.5s ease forwards;text-align:center;padding-inline:16px}
 @keyframes bannerPop{0%{opacity:0;transform:scale(.3) rotate(-12deg)}18%{opacity:1;transform:scale(1.15) rotate(3deg)}30%{transform:scale(1) rotate(0)}80%{opacity:1}100%{opacity:0;transform:scale(1.05) translateY(-20px)}}
@@ -1462,9 +1463,18 @@ async function commitLeased(fn,ids){
   if(!mayAct(ids))return;
   if(app.mode==="local"){commit(fn,ids);return;}
   const ref=app.db.doc("games/"+app.code);
-  try{const opt=autoPass(fn(JSON.parse(JSON.stringify(app.S))));opt.rev=(app.S.rev||0)+1;app.S=opt;render();}catch(e){}
-  try{await withLease(ref,async()=>{const s=await ref.get();const c=JSON.parse(JSON.stringify(s.data()));const next=autoPass(fn(c));next.rev=(c.rev||0)+1;app.S=next;render();await ref.set(next);if(next.status==="over")saveResult(next);});}
-  catch(e){toast("Das hat nicht geklappt, bitte nochmal tippen.");render();}
+  /* Sofort lokal rechnen und anzeigen. Hat sich auf dem Server seitdem nichts geändert, wird genau dieser Stand gespeichert (gleiche Würfel), sonst neu gerechnet. */
+  const base=app.S.rev||0,bsid=app.S.sid,nsid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);let opt=null;
+  try{opt=autoPass(fn(JSON.parse(JSON.stringify(app.S))));opt.rev=base+1;opt.sid=nsid();app.S=opt;render();}catch(e){opt=null;}
+  const decide=d=>{if(opt&&(d.rev||0)===base&&d.sid===bsid)return opt;const c=JSON.parse(JSON.stringify(d));const n=autoPass(fn(c));n.rev=(c.rev||0)+1;n.sid=nsid();return n;};
+  const done=next=>{if(next!==opt){app.S=next;render();}if(next.status==="over")saveResult(next);};
+  /* Eigene Züge nacheinander speichern, damit schnelles Tippen nichts durcheinanderbringt. */
+  const job=async()=>{try{
+    if(ref.txn){done(await ref.txn(s=>decide(s.data())));}
+    else await withLease(ref,async()=>{const s=await ref.get();const next=decide(s.data());await ref.set(next);done(next);});
+  }
+  catch(e){toast("Das hat nicht geklappt, bitte nochmal tippen.");render();}};
+  app.saveQ=(app.saveQ||Promise.resolve()).then(job);return app.saveQ;
 }
 function tradePanel(){
   const S=app.S;if(!app.tradeOpen||!canAct()||!(S.phase==="roll"||S.phase==="end"))return "";
@@ -1487,9 +1497,9 @@ function updateTokens(){
   for(let i=0;i<N;i++){const el=document.getElementById("t"+i);if(el)el.innerHTML="";}
   S.players.forEach(p=>{if(p.bankrupt)return;const el=document.getElementById("t"+(app.disp[p.id]??p.pos));if(el)el.insertAdjacentHTML("beforeend",`<b class="av ${p.id===S.turn&&S.status==="playing"?"now":""}" style="background:${p.color}" title="${esc(p.name)}">${tokSvg(tokOf(p))}</b>`);});
 }
-const MOVE={hop:170,dice:850,settle:350};
+const MOVE={hop:150,dice:700,settle:150};
 function setBusy(on,now){clearTimeout(setBusy.t);if(on)document.body.classList.add("busy");else if(now)document.body.classList.remove("busy");else setBusy.t=setTimeout(()=>document.body.classList.remove("busy"),MOVE.settle);}
-/* Gesperrt wird nur, solange der Würfelnde selbst noch dran ist. Ist der Zug schon beim Nächsten, läuft die Figur nur noch als Animation und blockiert niemanden. */
+/* Gesperrt wird nur kurz, solange die eigenen Würfel rollen. Das Hüpfen der Figuren läuft nur als Animation und blockiert niemanden. */
 const lockMine=S=>!!S&&S.status==="playing"&&(!S.rollBy||(cur(S)&&cur(S).id===S.rollBy));
 function animDice(final){
   const el=document.getElementById("dice");if(!el||RM)return;const sp=el.querySelectorAll("span");let k=0;el.classList.add("tumble");
@@ -1548,12 +1558,11 @@ function postGame(){
   S.players.forEach(p=>{if(p.bankrupt)return;const d=app.disp[p.id];if(d==null||RM||((p.pos-d+N)%N)>12)app.disp[p.id]=p.pos;});
   updateTokens();
   /* Ruhigeres Tempo: erst rollen die Würfel aus, dann hüpft die Figur Feld für Feld. Solange gesperrt, sind die Knöpfe in der Mitte kurz inaktiv. */
-  if(S.rollId&&S.rollId!==app.seenRoll){if(app.seenRoll!=null&&!RM){animDice(S.dice);app.holdUntil=performance.now()+MOVE.dice;}app.seenRoll=S.rollId;}
+  if(S.rollId&&S.rollId!==app.seenRoll){if(app.seenRoll!=null&&!RM){animDice(S.dice);app.holdUntil=performance.now()+MOVE.dice;if(lockMine(S)){setBusy(true);clearTimeout(app.busyT);app.busyT=setTimeout(()=>setBusy(false),MOVE.dice);}}app.seenRoll=S.rollId;}
   if(!lockMine(S))setBusy(false,true);
   if(!app.hopT&&S.players.some(p=>!p.bankrupt&&app.disp[p.id]!==p.pos)){
-    if(lockMine(S))setBusy(true);
     app.hopT=setInterval(()=>{if(performance.now()<(app.holdUntil||0))return;let m=false;const S2=app.S;if(S2)S2.players.forEach(p=>{if(!p.bankrupt&&app.disp[p.id]!==p.pos){app.disp[p.id]=(app.disp[p.id]+1)%N;m=true;}});updateTokens();if(!m){clearInterval(app.hopT);app.hopT=null;setBusy(false);}else if(!lockMine(S2))setBusy(false,true);},MOVE.hop);
-  }else if(!app.hopT&&performance.now()<(app.holdUntil||0)&&lockMine(S)){setBusy(true);setTimeout(()=>{if(!app.hopT)setBusy(false);},app.holdUntil-performance.now());}
+  }
   renderBar();
   S.players.forEach(p=>{const pr=app.prevMoney[p.id];if(pr!=null&&pr!==p.money)floater(p.id,p.money-pr);app.prevMoney[p.id]=p.money;});
   const lc=S.lc||0;if(app.seenLc!=null&&lc>app.seenLc){const nl=S.log.slice(0,Math.min(lc-app.seenLc,S.log.length));showBanner(nl);playLog(nl);botTalk(S,nl);if(nl.some(l=>/zahlt 500 € nach|kassiert Grundsteuer/.test(l)))setTimeout(kilianThumb,700);}app.seenLc=lc;
@@ -1664,6 +1673,16 @@ function applyGame(d){
   if((app.S.rev||0)>=(d.rev||0))return;
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
+/* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
+const BUILD="rbm-v17";
+function checkUpdate(){
+  if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
+  fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
+    if(app.screen==="home"&&!mg){location.reload();return;}
+    checkUpdate.shown=true;const b=document.createElement("button");b.className="upd";b.textContent="🔄 Neue Version da, hier tippen";b.onclick=()=>location.reload();document.body.appendChild(b);}).catch(()=>{});
+}
+setTimeout(checkUpdate,4000);setInterval(checkUpdate,10*60*1000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate();});
 document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState!=="visible"||app.mode!=="online"||!app.db||!app.code)return;
   app.db.doc("games/"+app.code).get().then(s=>{if(s.exists)applyGame(s.data());}).catch(()=>{});

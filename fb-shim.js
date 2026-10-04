@@ -31,6 +31,8 @@
         update:async v=>{const cur=unpack((await r.get()).data())||{};await r.set(pack(Object.assign(cur,v)));},
         delete:async()=>{await r.delete();},
         onSnapshot:(fn,err)=>r.onSnapshot(s=>fn(snapOf(s)),err||(()=>{})),
+        /* Lesen, rechnen, schreiben in einem Rutsch: halb so viele Wege zum Server wie mit Sperre. */
+        txn:f=>fs.runTransaction(async t=>{const s=await t.get(r);const v=f(snapOf(s));if(v!==undefined)t.set(r,pack(v));return v;}),
         acquire:async({holder,ttlMs})=>{
           const lr=leaseRef(path);
           try{return await fs.runTransaction(async t=>{
