@@ -629,7 +629,7 @@ function land(S,p,depth){
     const o=S.props[p.pos];
     if(!o){if(p.money>=f.p)canBuy=true;else log(S,p.name+" kann sich "+f.n+" nicht leisten.");}
     else if(o.owner!==p.id&&o.m){log(S,f.n+" hat eine Hypothek, "+p.name+" zahlt keine Miete.");}
-    else if(o.owner!==p.id){const ow=S.players[o.owner];let r=rent(S,p.pos);if(ow.bonus){r*=2;ow.bonus=false;log(S,"Waldfest-Zuschlag! Doppelte Miete.");}log(S,p.name+" zahlt "+r+" Miete an "+ow.name+".");{const a=st(S,p.id),b=st(S,ow.id);a.rp+=r;b.rg+=r;b.rgMax=Math.max(b.rgMax,r);if(evNow(S)&&evNow(S).k==="kerwa")b.wf=(b.wf||0)+r;if(r>a.mx){a.mx=r;a.mxf=p.pos;a.mxto=ow.id;}}pay(S,p,ow,r);}
+    else if(o.owner!==p.id){const ow=S.players[o.owner];let r=rent(S,p.pos);if(ow.bonus){r*=2;ow.bonus=false;log(S,"Waldfest-Zuschlag! Doppelte Miete.");}log(S,p.name+" zahlt "+r+" Miete an "+ow.name+".");{const a=st(S,p.id),b=st(S,ow.id);a.rp+=r;b.rg+=r;b.rgMax=Math.max(b.rgMax,r);if(evNow(S)&&evNow(S).k==="kerwa")b.wf=(b.wf||0)+r;if(r>a.mx){a.mx=r;a.mxf=p.pos;a.mxto=ow.id;}}pay(S,p,ow,r);if(r>=RACHE_MIN&&!p.bankrupt&&!ow.bankrupt){p.rache={to:ow.id,amt:r};log(S,"🔥 "+p.name+" schwört Rache an "+ow.name+"!");}}
   }else if(f.t==="tax"){log(S,p.name+" zahlt "+f.a+" ("+f.n+") in die Kasse im Biergarten.");pay(S,p,null,f.a);}
   else if(f.t==="pot"){if(S.pot>0){log(S,p.name+" räumt die Kasse im Biergarten ab: +"+S.pot+" €!");{const a=st(S,p.id);a.pot+=S.pot;a.potMax=Math.max(a.potMax,S.pot);}p.money+=S.pot;S.pot=0;}else log(S,p.name+" parkt am Dorfplatz. Die Kasse ist leer.");}
   else if(f.t==="gojail"){sendJail(S,p);}
@@ -831,9 +831,24 @@ function actDuelInput(S,pid,val){
   else{const q=SCHAETZ[d.q],da=Math.abs(a-q.a),db=Math.abs(b-q.a);detail="Richtig: "+fmt(q.a)+". "+A.name+": "+fmt(a)+", "+B.name+": "+fmt(b)+".";if(da!==db)W=da<db?A:B;}
   if(!W){log(S,KIND_N(d.kind)+": Unentschieden. "+detail);S.card={deck:"duel",t:"Unentschieden!",x:detail+" Niemand zahlt."};return endDuel(S);}
   const L=W===A?B:A;
+  if(d.revenge&&W===B){log(S,"🔥 Rache misslungen: "+B.name+" gewinnt. "+detail);S.card={deck:"duel",t:"🔥 Rache misslungen!",x:detail+" "+B.name+" bleibt vorne, "+A.name+" zahlt aber nichts."};duelStat(S,W,L);return endDuel(S);}
+  if(d.revenge){log(S,"🔥 Rache geglückt! "+A.name+" holt sich "+d.stake+" € von "+B.name+" zurück. "+detail);S.card={deck:"duel",t:"🔥 Rache geglückt!",x:detail+" "+B.name+" zahlt "+d.stake+" € zurück."};duelStat(S,W,L);pay(S,L,W,d.stake);return endDuel(S);}
   log(S,KIND_N(d.kind)+": "+W.name+" gewinnt "+d.stake+" €. "+detail);
   S.card={deck:"duel",t:"⚔ "+W.name+" gewinnt!",x:detail+" "+L.name+" zahlt "+d.stake+" €."};
   duelStat(S,W,L);pay(S,L,W,d.stake);return endDuel(S);
+}
+/* Rache-Duell: Wer mindestens RACHE_MIN Miete zahlen musste, darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern.
+   Zufälliges Minispiel, der Besitzer kann nicht kneifen. Gewinnt der Rächer, bekommt er die halbe Miete zurück, verliert er, kostet es nichts. */
+const RACHE_MIN=150;
+function canRevenge(S){const p=cur(S),r=p&&p.rache,o=r&&S.players[r.to];return S.status==="playing"&&S.phase==="roll"&&!S.duel&&!p.jail&&!!o&&!o.bankrupt&&o.id!==p.id;}
+function actRevenge(S){
+  if(!canRevenge(S))return S;const p=cur(S),o=S.players[p.rache.to],amt=p.rache.amt;p.rache=null;
+  const kind=pick(OFFER),stake=Math.min(r5(amt/2),o.money);if(stake<=0)return S;
+  const d={from:p.id,to:o.id,stake,kind,state:"play",in:{},prev:"roll",revenge:true};
+  if(kind==="schaetz")d.q=Math.floor(Math.random()*SCHAETZ.length);if(kind==="glocken")d.q=1+Math.floor(Math.random()*1e6);
+  S.duel=d;S.phase="duel";
+  S.card={deck:"duel",t:"🔥 Rache-Duell: "+KIND_N(kind),x:p.name+" rächt sich an "+o.name+". Gewinnt "+p.name+", zahlt "+o.name+" "+stake+" € zurück. Verliert "+p.name+", kostet es nichts. "+(kind==="schaetz"?SCHAETZ[d.q].q:MINI[kind])};
+  log(S,"🔥 "+p.name+" fordert "+o.name+" zum Rache-Duell: "+KIND_N(kind)+" um "+stake+" €.");return S;
 }
 function canDuel(S){const p=cur(S);return !S.duelUsed&&!!S.miniHere&&BOARD[p.pos].t==="mini"&&(S.phase==="roll"||S.phase==="end")&&others(S,p).length>0;}
 function actDuelStart(S,to,stake,kind){
@@ -1061,6 +1076,7 @@ function cpuMove(S,id){
     return actTradeAnswer(S,get>=give*([0,1.05,1.25,1.5][lvl])+20);}
   if(id!==S.turn)return S;
   if(S.phase==="roll"){
+    if(canRevenge(S))return actRevenge(S);
     if(cpuOffer(S,me,lvl,reserve))return S;
     cpuBuild(S,me,reserve);
     if(canDuel(S)&&cpuDuel(S,me,lvl))return S;
@@ -1332,6 +1348,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Die Mieten sind wie im Original, mit 4 Häusern und Hotel etwas günstiger. Die billigste Miete sind 10 €.</li>
 <li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Waldfest (Mieten +50 %), Sommerloch (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
 <li><b>📜 Spielbericht und 🏅 Erfolge:</b> Am Ende gibt es Auszeichnungen wie Miethai oder Duellkönig und den Verlauf aller Vermögen. Auf jedem Handy sammelst du 37 Erfolge.</li>
+<li><b>🔥 Rache-Duell:</b> Wer mindestens 150 € Miete zahlen muss, darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern. Zufälliges Minispiel, kneifen gilt nicht. Gewinnst du, zahlt er dir die halbe Miete zurück. Verlierst du, kostet es nichts.</li>
 <li><b>🏦 Hypothek:</b> Tippe auf ein eigenes unbebautes Grundstück und nimm eine Hypothek auf: du bekommst den halben Kaufpreis, dafür gibt es dort keine Miete und in der Gruppe wird nicht gebaut. Ablösen kostet 10 % mehr. Wer pleite zu gehen droht, beleiht automatisch, bevor er aufgeben muss.</li>
 <li><b>🏦 Dorfbank:</b> Ab und zu macht die Dorfbank vor dem Würfeln ein verlockendes Angebot: ein schneller Kredit (in 5 Runden mit Zinsen zurück), ein Ankauf eines deiner Grundstücke weit über Wert oder eine freie Straße zum Sonderpreis. Annehmen oder ablehnen.</li>
 <li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, wählt einen Einsatz (50, 100 oder 200 €) und spielt Glücksrad (bis zum Dreifachen, die Kasse, eine Gratis-Straße, aber auch der Bunker) oder eine Hand Blackjack gegen die Bank (Bank zieht bis 17, Blackjack zahlt 3:2). Man kann auch einfach weitergehen.</li>
@@ -1349,7 +1366,8 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==13?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+  const news=store.get("rbm-news")!==14?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>🔥 Rache-Duell nach fetter Miete</li>
    <li>👑 Dorfkönig des Monats in der Rangliste</li>
    <li>🔔 Bescheid, wenn du dran bist (auch bei geschlossener App)</li>
    <li>🏦 Hypotheken, Angebote der Dorfbank, Mieten +30 %</li>
@@ -1450,6 +1468,7 @@ function centerHTML(){
     else if(S.phase==="penalty")acts+=["links","Mitte","rechts"].map(d=>`<button class="${d==="Mitte"?"gold":"ghost"}" data-a="pen" data-d="${d}">${d[0].toUpperCase()+d.slice(1)}</button>`).join("");
     else if(S.phase==="end")acts+=`<button class="primary ${autoEndOk()?"autoend":""}" data-a="end">${autoEndOk()?"Weiter ▸":"Zug beenden"}</button>`;
     if(canDuel(S))acts+=`<button class="gold" data-a="duel-open">⚔ Herausfordern</button>`;
+    if(canRevenge(S))acts+=`<button class="gold" data-a="revenge">🔥 Rache an ${esc(S.players[p.rache.to].name)}</button>`;
     if((S.phase==="roll"||S.phase==="end")&&others(S,p).length)acts+=`<button class="ghost" data-a="trade-open">🏛️ Tauschen</button>`;
   }else if(S.phase==="trade"&&S.trade){
     const B=S.players[S.trade.to];
@@ -1680,7 +1699,7 @@ function renderBar(){
   if(!p){bar.hidden=true;document.body.classList.remove("has-bar");app.barPid=null;return;}
   app.barPid=p.id;const n=Object.values(S.props).filter(o=>o.owner===p.id).length;
   const place=1+S.players.filter(q=>!q.bankrupt&&worth(S,q)>worth(S,p)).length;
-  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.bs?` · 🏦 ${p.bs.paid/BS_RATE}/${BS_N}`:""}${p.loan?` · Kredit noch ${p.loan.left}×${p.loan.rate} €`:""}${p.id===S.turn?" · du bist dran":""}</span></div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
+  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.bs?` · 🏦 ${p.bs.paid/BS_RATE}/${BS_N}`:""}${p.loan?` · Kredit noch ${p.loan.left}×${p.loan.rate} €`:""}${p.rache&&S.players[p.rache.to]&&!S.players[p.rache.to].bankrupt?` · 🔥 Rache an ${esc(S.players[p.rache.to].name)}`:""}${p.id===S.turn?" · du bist dran":""}</span></div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
 }
 /* Flüssiger Spielerwechsel: ist im Zug nichts mehr zu entscheiden, geht es nach kurzer Pause automatisch weiter. */
 const AUTO_MS=2600;
@@ -1860,7 +1879,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v24";
+const BUILD="rbm-v25";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -1927,7 +1946,7 @@ document.addEventListener("click",async ev=>{
     case "go-local":go("local");break;
     case "go-cpu":go("cpu");break;
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",13);render();break;
+    case "news-ok":store.set("rbm-news",14);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
@@ -2035,6 +2054,7 @@ document.addEventListener("click",async ev=>{
     case "casino":{const g=b.dataset.g,v=CAS_STAKES.includes(app.casStake)?app.casStake:50;commit(S=>actCasino(S,g,v));break;}
     case "cas-stake":app.casStake=+b.dataset.v;render();break;
     case "cas-skip":commit(actCasinoSkip);break;
+    case "revenge":commitLeased(actRevenge);break;
     case "bank-yes":commit(S=>actBank(S,true));break;
     case "bank-no":commit(S=>actBank(S,false));break;
     case "bj-hit":commit(actBjHit);break;
