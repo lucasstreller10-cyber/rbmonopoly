@@ -411,7 +411,7 @@ const others=(S,p)=>alive(S).filter(o=>o.id!==p.id);
 const CHALLENGES=[
  {t:"Rollmisch-Zungenbrecher",x:"Sag fünfmal schnell „Rottenberger Rollmisch rollt runter“ ohne Versprecher.",w:60,l:30},
  {t:"Freddy-Imitation",x:"Mach Freddy, die Dorflegende, am Tresen im Marry nach. Die Mitspieler entscheiden.",w:80,l:40},
- {t:"Kerwa-Fitness",x:"10 Liegestütze oder 20 Kniebeugen, jetzt sofort.",w:70,l:30},
+ {t:"Waldfest-Fitness",x:"10 Liegestütze oder 20 Kniebeugen, jetzt sofort.",w:70,l:30},
  {t:"Orts-Quiz",x:"Nenne in 15 Sekunden fünf Straßen oder Orte aus Rottenberg.",w:60,l:30},
  {t:"Stadionsprecher",x:"Kommentiere 20 Sekunden lang das letzte Tor vom Fußballverein wie im Fernsehen.",w:60,l:20},
  {t:"Pokerface",x:"Schau einem Mitspieler 30 Sekunden in die Augen, ohne zu lachen.",w:50,l:30},
@@ -482,7 +482,7 @@ const CARDS={
   {t:"Äppler-Runde",x:"Du gibst in der Kelterei einen Bembel aus. Zahle jedem Mitspieler 25.",f:(S,p)=>others(S,p).forEach(o=>pay(S,p,o,25))},
   {t:"Bürgermeister für einen Tag",x:"Du regierst Rottenberg. Jeder Mitspieler zahlt dir 40 Gebühr.",f:(S,p)=>others(S,p).forEach(o=>pay(S,o,p,40))},
   {t:"Grundstücks-Roulette",x:"Ein zufälliges Grundstück von dir tauscht den Besitzer mit einem zufälligen fremden, samt Häusern.",f:(S,p)=>{const k=Object.keys(S.props);const m=k.filter(i=>S.props[i].owner===p.id),t=k.filter(i=>S.props[i].owner!==p.id);if(m.length&&t.length){const a=pick(m),b=pick(t);const ob=S.props[b].owner;S.props[a].owner=ob;S.props[b].owner=p.id;log(S,BOARD[a].n+" ⇄ "+BOARD[b].n);}else{p.money+=50;log(S,"Nichts zu tauschen. Trostpreis 50.");}}},
-  {t:"Kerwa-Zuschlag",x:"Deine nächste Mieteinnahme zählt doppelt.",f:(S,p)=>{p.bonus=true}},
+  {t:"Waldfest-Zuschlag",x:"Deine nächste Mieteinnahme zählt doppelt.",f:(S,p)=>{p.bonus=true}},
   {t:"Rollmisch-Rückwärtsgang",x:"Alle Mitspieler stolpern 3 Felder zurück.",f:(S,p)=>others(S,p).filter(o=>!o.jail).forEach(o=>{o.pos=(o.pos-3+N)%N;if(o.pos===26)o.pos=25;})},
   {t:"Teleport-Bus",x:"Der Bus nach Hösbach nimmt eine Abkürzung durch die vierte Dimension. Ab auf ein zufälliges Feld.",f:(S,p,d)=>{let t;do{t=Math.floor(Math.random()*N)}while(t===p.pos||t===26);moveTo(S,p,t,d)}},
   {t:"Eingemeindung 1978",x:"Über 90 % stimmten damals für Hösbach. Zahle 90 in die Kasse im Biergarten.",f:(S,p)=>pay(S,p,null,90)},
@@ -515,7 +515,7 @@ function newState(list,maxRounds,extra){
 function ownsGroup(S,pid,g){return BOARD.every((f,i)=>f.g!==g||(S.props[i]&&S.props[i].owner===pid));}
 /* Dorf-Ereignisse: jede dritte Runde passiert im ganzen Dorf etwas, das für genau diese Runde gilt. */
 const DORF_EV=[
- {k:"kerwa",ic:"🎪",n:"Kerwa",t:"Kerwa in Rottenberg!",x:"Das ganze Dorf feiert. Diese Runde sind alle Mieten 50 % höher.",rent:1.5},
+ {k:"kerwa",ic:"🌲",n:"Waldfest",t:"Waldfest in Rottenberg!",x:"Das ganze Dorf feiert im Wald. Diese Runde sind alle Mieten 50 % höher.",rent:1.5},
  {k:"loch",ic:"🏖️",n:"Sommerloch",t:"Sommerloch",x:"Halb Rottenberg ist am Gardasee. Diese Runde gibt es nur die halbe Miete.",rent:.5},
  {k:"steuer",ic:"🏛️",n:"Grundsteuer",t:"Kilian kassiert Grundsteuer",x:"Jeder zahlt 15 € pro Grundstück in die Kasse im Biergarten.",f:S=>alive(S).forEach(p=>{const n=Object.values(S.props).filter(o=>o.owner===p.id).length;if(n)pay(S,p,null,15*n);})},
  {k:"spende",ic:"🎁",n:"Dorffest",t:"Dorffest-Überschuss",x:"Der Feuerwehrverein verteilt den Gewinn vom Dorffest: Jeder bekommt 50 €.",f:S=>alive(S).forEach(p=>p.money+=50)},
@@ -568,7 +568,7 @@ function land(S,p,depth){
   if(ownable(f)){
     const o=S.props[p.pos];
     if(!o){if(p.money>=f.p)canBuy=true;else log(S,p.name+" kann sich "+f.n+" nicht leisten.");}
-    else if(o.owner!==p.id){const ow=S.players[o.owner];let r=rent(S,p.pos);if(ow.bonus){r*=2;ow.bonus=false;log(S,"Kerwa-Zuschlag! Doppelte Miete.");}log(S,p.name+" zahlt "+r+" Miete an "+ow.name+".");{const a=st(S,p.id),b=st(S,ow.id);a.rp+=r;b.rg+=r;b.rgMax=Math.max(b.rgMax,r);if(r>a.mx){a.mx=r;a.mxf=p.pos;a.mxto=ow.id;}}pay(S,p,ow,r);}
+    else if(o.owner!==p.id){const ow=S.players[o.owner];let r=rent(S,p.pos);if(ow.bonus){r*=2;ow.bonus=false;log(S,"Waldfest-Zuschlag! Doppelte Miete.");}log(S,p.name+" zahlt "+r+" Miete an "+ow.name+".");{const a=st(S,p.id),b=st(S,ow.id);a.rp+=r;b.rg+=r;b.rgMax=Math.max(b.rgMax,r);if(r>a.mx){a.mx=r;a.mxf=p.pos;a.mxto=ow.id;}}pay(S,p,ow,r);}
   }else if(f.t==="tax"){log(S,p.name+" zahlt "+f.a+" ("+f.n+") in die Kasse im Biergarten.");pay(S,p,null,f.a);}
   else if(f.t==="pot"){if(S.pot>0){log(S,p.name+" räumt die Kasse im Biergarten ab: +"+S.pot+" €!");{const a=st(S,p.id);a.pot+=S.pot;a.potMax=Math.max(a.potMax,S.pot);}p.money+=S.pot;S.pot=0;}else log(S,p.name+" parkt am Dorfplatz. Die Kasse ist leer.");}
   else if(f.t==="gojail"){sendJail(S,p);}
@@ -1151,7 +1151,7 @@ function header(){return `<header class="row" style="gap:14px;flex-wrap:nowrap">
 function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary><ul>
 <li>Tippe auf ein Feld für Preise, Mieten und zum Bauen. ★ heißt Challenge, ! heißt Ereignis.</li><li>2 bis 4 Spieler, jeder startet mit 1.500 €. Über Los gibt es 200, wer genau auf Los landet, bekommt 400.</li>
 <li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Die Mieten sind wie im Original, mit 4 Häusern und Hotel etwas günstiger. Die billigste Miete sind 10 €.</li>
-<li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Kerwa (Mieten +50 %), Sommerloch (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
+<li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Waldfest (Mieten +50 %), Sommerloch (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
 <li><b>📜 Spielbericht und 🏅 Erfolge:</b> Am Ende gibt es Auszeichnungen wie Miethai oder Duellkönig und den Verlauf aller Vermögen. Auf jedem Handy sammelst du 18 Erfolge.</li>
 <li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, dreht am Glücksrad: Geld, die Kasse, eine Gratis-Straße, aber auch Minus oder der Bunker.</li>
 <li><b>🏆 Dorfmeisterschaft:</b> Jede 10. Runde spielen alle dasselbe Minispiel, ohne Einsatz. Platz 1 bekommt 300 € oder abwechselnd eine freie Straße, Platz 2 150 €, Platz 3 75 €.</li>
@@ -1539,7 +1539,7 @@ function renderGame(){
   const players=S.players.map(p=>{
     const props=Object.keys(S.props).filter(i=>S.props[i].owner===p.id).map(Number).sort((a,b)=>a-b);
     return `<div class="pl ${p.id===S.turn&&S.status==="playing"?"now":""} ${p.bankrupt?"out":""}" id="pl${p.id}"><div class="top"><span class="avatar" style="background:${p.color}">${tokSvg(tokOf(p))}</span><span>${esc(p.name)}</span></div>
-    <div class="money">${p.left?"raus":p.bankrupt?"pleite":fmt(p.money)}</div><div class="where">${p.bankrupt?"ausgeschieden":esc(BOARD[p.pos].n)}${p.jail?" (sitzt)":""}${p.jailCards?" · Freikarte":""}${p.bonus?" · Kerwa-Zuschlag":""}${p.skip?(p.skipWhy==="glaab"?" · setzt aus":" · Kralle ("+p.skip+")"):""}${p.sleep?" · pennt ("+p.sleep+")":""}</div>
+    <div class="money">${p.left?"raus":p.bankrupt?"pleite":fmt(p.money)}</div><div class="where">${p.bankrupt?"ausgeschieden":esc(BOARD[p.pos].n)}${p.jail?" (sitzt)":""}${p.jailCards?" · Freikarte":""}${p.bonus?" · Waldfest-Zuschlag":""}${p.skip?(p.skipWhy==="glaab"?" · setzt aus":" · Kralle ("+p.skip+")"):""}${p.sleep?" · pennt ("+p.sleep+")":""}</div>
     <div class="chips">${props.map(i=>`<i data-a="sel" data-i="${i}" title="${esc(BOARD[i].n)}" style="background:${BOARD[i].g?GROUPS[BOARD[i].g].c:"var(--paper-2)"}"></i>`).join("")}</div></div>`;
   }).join("");
   const over=S.status==="over"?`<section class="panel"><h2>Endstand</h2><div class="podium">${S.ranking.map(r=>`<div><span class="pl-place">${r.place}.</span><span class="dot" style="background:${r.color}"></span><b>${esc(r.name)}</b><span class="w">${r.left?"ausgestiegen":r.bankrupt?"pleite":fmt(r.worth)+" €"}</span></div>`).join("")}</div>${reportHTML(S)}<p class="note">${S.unranked?"Das Spiel wurde abgebrochen und zählt nicht für die Rangliste.":"Das Ergebnis steht jetzt in der Rangliste."}</p><h2>Rangliste</h2>${lbHTML()}</section>`:"";
@@ -1772,7 +1772,7 @@ const SPRUECHE=[
  "Peck baut schneller als du würfelst.","Gisbert hat angerufen, er will seinen Frosch zurück.","Bernd Glaab hat dich gesehen. Nur so.",
  "Tadan! Und weg is des Geld.","Äppler auf, Würfel raus!","Des is hier Rottenberg, net Monaco.","Ich kauf den Bambuspark und mach ne Hängematte rein.",
  "Wenn ich pleite bin, zieh ich nach Feldkahl.","Du würfelst wie ein Kalkwerk-Lkw rückwärts einparkt.","Halleluja, endlich ne Sechs!",
- "Im Grünen Tal gibt's Schnitzel, bei mir gibt's Miete.","Erst Kerwa, dann Karriere.","Kopf hoch, im Biergarten wartet die Kasse.",
+ "Im Grünen Tal gibt's Schnitzel, bei mir gibt's Miete.","Erst Waldfest, dann Karriere.","Kopf hoch, im Biergarten wartet die Kasse.",
  "Freddy sagt: Wer zuletzt lacht, hat die Bäckerei Rosel.","Big A hat noch nen Platz im Bunker frei. Für dich.","Hör auf zu rechnen, des is ein Würfelspiel!",
  "Ich hab nen Plan. Er heißt Holler.","Mit dem Glück würd ich heut Lotto spielen. Oder auch net.","Rollmisch-Regel Nummer 1: Niemals nüchtern verhandeln."
 ];
