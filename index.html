@@ -1155,6 +1155,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>📜 Spielbericht und 🏅 Erfolge:</b> Am Ende gibt es Auszeichnungen wie Miethai oder Duellkönig und den Verlauf aller Vermögen. Auf jedem Handy sammelst du 18 Erfolge.</li>
 <li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, dreht am Glücksrad: Geld, die Kasse, eine Gratis-Straße, aber auch Minus oder der Bunker.</li>
 <li><b>🏆 Dorfmeisterschaft:</b> Jede 10. Runde spielen alle dasselbe Minispiel, ohne Einsatz. Platz 1 bekommt 300 € oder abwechselnd eine freie Straße, Platz 2 150 €, Platz 3 75 €.</li>
+<li><b>👀 Zuschauen:</b> Bei Online-Spielen kann jeder mit dem Code oder über „Laufende Spiele“ zuschauen, ohne mitzuspielen, und im Chat mitreden.</li>
 <li>Pasch heißt nochmal würfeln. Drei Pasche hintereinander: ab in den Bunker bei Big A, dort wird erstmal gemeinsam einer geraucht. Raus kommst du mit Pasch, 50 € oder Freikarte.</li>
 <li><b>Rollmisch!</b> Wer eine Doppel-Eins würfelt, kassiert 50 von jedem Mitspieler.</li>
 <li><b>Biergarten</b> ist Frei Parken: Wer dort landet, räumt die Kasse ab, in der alle Strafen landen.</li><li><b>Tadan!</b> Wer im Gasthaus zum Löwen („Marry“) landet, gibt Freddy, der Dorflegende, einen aus und zahlt 10 € in die Kasse im Biergarten.</li>
@@ -1206,10 +1207,12 @@ function renderCpu(){
   <div class="row"><button class="primary" data-a="start-cpu">Los geht's</button><button class="ghost" data-a="home">Zurück</button></div></section>`;
 }
 function renderCreate(){return header()+`<section class="panel"><h2>Online-Spiel eröffnen</h2><div class="row"><label>Dein Name<input id="myname" maxlength="16" value="${esc(store.get("rbm-me")||"")}"></label>${roundsSelect()}</div>${app.err?`<p class="err">${esc(app.err)}</p>`:""}<div class="row"><button class="primary" data-a="create">Spiel eröffnen</button><button class="ghost" data-a="home">Zurück</button></div></section>`;}
-function renderJoin(){return header()+`<section class="panel"><h2>Online-Spiel beitreten</h2><div class="row"><label>Spiel-Code<input id="code" maxlength="4" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:.2em"></label><label>Dein Name<input id="myname" maxlength="16" value="${esc(store.get("rbm-me")||"")}"></label></div>${app.err?`<p class="err">${esc(app.err)}</p>`:""}<div class="row"><button class="primary" data-a="join">Mit Code beitreten</button><button class="ghost" data-a="home">Zurück</button></div></section>
+function renderJoin(){return header()+`<section class="panel"><h2>Online-Spiel beitreten</h2><div class="row"><label>Spiel-Code<input id="code" maxlength="4" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:.2em"></label><label>Dein Name<input id="myname" maxlength="16" value="${esc(store.get("rbm-me")||"")}"></label></div>${app.err?`<p class="err">${esc(app.err)}</p>`:""}<div class="row"><button class="primary" data-a="join">Mit Code beitreten</button><button class="ghost" data-a="watch">👀 Nur zuschauen</button><button class="ghost" data-a="home">Zurück</button></div></section>
   <section class="panel"><div class="row" style="justify-content:space-between"><h2>Offene Spiele</h2><button class="ghost small" data-a="reload-open">Aktualisieren</button></div>
   ${app.openGames==null?`<p class="note">Suche offene Spiele …</p>`:app.openGames.length?`<div class="stack">${app.openGames.map(g=>`<div class="row" style="justify-content:space-between;background:var(--forest);border-radius:10px;padding:10px 12px"><div class="stack" style="gap:2px;min-width:0"><b>${esc(g.players[0].name)}s Spiel</b><span class="note">${g.players.map(p=>esc(p.name)).join(", ")} · ${g.players.length}/4 Plätze · Code ${esc(g.code)}</span></div><button class="gold small" data-a="join-open" data-code="${esc(g.code)}">Beitreten</button></div>`).join("")}</div>`:`<p class="note">Gerade wartet kein Spiel auf Mitspieler. Eröffne einfach selbst eins, wer zuerst beitritt, ist dabei.</p>`}
-  <p class="note">Wer zuerst beitritt, ist dabei. Bei 4 Spielern ist das Spiel voll.</p></section>`;}
+  <p class="note">Wer zuerst beitritt, ist dabei. Bei 4 Spielern ist das Spiel voll.</p></section>
+  <section class="panel"><h2>👀 Laufende Spiele</h2><p class="note">Hier kannst du zuschauen, ohne mitzuspielen. Den Chat kannst du trotzdem benutzen.</p>
+  ${app.liveGames==null?`<p class="note">Suche laufende Spiele …</p>`:app.liveGames.length?`<div class="stack">${app.liveGames.map(g=>`<div class="row" style="justify-content:space-between;background:var(--forest);border-radius:10px;padding:10px 12px"><div class="stack" style="gap:2px;min-width:0"><b>${g.players.map(p=>esc(p.name)).join(", ")}</b><span class="note">Runde ${g.round}${g.maxRounds?" von "+g.maxRounds:""} · Code ${esc(g.code)}</span></div><button class="small" data-a="watch-open" data-code="${esc(g.code)}">Zuschauen</button></div>`).join("")}</div>`:`<p class="note">Gerade läuft kein Online-Spiel.</p>`}</section>`;}
 function renderLobby(){
   const L=app.lobby;if(!L)return header()+`<section class="panel"><p>Verbinde mit Spiel ${esc(app.code)} …</p><button class="ghost" data-a="leave">Abbrechen</button></section>`;
   const host=L.host===app.uid;
@@ -1540,7 +1543,7 @@ function renderGame(){
     <div class="chips">${props.map(i=>`<i data-a="sel" data-i="${i}" title="${esc(BOARD[i].n)}" style="background:${BOARD[i].g?GROUPS[BOARD[i].g].c:"var(--paper-2)"}"></i>`).join("")}</div></div>`;
   }).join("");
   const over=S.status==="over"?`<section class="panel"><h2>Endstand</h2><div class="podium">${S.ranking.map(r=>`<div><span class="pl-place">${r.place}.</span><span class="dot" style="background:${r.color}"></span><b>${esc(r.name)}</b><span class="w">${r.left?"ausgestiegen":r.bankrupt?"pleite":fmt(r.worth)+" €"}</span></div>`).join("")}</div>${reportHTML(S)}<p class="note">${S.unranked?"Das Spiel wurde abgebrochen und zählt nicht für die Rangliste.":"Das Ergebnis steht jetzt in der Rangliste."}</p><h2>Rangliste</h2>${lbHTML()}</section>`:"";
-  const top=`<div class="gtop"><div class="eyebrow">${app.mode==="online"?esc(app.code)+" · ":""}Runde ${S.round}${S.maxRounds?"/"+S.maxRounds:""}</div><div class="gbtns">${app.mode==="online"?`<button class="ghost small" data-a="tochat" aria-label="Chat">💬</button>`:""}<button class="ghost small" data-a="snd" aria-label="${SND.on?"Ton aus":"Ton an"}">${SND.on?"🔊":"🔇"}</button><button class="ghost small" data-a="zoom" aria-label="${app.zoom?"Brett verkleinern":"Brett vergrößern"}">${app.zoom?"🔍−":"🔍+"}</button>${S.status==="playing"?`<button class="ghost small" data-a="quit-open">⏻ Beenden</button>`:""}<button class="ghost small" data-a="home" aria-label="Menü">☰</button></div></div>${evNow(S)&&S.status==="playing"?`<div class="evbar">${evNow(S).ic} <b>${evNow(S).n}</b> · ${esc(evNow(S).x)}</div>`:""}`;
+  const top=`<div class="gtop"><div class="eyebrow">${isSpect()?"👀 ":""}${app.mode==="online"?esc(app.code)+" · ":""}Runde ${S.round}${S.maxRounds?"/"+S.maxRounds:""}</div><div class="gbtns">${app.mode==="online"?`<button class="ghost small" data-a="tochat" aria-label="Chat">💬</button>`:""}<button class="ghost small" data-a="snd" aria-label="${SND.on?"Ton aus":"Ton an"}">${SND.on?"🔊":"🔇"}</button><button class="ghost small" data-a="zoom" aria-label="${app.zoom?"Brett verkleinern":"Brett vergrößern"}">${app.zoom?"🔍−":"🔍+"}</button>${S.status==="playing"&&!isSpect()?`<button class="ghost small" data-a="quit-open">⏻ Beenden</button>`:""}${isSpect()?`<button class="ghost small" data-a="leave">👀 Verlassen</button>`:""}<button class="ghost small" data-a="home" aria-label="Menü">☰</button></div></div>${evNow(S)&&S.status==="playing"?`<div class="evbar">${evNow(S).ic} <b>${evNow(S).n}</b> · ${esc(evNow(S).x)}</div>`:""}`;
   const abortNote=S.status==="playing"&&S.abort&&Object.keys(S.abort).length&&!app.quitOpen?`<button class="ghost small abortnote" data-a="quit-open">⏻ ${Object.keys(S.abort).length} von ${alive(S).length} wollen aufhören. Tippen zum Abstimmen</button>`:"";
   const center=centerHTML(),below=`${quitPanel()}${abortNote}${app.sel!=null?fieldSheet(app.sel):""}${duelPanel()}${tradePanel()}${over}<div class="players">${players}</div>${rulesHTML()}`;
   app.gp={top,cells:cellArr,center,below,zoom:!!app.zoom};
@@ -1584,6 +1587,10 @@ async function loadOpen(){
     const cut=Date.now()-3*3600e3;
     app.openGames=snap.docs.map(d=>d.data()).filter(g=>g.created>cut&&g.players&&g.players.length<4).sort((a,b)=>b.created-a.created).slice(0,10);}
   catch(e){app.openGames=[];}
+  try{const snap=await app.db.collection("games").where("status","==","playing").limit(50).get();
+    const cut=Date.now()-8*3600e3;
+    app.liveGames=snap.docs.map(d=>d.data()).filter(g=>g.code&&(g.started||0)>cut&&g.players).sort((a,b)=>b.started-a.started).slice(0,10);}
+  catch(e){app.liveGames=[];}
   if(app.screen==="join")render();
 }
 const CODECH="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -1596,8 +1603,9 @@ document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState!=="visible"||app.mode!=="online"||!app.db||!app.code)return;
   app.db.doc("games/"+app.code).get().then(s=>{if(s.exists)applyGame(s.data());}).catch(()=>{});
 });
-function watchGame(code){
-  if(unsubGame)unsubGame();resetFx();app.code=code;app.mode="online";app.lobby=null;app.S=null;store.set("rbm-online",code);watchChat(code);
+function isSpect(){const S=app.S;return app.mode==="online"&&!!S&&!!S.players&&!S.players.some(p=>p.uid===app.uid);}
+function watchGame(code,spect){
+  if(unsubGame)unsubGame();resetFx();app.code=code;app.mode="online";app.lobby=null;app.S=null;if(!spect)store.set("rbm-online",code);watchChat(code);
   unsubGame=app.db.doc("games/"+code).onSnapshot(snap=>{
     if(!snap.exists){app.err="Spiel "+code+" gibt es nicht.";store.del("rbm-online");if(unsubGame)unsubGame();unsubGame=null;app.screen="join";render();return;}
     const d=snap.data();
@@ -1689,6 +1697,15 @@ document.addEventListener("click",async ev=>{
         if(d.status==="lobby"){if(!d.players.some(p=>p.uid===app.uid)){if(d.players.length>=4)throw{msg:"Das Spiel ist schon voll."};d.players.push({uid:app.uid,name,tok:freeTok(d.players.map(q=>q.tok))});await ref.set(d);}}
         else if(!d.players.some(p=>p.uid===app.uid))throw{msg:"Das Spiel läuft schon ohne dich."};});
       app.savedResult=null;watchGame(code);go("lobby");break;}
+    case "watch-open":
+    case "watch":{
+      const code=(a==="watch-open"?b.dataset.code:document.getElementById("code").value).trim().toUpperCase();
+      if(code.length!==4){app.err="Gib den Spiel-Code (4 Zeichen) ein.";render();break;}
+      const nm=document.getElementById("myname");if(nm&&nm.value.trim())store.set("rbm-me",nm.value.trim());
+      const s=await app.db.doc("games/"+code).get();if(!s.exists){app.err="Spiel "+code+" gibt es nicht.";render();break;}
+      if(s.data().status!=="playing"&&s.data().status!=="over"){app.err="Das Spiel hat noch nicht begonnen. Tritt bei oder warte, bis es losgeht.";render();break;}
+      app.savedResult=null;watchGame(code,true);go("game");
+      setTimeout(()=>{if(app.code===code&&isSpect())sendChat({kind:"text",text:"schaut jetzt zu."});},1200);break;}
     case "add-seat":{
       const name=document.getElementById("extra").value.trim();if(!name)break;const ref=app.db.doc("games/"+app.code);
       await withLease(ref,async()=>{const d=JSON.parse(JSON.stringify((await ref.get()).data()));if(d.players.length<4){d.players.push({uid:app.uid,name,tok:freeTok(d.players.map(q=>q.tok))});await ref.set(d);}});
@@ -1698,7 +1715,7 @@ document.addEventListener("click",async ev=>{
       await withLease(ref,async()=>{const d=(await ref.get()).data();if(d.status!=="lobby")return;await ref.set(newState(d.players,d.maxRounds||0,{code:app.code,host:d.host,rev:1}));});break;}
     case "leave":{
       if(app.lobby&&app.code){const ref=app.db.doc("games/"+app.code);await withLease(ref,async()=>{const s=await ref.get();if(!s.exists)return;const d=JSON.parse(JSON.stringify(s.data()));if(d.status!=="lobby")return;if(d.host===app.uid)await ref.delete();else{d.players=d.players.filter(p=>p.uid!==app.uid);await ref.set(d);}});}
-      if(unsubGame){unsubGame();unsubGame=null;}stopChat();store.del("rbm-online");app.lobby=null;app.code=null;go("home");break;}
+      const wasSpect=isSpect();if(unsubGame){unsubGame();unsubGame=null;}stopChat();if(!wasSpect)store.del("rbm-online");app.lobby=null;app.code=null;go("home");break;}
     case "sel":stopAutoEnd();app.sel=app.sel===i?null:i;render();break;
     case "unsel":app.sel=null;render();break;
     case "roll":commit(actRoll);break;
@@ -1775,7 +1792,7 @@ const QUIPS=[
 function quipFor(S){const t=S.log[0]||"";const hit=QUIPS.find(([re])=>re.test(t));if(!hit)return "";const pool=hit[1];return pool[(S.lc||0)%pool.length];}
 let unsubChat=null,chatSeen=0,chatMsgs=[];
 document.getElementById("stickers").innerHTML=Object.entries(STICKERS).map(([k,v])=>`<button type="button" data-a="sticker" data-s="${k}">${v[0]} ${esc(v[1])}</button>`).join("")+`<button type="button" data-a="spruch">🎤 Zufallsspruch</button>`;
-function myName(){const S=app.S||app.lobby;const me=S&&S.players.find(p=>p.uid===app.uid);return me?me.name:(store.get("rbm-me")||"Jemand");}
+function myName(){const S=app.S||app.lobby;const me=S&&S.players.find(p=>p.uid===app.uid);return me?me.name:(store.get("rbm-me")||"Jemand")+(app.S?" 👀":"");}
 function myColor(){const S=app.S||app.lobby;const i=S?S.players.findIndex(p=>p.uid===app.uid):-1;return COLORS[i]||"var(--paper)";}
 async function sendChat(m){
   if(!app.db||!app.code)return;
