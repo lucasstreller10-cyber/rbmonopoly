@@ -233,6 +233,7 @@ body.busy .center .acts button{pointer-events:none;opacity:.55;transition:opacit
 .mgfloat.bad{color:#ff7a6a}
 @keyframes mgfloat{to{transform:translate(-50%,-46px);opacity:0}}
 .quip{font-size:12px;font-style:italic;color:var(--gold);opacity:.9;max-width:92%}
+.ttt{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;width:min(100%,200px)}.ttt button{aspect-ratio:1/1;font-size:30px;padding:0;border-radius:10px;background:var(--paper);border:2px solid var(--gold);opacity:1}.ttt button:disabled{opacity:1}.ttt button.win{background:#e6b43d}
 .whack{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:min(100%,190px)}
 .whack button{aspect-ratio:1/1;font-size:30px;padding:0;border-radius:50%;background:radial-gradient(circle at 50% 60%,#1d140b 0 45%,#4a3520 46% 100%);border:2px solid #6b4a2a}
 .whack button.boar{background:radial-gradient(circle at 50% 60%,#5a3d22 0 45%,#7a5530 46% 100%);animation:pop .25s ease}
@@ -433,11 +434,11 @@ const CHALLENGES=[
  {t:"Schnick-Schnack-Schnuck",x:"Spiel gegen den Spieler links von dir. Gewinnst du, ist die Challenge geschafft.",w:50,l:30},
  {t:"Dorfhymne",x:"Sing 15 Sekunden lang ein Lied über Rottenberg, Text frei erfunden.",w:60,l:20}
 ];
-/* Die 8 Minispiele, die angeboten werden (alles Geschick, Tempo, Köpfchen oder Wissen, kein reines Glück). */
-const OFFER=["whack","rennen","faengt","glocken","stopp","rechnen","farben","schaetz"];
-const SOLO_ALL={rennen:{g:"Schaffe mindestens 40 Schritte.",ok:v=>v>=40},faengt:{g:"Fange mindestens 12 Äppler.",ok:v=>v>=12},glocken:{g:"Schaffe mindestens 5 Runden.",ok:v=>v>=5},whack:{g:"Schaffe mindestens 12 Punkte.",ok:v=>v>=12},stopp:{g:"Stoppe zwischen 4,75 und 5,25 Sekunden.",ok:v=>Math.abs(v-5000)<=250},rechnen:{g:"Schaffe mindestens 7 Punkte.",ok:v=>v>=7},farben:{g:"Schaffe mindestens 8 Punkte.",ok:v=>v>=8},reflex:{g:"Reagiere schneller als 0,40 Sekunden.",ok:v=>v<400},tap:{g:"Pumpe mindestens 35-mal in 5 Sekunden.",ok:v=>v>=35},schaetz:{g:"Liege höchstens 10 % daneben.",ok:(v,c)=>Math.abs(v-SCHAETZ[c.q].a)<=Math.max(1,SCHAETZ[c.q].a*.1)},huetchen:{g:"Finde den Taler unter einem von drei Bembeln.",ok:()=>Math.random()<1/3,w:150,l:30}};
+/* Die 9 Minispiele, die angeboten werden (alles Geschick, Tempo, Köpfchen oder Wissen, kein reines Glück). */
+const OFFER=["whack","rennen","faengt","glocken","stopp","rechnen","farben","schaetz","ttt"];
+const SOLO_ALL={ttt:{g:"Hol mindestens 5 Punkte gegen die Wildsau.",ok:v=>v>=5},rennen:{g:"Schaffe mindestens 40 Schritte.",ok:v=>v>=40},faengt:{g:"Fange mindestens 12 Äppler.",ok:v=>v>=12},glocken:{g:"Schaffe mindestens 5 Runden.",ok:v=>v>=5},whack:{g:"Schaffe mindestens 12 Punkte.",ok:v=>v>=12},stopp:{g:"Stoppe zwischen 4,75 und 5,25 Sekunden.",ok:v=>Math.abs(v-5000)<=250},rechnen:{g:"Schaffe mindestens 7 Punkte.",ok:v=>v>=7},farben:{g:"Schaffe mindestens 8 Punkte.",ok:v=>v>=8},reflex:{g:"Reagiere schneller als 0,40 Sekunden.",ok:v=>v<400},tap:{g:"Pumpe mindestens 35-mal in 5 Sekunden.",ok:v=>v>=35},schaetz:{g:"Liege höchstens 10 % daneben.",ok:(v,c)=>Math.abs(v-SCHAETZ[c.q].a)<=Math.max(1,SCHAETZ[c.q].a*.1)},huetchen:{g:"Finde den Taler unter einem von drei Bembeln.",ok:()=>Math.random()<1/3,w:150,l:30}};
 const SOLO=Object.fromEntries(OFFER.map(k=>[k,SOLO_ALL[k]]));
-function valText(k,v,c){if(k==="reflex")return v>=5000?"zu früh getippt":(v/1000).toFixed(2).replace(".",",")+" s";if(k==="stopp")return (v/1000).toFixed(2).replace(".",",")+" s";if(k==="tap")return v+"× gepumpt";if(k==="rennen")return v+" Schritte";if(k==="faengt")return v+" Äppler";if(k==="glocken")return v+" Runden";if(k==="whack")return v+" Punkte";if(k==="rechnen"||k==="farben")return v+" Punkte";if(k==="schaetz")return Number(v).toLocaleString("de-DE")+" getippt, richtig: "+SCHAETZ[c.q].a.toLocaleString("de-DE");return "Bembel "+v;}
+function valText(k,v,c){if(k==="reflex")return v>=5000?"zu früh getippt":(v/1000).toFixed(2).replace(".",",")+" s";if(k==="stopp")return (v/1000).toFixed(2).replace(".",",")+" s";if(k==="tap")return v+"× gepumpt";if(k==="rennen")return v+" Schritte";if(k==="faengt")return v+" Äppler";if(k==="glocken")return v+" Runden";if(k==="whack")return v+" Punkte";if(k==="rechnen"||k==="farben"||k==="ttt")return v+" Punkte";if(k==="schaetz")return Number(v).toLocaleString("de-DE")+" getippt, richtig: "+SCHAETZ[c.q].a.toLocaleString("de-DE");return "Bembel "+v;}
 function startChallenge(S){
   const kind=pick(Object.keys(SOLO)),x2=evOn(S,"pay")||1,c={kind,w:(SOLO[kind].w||80)*x2,l:(SOLO[kind].l||40)*x2};if(kind==="schaetz")c.q=Math.floor(Math.random()*SCHAETZ.length);
   S.challenge=c;S.phase="challenge";
@@ -758,9 +759,9 @@ function actEnd(S){
 }
 function actBuild(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||f.t!=="prop"||o.h>=MAXH||!ownsGroup(S,p.id,f.g)||p.money<houseCost(f)||S.phase==="buy")return S;p.money-=houseCost(f);o.h++;st(S,p.id).hs++;log(S,p.name+" baut "+(o.h===MAXH?"ein Hotel":"ein Haus")+" auf "+f.n+".");return S;}
 function actSell(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||o.h<1)return S;o.h--;p.money+=houseCost(f)/2;log(S,p.name+" verkauft ein Haus auf "+f.n+".");return S;}
-const DUELS={zufall:"🎲 Zufalls-Minigame",rennen:"🏁 Wildsau-Rennen",faengt:"🍏 Äppler-Fangen",glocken:"🔔 Klosterglocken",whack:"🐗 Wildsau-Jagd",stopp:"⏱️ Stopp bei 5 Sekunden",rechnen:"🧮 Kopfrechen-Sprint",farben:"🎨 Farb-Chaos",reflex:"⚡ Wildsau-Reflex",tap:"🍎 Äppler-Pumpen",schaetz:"🤔 Schätzen",huetchen:"🍺 Bembel-Hütchenspiel",ssp:"✊ Schnick-Schnack-Schnuck",wuerfel:"🎲 Würfel-Duell"};
+const DUELS={zufall:"🎲 Zufalls-Minigame",ttt:"⭕ Tic-Tac-Toe",rennen:"🏁 Wildsau-Rennen",faengt:"🍏 Äppler-Fangen",glocken:"🔔 Klosterglocken",whack:"🐗 Wildsau-Jagd",stopp:"⏱️ Stopp bei 5 Sekunden",rechnen:"🧮 Kopfrechen-Sprint",farben:"🎨 Farb-Chaos",reflex:"⚡ Wildsau-Reflex",tap:"🍎 Äppler-Pumpen",schaetz:"🤔 Schätzen",huetchen:"🍺 Bembel-Hütchenspiel",ssp:"✊ Schnick-Schnack-Schnuck",wuerfel:"🎲 Würfel-Duell"};
 const KIND_N=k=>DUELS[k].replace(/^\S+\s/,"");
-const MINI={rennen:"Tippe abwechselnd LINKS und RECHTS, so schnell du kannst. Jeder richtige Schritt bringt deine Wildsau weiter. 7 Sekunden.",faengt:"Äppler fallen vom Baum. Tipp sie an, bevor sie auf den Boden klatschen. 12 Sekunden.",glocken:"Die Klosterglocken spielen eine Melodie. Tippe sie nach. Jede Runde wird sie länger. Ein Fehler, und es ist vorbei.",whack:"12 Sekunden Wildsau-Jagd: Wildsau +1, goldene Sau +3, aber Finger weg von Freddy, das kostet 2 Punkte.",stopp:"Die Uhr läuft los und verschwindet nach 1,5 Sekunden. Stoppe so nah wie möglich an 5,00 Sekunden.",rechnen:"20 Sekunden Kopfrechnen. Richtig +1, falsch −1.",farben:"15 Sekunden: Tippe die Farbe, in der das Wort geschrieben ist, nicht das Wort. Richtig +1, falsch −1.",huetchen:"Unter einem von drei Bembeln liegt ein Taler. Tippt geheim auf einen Bembel. Wer ihn allein findet, gewinnt.",ssp:"Wählt geheim Schere, Stein oder Papier.",reflex:"Tippe so schnell wie möglich, sobald die Wildsau auftaucht. Wer zu früh tippt, kassiert 5 Sekunden Strafe.",tap:"Pumpe 5 Sekunden lang so oft wie möglich auf den Äppler-Knopf.",schaetz:"Schätzfrage: Wer näher dran ist, gewinnt."};
+const MINI={ttt:"Drei schnelle Partien Tic-Tac-Toe gegen die Wildsau. Du bist ❌ und fängst an. Sieg 3 Punkte, Unentschieden 1 Punkt. Die Sau ist schlau, aber nicht unschlagbar.",rennen:"Tippe abwechselnd LINKS und RECHTS, so schnell du kannst. Jeder richtige Schritt bringt deine Wildsau weiter. 7 Sekunden.",faengt:"Äppler fallen vom Baum. Tipp sie an, bevor sie auf den Boden klatschen. 12 Sekunden.",glocken:"Die Klosterglocken spielen eine Melodie. Tippe sie nach. Jede Runde wird sie länger. Ein Fehler, und es ist vorbei.",whack:"12 Sekunden Wildsau-Jagd: Wildsau +1, goldene Sau +3, aber Finger weg von Freddy, das kostet 2 Punkte.",stopp:"Die Uhr läuft los und verschwindet nach 1,5 Sekunden. Stoppe so nah wie möglich an 5,00 Sekunden.",rechnen:"20 Sekunden Kopfrechnen. Richtig +1, falsch −1.",farben:"15 Sekunden: Tippe die Farbe, in der das Wort geschrieben ist, nicht das Wort. Richtig +1, falsch −1.",huetchen:"Unter einem von drei Bembeln liegt ein Taler. Tippt geheim auf einen Bembel. Wer ihn allein findet, gewinnt.",ssp:"Wählt geheim Schere, Stein oder Papier.",reflex:"Tippe so schnell wie möglich, sobald die Wildsau auftaucht. Wer zu früh tippt, kassiert 5 Sekunden Strafe.",tap:"Pumpe 5 Sekunden lang so oft wie möglich auf den Äppler-Knopf.",schaetz:"Schätzfrage: Wer näher dran ist, gewinnt."};
 const SCHAETZ=[
  {q:"Wie hoch ist der Rottenberg in Metern?",a:408},{q:"In welchem Jahr wurde die Rottenberger Pestkapelle gebaut?",a:1632},{q:"In welchem Jahr kam Rottenberg zu Hösbach?",a:1978},
  {q:"In welchem Jahr wurde die alte Rottenberger Schule gebaut?",a:1818},{q:"Wie hoch ist der Gräfenberg in Metern?",a:364},{q:"Wie hoch ist der Klosterberg in Metern?",a:383},
@@ -786,7 +787,7 @@ function actDuelInput(S,pid,val){
   if(d.kind==="ssp"){detail=A.name+": "+a+", "+B.name+": "+b+".";if(a!==b)W=SSP_BEATS[a]===b?A:B;}
   else if(d.kind==="reflex"){detail=A.name+": "+(a>=5000?"zu früh!":a+" ms")+", "+B.name+": "+(b>=5000?"zu früh!":b+" ms")+".";if(a!==b)W=a<b?A:B;}
   else if(d.kind==="stopp"){const sec=v=>(v/1000).toFixed(2).replace(".",",")+" s";detail=A.name+": "+sec(a)+", "+B.name+": "+sec(b)+".";const da=Math.abs(a-5000),db=Math.abs(b-5000);if(da!==db)W=da<db?A:B;}
-  else if(["whack","rechnen","farben","rennen","faengt","glocken"].includes(d.kind)){const u={whack:" Punkte",rennen:" Schritte",faengt:" Äppler",glocken:" Runden"}[d.kind]||" Punkte";detail=A.name+": "+a+u+", "+B.name+": "+b+u+".";if(a!==b)W=a>b?A:B;}
+  else if(["whack","rechnen","farben","rennen","faengt","glocken","ttt"].includes(d.kind)){const u={whack:" Punkte",rennen:" Schritte",faengt:" Äppler",glocken:" Runden"}[d.kind]||" Punkte";detail=A.name+": "+a+u+", "+B.name+": "+b+u+".";if(a!==b)W=a>b?A:B;}
   else if(d.kind==="huetchen"){const ball=1+Math.floor(Math.random()*3);detail="Der Taler lag unter Bembel "+ball+". "+A.name+" tippte "+a+", "+B.name+" tippte "+b+".";if((a===ball)!==(b===ball))W=a===ball?A:B;}
   else if(d.kind==="tap"){detail=A.name+": "+a+"×, "+B.name+": "+b+"× gepumpt.";if(a!==b)W=a>b?A:B;}
   else{const q=SCHAETZ[d.q],da=Math.abs(a-q.a),db=Math.abs(b-q.a);detail="Richtig: "+fmt(q.a)+". "+A.name+": "+fmt(a)+", "+B.name+": "+fmt(b)+".";if(da!==db)W=da<db?A:B;}
@@ -989,6 +990,7 @@ function cpuScore(kind,lvl,q){
   if(kind==="rennen")return n(28,32,5);
   if(kind==="faengt")return n(7,11,2.5);
   if(kind==="glocken")return Math.max(1,n(2,7,1.3));
+  if(kind==="ttt")return Math.min(9,n(2,5,1.6));
   if(kind==="rechnen")return Math.round(4+10*s+3*g());
   if(kind==="farben")return Math.round(5+11*s+3*g());
   if(kind==="stopp")return Math.max(1500,Math.round(5000+(900-800*s)*g()));
@@ -1106,7 +1108,7 @@ const ACH=[
  ["bunker3","🚬","Stammgast bei Big A","Sitz 3-mal in einer Partie im Bunker."],
  ["reich","💰","Rottenberger Geldadel","Erreiche ein Vermögen von 10.000 €."],
  ["knapp","😅","Mit dem letzten Euro","Gewinne mit weniger als 100 € Bargeld."],
- ["alle8","🎮","Allrounder","Spiele alle 8 Minispiele."],
+ ["alle8","🎮","Allrounder","Spiele alle 9 Minispiele."],
  ["sau25","🐗","Wildsau-Schreck","Hol 25 Punkte bei der Wildsau-Jagd."],
  ["glocke","🔔","Glöckner vom Rottenberg","Schaffe 10 Runden Klosterglocken."],
  ["stopp","⏱️","Atomuhr","Stoppe höchstens 0,02 Sekunden neben 5,00."],
@@ -1288,12 +1290,13 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>★ Challenge-Felder</b> (Zum Grünen Tal, Schwimmbad) und die Karte „Challenge-Zeit!“: Du spielst ein Handy-Minigame mit Ziel, zum Beispiel mindestens 12 Punkte bei der Wildsau-Jagd oder genau bei 5 Sekunden stoppen. Geschafft gibt Geld, verpasst kostet.</li>
 <li><b>! Ereignis-Felder</b>: Tadan im Marry (10 € für Freddy), Brezel in der Bäckerei Rosel, Wurstprobe in der Metzgerei, Feuerwehrfest, Matschpfütze am Wiesenweg, abfahrende Busse, Klosterglocken (alle frei aus dem Bunker), Gipfelglück am Hofberg und mehr.</li>
 <li><b>🏛️ Tauschen bei Kilian:</b> In deinem Zug kannst du anderen Grundstücke und Geld zum Tausch anbieten. Bürgermeister Kilian beglaubigt und nimmt 10 € Gebühr. Tippe auf ein Feld, um zu sehen, was dort passiert.</li>
-<li><b>⚔ Herausfordern:</b> Einmal pro Zug darfst du einen Mitspieler zu einem Minigame um 20 bis 200 € herausfordern: Wildsau-Jagd, Stopp bei 5 Sekunden, Kopfrechen-Sprint, Farb-Chaos, Wildsau-Reflex, Äppler-Pumpen, Schätzen, Bembel-Hütchenspiel, Schnick-Schnack-Schnuck, Würfel-Duell oder Zufall. Alle Minigames laufen am Handy. Wer kneift, zahlt 10 €.</li>
+<li><b>⚔ Herausfordern:</b> Einmal pro Zug darfst du einen Mitspieler zu einem Minigame um 20 bis 200 € herausfordern: Wildsau-Jagd, Wildsau-Rennen, Äppler-Fangen, Klosterglocken, Stopp bei 5 Sekunden, Kopfrechen-Sprint, Farb-Chaos, Schätzen, Tic-Tac-Toe gegen die Wildsau oder Zufall. Alle Minigames laufen am Handy. Wer kneift, zahlt 10 €.</li>
 <li><b>Dorfchat</b> im Online-Spiel: Nachrichten, Sticker wie Tadan!, Wildsau! oder Rollmisch! und Zufallssprüche.</li>
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==10?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+  const news=store.get("rbm-news")!==11?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>⭕ Neues Minispiel: Tic-Tac-Toe gegen die Wildsau</li>
    <li>🃏 Casino mit Einsatz: Glücksrad bis zum Dreifachen oder eine Hand Blackjack</li>
    <li>🏆 Jede zweite Dorfmeisterschaft geht um Grundstücke</li>
    <li>🏦 Neue Karte: Bennys Bausparvertrag</li>
@@ -1438,6 +1441,7 @@ function mgInit(m){
   if(kind==="stopp"){m.stage="go";m.t0=now;}
   if(kind==="rechnen"){m.stage="go";m.end=now+20000;m.pq=mathQ();}
   if(kind==="farben"){m.stage="go";m.end=now+15000;newInk(m);}
+  if(kind==="ttt"){m.stage="go";m.b=Array(9).fill("");m.game=0;m.score=0;m.res=[];m.lock=false;m.msg="";}
   if(kind==="rennen"){m.stage="go";m.end=now+7000;m.last=null;}
   if(kind==="faengt"){m.stage="go";m.end=now+12000;m.nextA=now+300;m.aid=0;}
   if(kind==="glocken"){let x=q||(1+Math.floor(Math.random()*1e6));m.rng=()=>(x=(x*16807)%2147483647)%4;m.seq=[m.rng(),m.rng()];m.round=0;startBells(m);}
@@ -1466,6 +1470,27 @@ function startBells(m){
 }
 const BELLS=[["#e0453a","Rot"],["#3fae5a","Grün"],["#4a8bf0","Blau"],["#f0c419","Gelb"]];
 function flashBell(i){const el=document.querySelector(`[data-a="mg-bell"][data-v="${i}"]`);if(!el)return;el.classList.remove("ring");void el.offsetWidth;el.classList.add("ring");try{navigator.vibrate&&navigator.vibrate(25);}catch(e){}sfx("bell",i);}
+/* Tic-Tac-Toe gegen die Wildsau: gewinnt wenn möglich, blockt meistens, sonst Mitte, Ecke oder Zufall. */
+const TTT_L=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+const tttWin=(b,w)=>TTT_L.find(l=>l.every(i=>b[i]===w));
+function tttBot(b){
+  const free=b.map((c,i)=>c?-1:i).filter(i=>i>=0);
+  const tryW=w=>free.find(i=>{const c=b.slice();c[i]=w;return tttWin(c,w);});
+  let i=tryW("o");if(i!=null)return i;
+  if(Math.random()<.8){i=tryW("x");if(i!=null)return i;}
+  if(!b[4]&&Math.random()<.7)return 4;
+  const corners=[0,2,6,8].filter(j=>!b[j]);if(corners.length&&Math.random()<.6)return pick(corners);
+  return pick(free);
+}
+function tttMove(m,h){
+  if(m.lock||m.b[h]||m.stage!=="go")return;m.b[h]="x";sfx("hit");
+  const end=()=>{const xw=tttWin(m.b,"x"),ow=tttWin(m.b,"o"),full=m.b.every(Boolean);if(!xw&&!ow&&!full)return false;
+    m.win=xw||ow||null;const pts=xw?3:ow?0:1;m.score+=pts;m.res.push(xw?"✅":ow?"❌":"➖");m.msg=xw?"Gewonnen! +3":ow?"Die Wildsau gewinnt.":"Unentschieden. +1";buzz(xw?[60]:15);
+    m.lock=true;m.game++;mgRefresh();
+    setTimeout(()=>{if(mg!==m)return;if(m.game>=3){m.stage="done";miniSubmit(m.score);return;}m.b=Array(9).fill("");m.win=null;m.lock=false;m.msg="";mgRefresh();},1100);return true;};
+  if(end())return;m.lock=true;mgRefresh();
+  setTimeout(()=>{if(mg!==m)return;m.b[tttBot(m.b)]="o";m.lock=false;if(!end())mgRefresh();},380);
+}
 function mgRefresh(){const el=document.getElementById("mg-area");if(el&&mg)el.innerHTML=mgBody();}
 function mgBody(){
   const m=mg,k=m.kind;
@@ -1481,6 +1506,7 @@ function mgBody(){
   if(k==="whack")return `<div class="whack">${[...Array(9)].map((_,h)=>`<button data-a="mg-whack" data-h="${h}" class="${h===m.hole?"boar "+m.ht:""}" aria-label="Loch ${h+1}">${h===m.hole?(m.ht==="freddy"?"🧔":"🐗"):""}</button>`).join("")}</div><div class="note">🐗 +1 · goldene 🐗 +3 · 🧔 Freddy −2 · <b>${m.count}</b> Pkt · <span id="mg-left">${leftS(m)}</span></div>`;
   if(k==="stopp")return `<div class="bigq" id="mg-clock">0,00</div><button class="primary" data-a="mg-stop" style="font-size:20px;padding:12px 26px">⏱️ Stopp!</button>`;
   if(k==="rechnen")return `<div class="bigq">${m.pq.t} = ?</div><div class="acts">${m.pq.opts.map(v=>`<button class="gold" data-a="mg-ans" data-v="${v}" style="min-width:64px;font-size:18px">${v}</button>`).join("")}</div><div class="note">Punkte: <b>${m.score}</b>${m.streak>=2?` · 🔥 ${m.streak}er-Serie`:""} · noch <span id="mg-left">${leftS(m)}</span></div>`;
+  if(k==="ttt")return `<div class="ttt">${m.b.map((c,h)=>`<button data-a="mg-ttt" data-h="${h}" class="${c} ${m.win&&m.win.includes(h)?"win":""}" ${c||m.lock?"disabled":""}>${c==="x"?"❌":c==="o"?"🐗":""}</button>`).join("")}</div><div class="note">Partie ${m.msg?m.game:Math.min(m.game+1,3)}/3 · Punkte: <b>${m.score}</b>${m.res.length?" · "+m.res.join(" "):""}${m.msg?"<br>"+esc(m.msg):""}</div>`;
   if(k==="farben")return `<div class="bigq" style="color:${INK[m.ink][1]}">${INK[m.word][0]}</div><div class="acts">${INK.map((c,i)=>`<button class="ghost" data-a="mg-ink" data-v="${i}">${c[0]}</button>`).join("")}</div><div class="note">Punkte: <b>${m.score}</b>${m.streak>=2?` · 🔥 ${m.streak}er-Serie`:""} · noch <span id="mg-left">${leftS(m)}</span></div>`;
   return "";
 }
@@ -1738,7 +1764,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v20";
+const BUILD="rbm-v21";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -1774,7 +1800,7 @@ async function withLease(ref,fn){
 /* ---------- Eingaben ---------- */
 document.addEventListener("change",ev=>{if(ev.target&&ev.target.id==="t-to"){app.tradeTo=+ev.target.value;render();}});
 /* Minigame-Tipper reagieren schon beim Antippen (pointerdown), nicht erst beim Loslassen: schneller und ohne verschluckte Doppeltipper. */
-const FAST=new Set(["mg-foot","mg-apple","mg-bell","mg-whack","mg-stop","mg-ans","mg-ink","mg-hit","mg-tap"]);
+const FAST=new Set(["mg-ttt","mg-foot","mg-apple","mg-bell","mg-whack","mg-stop","mg-ans","mg-ink","mg-hit","mg-tap"]);
 function mgFast(a,b){
   switch(a){
     case "mg-foot":if(mg&&mg.kind==="rennen"&&mg.stage==="go"){const v=b.dataset.v;if(v!==mg.last){mg.count++;mg.last=v;}else{mg.count=Math.max(0,mg.count-1);}
@@ -1786,6 +1812,7 @@ function mgFast(a,b){
       mg.pos++;if(mg.pos>=mg.seq.length){mg.round++;mg.seq.push(mg.rng());const m=mg;m.stage="show";setTimeout(()=>{if(mg===m)startBells(m);},350);mgRefresh();}}break;
     case "mg-whack":if(mg&&mg.kind==="whack"&&mg.stage==="go"&&+b.dataset.h===mg.hole){const t=mg.ht;mg.count=Math.max(0,mg.count+(t==="gold"?3:t==="freddy"?-2:1));buzz(t==="freddy"?[60,40,60]:15);floatTxt(b,t==="gold"?"+3":t==="freddy"?"−2":"+1",t==="freddy");nextBoar(mg);mgRefresh();}break;
     case "mg-stop":if(mg&&mg.kind==="stopp"&&mg.stage==="go")miniSubmit(Math.round(performance.now()-mg.t0));break;
+    case "mg-ttt":if(mg&&mg.kind==="ttt")tttMove(mg,+b.dataset.h);break;
     case "mg-ans":if(mg&&mg.kind==="rechnen"&&mg.stage==="go"){scoreAns(mg,+b.dataset.v===mg.pq.a,b);mg.pq=mathQ();mgRefresh();}break;
     case "mg-ink":if(mg&&mg.kind==="farben"&&mg.stage==="go"){scoreAns(mg,+b.dataset.v===mg.ink,b);newInk(mg);mgRefresh();}break;
     case "mg-hit":if(mg){if(mg.stage==="go")miniSubmit(Math.round(performance.now()-mg.t0));else{toast("Zu früh! 5 Sekunden Strafe.");miniSubmit(5000);}}break;
@@ -1803,7 +1830,7 @@ document.addEventListener("click",async ev=>{
     case "go-local":go("local");break;
     case "go-cpu":go("cpu");break;
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",10);render();break;
+    case "news-ok":store.set("rbm-news",11);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
