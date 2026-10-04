@@ -180,8 +180,17 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
   .panel{padding:14px}
   .center{padding:5px;gap:4px}
 }
+.tabs{display:flex;gap:6px;margin-bottom:10px}.tabs button{flex:1;padding:8px 10px;font-size:13px;background:transparent;border:1px solid var(--line,rgba(255,255,255,.2));color:inherit}.tabs button.on{background:var(--gold);color:#1b1b1b;border-color:var(--gold)}
+.countdown{display:flex;flex-direction:column;align-items:center;gap:4px}
+.countdown span{font-family:var(--f-display);font-size:clamp(56px,20vw,96px);color:var(--gold);line-height:1;animation:pop .6s ease}
+.countdown small{color:var(--dim-on-forest);font-size:12px}
+.whack button.boar.gold{background:radial-gradient(circle at 50% 60%,#f2c230 0 45%,#b8860b 46% 100%);box-shadow:0 0 14px #f2c230}
+.whack button.boar.freddy{background:radial-gradient(circle at 50% 60%,#3a4a6a 0 45%,#2a3550 46% 100%)}
+.mgfloat{position:fixed;transform:translate(-50%,-10px);font-weight:800;color:#7dff9a;pointer-events:none;z-index:9;animation:mgfloat .7s ease forwards;text-shadow:0 2px 4px rgba(0,0,0,.6)}
+.mgfloat.bad{color:#ff7a6a}
+@keyframes mgfloat{to{transform:translate(-50%,-46px);opacity:0}}
 .quip{font-size:12px;font-style:italic;color:var(--gold);opacity:.9;max-width:92%}
-.whack{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:min(100%,210px)}
+.whack{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:min(100%,190px)}
 .whack button{aspect-ratio:1/1;font-size:30px;padding:0;border-radius:50%;background:radial-gradient(circle at 50% 60%,#1d140b 0 45%,#4a3520 46% 100%);border:2px solid #6b4a2a}
 .whack button.boar{background:radial-gradient(circle at 50% 60%,#5a3d22 0 45%,#7a5530 46% 100%);animation:pop .25s ease}
 .bigq{font-family:var(--f-display);font-size:clamp(24px,8vw,38px);color:var(--paper);font-variant-numeric:tabular-nums;line-height:1.1}
@@ -326,8 +335,11 @@ const BOARD=[
 const N=BOARD.length;
 const COLORS=["#d6452a","#2f74e0","#efc02b","#9354d8"];
 const MAXH=5;
-/* Rottenberg-Aufschlag (Lucas' Wunsch): Grundmiete ×5 (billigste Straße 10 €), Mieten mit Häusern/Hotel ×3 des Originals. */
-const RENT_X=2;BOARD.forEach(f=>{if(f.r)f.r=f.r.map((x,k)=>x*(k===0?5:3));});
+/* Rottenberg-Aufschlag: alle Mieten etwa doppelt so hoch wie im Original, die billigste Grundmiete ist 10 €.
+   Per Simulation abgestimmt: Mieten tun weh, aber niemand ist nach ein paar Runden schon raus. */
+const RENT_X=2,r5=x=>Math.round(x/5)*5;
+BOARD.forEach(f=>{if(!f.r)return;const c=f.r,out=[Math.max(10,c[0]*RENT_X)];
+  for(let k=1;k<6;k++)out.push(Math.max(r5(c[k]*RENT_X),k===1?2*out[0]+10:out[k-1]+10));f.r=out;});
 const BUS_BASE=25*RENT_X,WERK1=4*RENT_X,WERK2=10*RENT_X;
 const ownable=f=>f.t==="prop"||f.t==="bus"||f.t==="werk";
 const houseCost=f=>f.hc||100;
@@ -378,8 +390,11 @@ const CHALLENGES=[
  {t:"Schnick-Schnack-Schnuck",x:"Spiel gegen den Spieler links von dir. Gewinnst du, ist die Challenge geschafft.",w:50,l:30},
  {t:"Dorfhymne",x:"Sing 15 Sekunden lang ein Lied über Rottenberg, Text frei erfunden.",w:60,l:20}
 ];
-const SOLO={rennen:{g:"Schaffe mindestens 40 Schritte.",ok:v=>v>=40},faengt:{g:"Fange mindestens 12 Äppler.",ok:v=>v>=12},glocken:{g:"Schaffe mindestens 5 Runden.",ok:v=>v>=5},whack:{g:"Triff mindestens 8 Wildsäue.",ok:v=>v>=8},stopp:{g:"Stoppe zwischen 4,75 und 5,25 Sekunden.",ok:v=>Math.abs(v-5000)<=250},rechnen:{g:"Schaffe mindestens 7 Punkte.",ok:v=>v>=7},farben:{g:"Schaffe mindestens 8 Punkte.",ok:v=>v>=8},reflex:{g:"Reagiere schneller als 0,40 Sekunden.",ok:v=>v<400},tap:{g:"Pumpe mindestens 35-mal in 5 Sekunden.",ok:v=>v>=35},schaetz:{g:"Liege höchstens 10 % daneben.",ok:(v,c)=>Math.abs(v-SCHAETZ[c.q].a)<=Math.max(1,SCHAETZ[c.q].a*.1)},huetchen:{g:"Finde den Taler unter einem von drei Bembeln.",ok:()=>Math.random()<1/3,w:150,l:30}};
-function valText(k,v,c){if(k==="reflex")return v>=5000?"zu früh getippt":(v/1000).toFixed(2).replace(".",",")+" s";if(k==="stopp")return (v/1000).toFixed(2).replace(".",",")+" s";if(k==="tap")return v+"× gepumpt";if(k==="rennen")return v+" Schritte";if(k==="faengt")return v+" Äppler";if(k==="glocken")return v+" Runden";if(k==="whack")return v+" Treffer";if(k==="rechnen"||k==="farben")return v+" Punkte";if(k==="schaetz")return Number(v).toLocaleString("de-DE")+" getippt, richtig: "+SCHAETZ[c.q].a.toLocaleString("de-DE");return "Bembel "+v;}
+/* Die 8 Minispiele, die angeboten werden (alles Geschick, Tempo, Köpfchen oder Wissen, kein reines Glück). */
+const OFFER=["whack","rennen","faengt","glocken","stopp","rechnen","farben","schaetz"];
+const SOLO_ALL={rennen:{g:"Schaffe mindestens 40 Schritte.",ok:v=>v>=40},faengt:{g:"Fange mindestens 12 Äppler.",ok:v=>v>=12},glocken:{g:"Schaffe mindestens 5 Runden.",ok:v=>v>=5},whack:{g:"Schaffe mindestens 12 Punkte.",ok:v=>v>=12},stopp:{g:"Stoppe zwischen 4,75 und 5,25 Sekunden.",ok:v=>Math.abs(v-5000)<=250},rechnen:{g:"Schaffe mindestens 7 Punkte.",ok:v=>v>=7},farben:{g:"Schaffe mindestens 8 Punkte.",ok:v=>v>=8},reflex:{g:"Reagiere schneller als 0,40 Sekunden.",ok:v=>v<400},tap:{g:"Pumpe mindestens 35-mal in 5 Sekunden.",ok:v=>v>=35},schaetz:{g:"Liege höchstens 10 % daneben.",ok:(v,c)=>Math.abs(v-SCHAETZ[c.q].a)<=Math.max(1,SCHAETZ[c.q].a*.1)},huetchen:{g:"Finde den Taler unter einem von drei Bembeln.",ok:()=>Math.random()<1/3,w:150,l:30}};
+const SOLO=Object.fromEntries(OFFER.map(k=>[k,SOLO_ALL[k]]));
+function valText(k,v,c){if(k==="reflex")return v>=5000?"zu früh getippt":(v/1000).toFixed(2).replace(".",",")+" s";if(k==="stopp")return (v/1000).toFixed(2).replace(".",",")+" s";if(k==="tap")return v+"× gepumpt";if(k==="rennen")return v+" Schritte";if(k==="faengt")return v+" Äppler";if(k==="glocken")return v+" Runden";if(k==="whack")return v+" Punkte";if(k==="rechnen"||k==="farben")return v+" Punkte";if(k==="schaetz")return Number(v).toLocaleString("de-DE")+" getippt, richtig: "+SCHAETZ[c.q].a.toLocaleString("de-DE");return "Bembel "+v;}
 function startChallenge(S){
   const kind=pick(Object.keys(SOLO)),c={kind,w:SOLO[kind].w||80,l:SOLO[kind].l||40};if(kind==="schaetz")c.q=Math.floor(Math.random()*SCHAETZ.length);
   S.challenge=c;S.phase="challenge";
@@ -456,7 +471,7 @@ CARDS.klatsch=CARDS.klatsch.concat(CARDS.wahnX);delete CARDS.wahnX;
 function log(S,t){S.lc=(S.lc||0)+1;S.log.unshift(t);if(S.log.length>40)S.log.length=40;}
 const cur=S=>S.players[S.turn];
 function newState(list,maxRounds,extra){
-  return Object.assign({status:"playing",players:list.map((p,i)=>({id:i,uid:p.uid||null,name:p.name,tok:p.tok??i,color:COLORS[i],pos:0,money:1500,jail:false,jailTurns:0,jailCards:0,bankrupt:false,bankruptAt:0,bonus:false})),
+  return Object.assign({status:"playing",players:list.map((p,i)=>({id:i,uid:p.uid||null,cpu:!!p.cpu,name:p.name,tok:p.tok??i,color:COLORS[i],pos:0,money:1500,jail:false,jailTurns:0,jailCards:0,bankrupt:false,bankruptAt:0,bonus:false})),
     board:BOARD_V,props:{},turn:0,phase:"roll",dice:[0,0],doubles:0,again:false,pot:100,round:1,maxRounds:maxRounds,log:["Das Spiel beginnt. "+list[0].name+" würfelt zuerst."],card:null,
     decks:{klatsch:shuffle(CARDS.klatsch.map((_,i)=>i)),ch:shuffle(CHALLENGES.map((_,i)=>i))},wantBuy:false,challenge:null,seq:0,started:Date.now()},extra||{});
 }
@@ -567,7 +582,7 @@ function actBuild(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p
 function actSell(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||o.h<1)return S;o.h--;p.money+=houseCost(f)/2;log(S,p.name+" verkauft ein Haus auf "+f.n+".");return S;}
 const DUELS={zufall:"🎲 Zufalls-Minigame",rennen:"🏁 Wildsau-Rennen",faengt:"🍏 Äppler-Fangen",glocken:"🔔 Klosterglocken",whack:"🐗 Wildsau-Jagd",stopp:"⏱️ Stopp bei 5 Sekunden",rechnen:"🧮 Kopfrechen-Sprint",farben:"🎨 Farb-Chaos",reflex:"⚡ Wildsau-Reflex",tap:"🍎 Äppler-Pumpen",schaetz:"🤔 Schätzen",huetchen:"🍺 Bembel-Hütchenspiel",ssp:"✊ Schnick-Schnack-Schnuck",wuerfel:"🎲 Würfel-Duell"};
 const KIND_N=k=>DUELS[k].replace(/^\S+\s/,"");
-const MINI={rennen:"Tippe abwechselnd LINKS und RECHTS, so schnell du kannst. Jeder richtige Schritt bringt deine Wildsau weiter. 7 Sekunden.",faengt:"Äppler fallen vom Baum. Tipp sie an, bevor sie auf den Boden klatschen. 12 Sekunden.",glocken:"Die Klosterglocken spielen eine Melodie. Tippe sie nach. Jede Runde wird sie länger. Ein Fehler, und es ist vorbei.",whack:"Hau in 10 Sekunden so viele Wildsäue wie möglich.",stopp:"Die Uhr läuft los und verschwindet nach 1,5 Sekunden. Stoppe so nah wie möglich an 5,00 Sekunden.",rechnen:"20 Sekunden Kopfrechnen. Richtig +1, falsch −1.",farben:"15 Sekunden: Tippe die Farbe, in der das Wort geschrieben ist, nicht das Wort. Richtig +1, falsch −1.",huetchen:"Unter einem von drei Bembeln liegt ein Taler. Tippt geheim auf einen Bembel. Wer ihn allein findet, gewinnt.",ssp:"Wählt geheim Schere, Stein oder Papier.",reflex:"Tippe so schnell wie möglich, sobald die Wildsau auftaucht. Wer zu früh tippt, kassiert 5 Sekunden Strafe.",tap:"Pumpe 5 Sekunden lang so oft wie möglich auf den Äppler-Knopf.",schaetz:"Schätzfrage: Wer näher dran ist, gewinnt."};
+const MINI={rennen:"Tippe abwechselnd LINKS und RECHTS, so schnell du kannst. Jeder richtige Schritt bringt deine Wildsau weiter. 7 Sekunden.",faengt:"Äppler fallen vom Baum. Tipp sie an, bevor sie auf den Boden klatschen. 12 Sekunden.",glocken:"Die Klosterglocken spielen eine Melodie. Tippe sie nach. Jede Runde wird sie länger. Ein Fehler, und es ist vorbei.",whack:"12 Sekunden Wildsau-Jagd: Wildsau +1, goldene Sau +3, aber Finger weg von Freddy, das kostet 2 Punkte.",stopp:"Die Uhr läuft los und verschwindet nach 1,5 Sekunden. Stoppe so nah wie möglich an 5,00 Sekunden.",rechnen:"20 Sekunden Kopfrechnen. Richtig +1, falsch −1.",farben:"15 Sekunden: Tippe die Farbe, in der das Wort geschrieben ist, nicht das Wort. Richtig +1, falsch −1.",huetchen:"Unter einem von drei Bembeln liegt ein Taler. Tippt geheim auf einen Bembel. Wer ihn allein findet, gewinnt.",ssp:"Wählt geheim Schere, Stein oder Papier.",reflex:"Tippe so schnell wie möglich, sobald die Wildsau auftaucht. Wer zu früh tippt, kassiert 5 Sekunden Strafe.",tap:"Pumpe 5 Sekunden lang so oft wie möglich auf den Äppler-Knopf.",schaetz:"Schätzfrage: Wer näher dran ist, gewinnt."};
 const SCHAETZ=[
  {q:"Wie hoch ist der Rottenberg in Metern?",a:408},{q:"In welchem Jahr wurde die Rottenberger Pestkapelle gebaut?",a:1632},{q:"In welchem Jahr kam Rottenberg zu Hösbach?",a:1978},
  {q:"In welchem Jahr wurde die alte Rottenberger Schule gebaut?",a:1818},{q:"Wie hoch ist der Gräfenberg in Metern?",a:364},{q:"Wie hoch ist der Klosterberg in Metern?",a:383},
@@ -593,7 +608,7 @@ function actDuelInput(S,pid,val){
   if(d.kind==="ssp"){detail=A.name+": "+a+", "+B.name+": "+b+".";if(a!==b)W=SSP_BEATS[a]===b?A:B;}
   else if(d.kind==="reflex"){detail=A.name+": "+(a>=5000?"zu früh!":a+" ms")+", "+B.name+": "+(b>=5000?"zu früh!":b+" ms")+".";if(a!==b)W=a<b?A:B;}
   else if(d.kind==="stopp"){const sec=v=>(v/1000).toFixed(2).replace(".",",")+" s";detail=A.name+": "+sec(a)+", "+B.name+": "+sec(b)+".";const da=Math.abs(a-5000),db=Math.abs(b-5000);if(da!==db)W=da<db?A:B;}
-  else if(["whack","rechnen","farben","rennen","faengt","glocken"].includes(d.kind)){const u={whack:" Treffer",rennen:" Schritte",faengt:" Äppler",glocken:" Runden"}[d.kind]||" Punkte";detail=A.name+": "+a+u+", "+B.name+": "+b+u+".";if(a!==b)W=a>b?A:B;}
+  else if(["whack","rechnen","farben","rennen","faengt","glocken"].includes(d.kind)){const u={whack:" Punkte",rennen:" Schritte",faengt:" Äppler",glocken:" Runden"}[d.kind]||" Punkte";detail=A.name+": "+a+u+", "+B.name+": "+b+u+".";if(a!==b)W=a>b?A:B;}
   else if(d.kind==="huetchen"){const ball=1+Math.floor(Math.random()*3);detail="Der Taler lag unter Bembel "+ball+". "+A.name+" tippte "+a+", "+B.name+" tippte "+b+".";if((a===ball)!==(b===ball))W=a===ball?A:B;}
   else if(d.kind==="tap"){detail=A.name+": "+a+"×, "+B.name+": "+b+"× gepumpt.";if(a!==b)W=a>b?A:B;}
   else{const q=SCHAETZ[d.q],da=Math.abs(a-q.a),db=Math.abs(b-q.a);detail="Richtig: "+fmt(q.a)+". "+A.name+": "+fmt(a)+", "+B.name+": "+fmt(b)+".";if(da!==db)W=da<db?A:B;}
@@ -606,8 +621,8 @@ function actDuelInput(S,pid,val){
 function canDuel(S){const p=cur(S);return !S.duelUsed&&!!S.miniHere&&BOARD[p.pos].t==="mini"&&(S.phase==="roll"||S.phase==="end")&&others(S,p).length>0;}
 function actDuelStart(S,to,stake,kind){
   const p=cur(S),o=S.players[to];
-  if(kind==="zufall")kind=pick(Object.keys(MINI));
-  if(S.duel||!canDuel(S)||!o||o.bankrupt||o.id===p.id||!DUELS[kind]||kind==="zufall")return S;
+  if(kind==="zufall")kind=pick(OFFER);
+  if(S.duel||!canDuel(S)||!o||o.bankrupt||o.id===p.id||!OFFER.includes(kind))return S;
   stake=Math.min(stake,p.money,o.money);if(stake<=0)return S;
   const d={from:p.id,to:o.id,stake,kind,state:"ask",prev:S.phase};
   if(kind==="challenge"){const c=pick(CHALLENGES.filter(c=>c.t!=="Kellner-Dienst"));d.ct=c.t;d.cx=c.x;}
@@ -698,7 +713,7 @@ function actAbortVote(S,pid,yes){
 function actAbortAll(S){if(S.status!=="playing")return S;S.abort={};alive(S).forEach(p=>S.abort[p.id]=true);abortReady(S);return S;}
 function finish(S){
   S.status="over";S.phase="over";S.finishedAt=Date.now();
-  const r=S.players.map(p=>({name:p.name,color:p.color,worth:worth(S,p),bankrupt:p.bankrupt,left:!!p.left,ba:p.bankruptAt}));
+  const r=S.players.map(p=>({name:p.name,cpu:!!p.cpu,color:p.color,worth:worth(S,p),bankrupt:p.bankrupt,left:!!p.left,ba:p.bankruptAt}));
   r.sort((a,b)=>(a.bankrupt-b.bankrupt)||(a.bankrupt?b.ba-a.ba:b.worth-a.worth));
   S.ranking=r.map((x,i)=>Object.assign(x,{place:i+1}));
   if(!S.unranked)log(S,"Spielende! "+S.ranking[0].name+" ist der neue Rottenberg-Baron.");
@@ -715,14 +730,15 @@ const DICE=["","⚀","⚁","⚂","⚃","⚄","⚅"];
 
 function mayAct(ids){
   const S=app.S;if(!S||S.status!=="playing")return false;
-  if(app.mode==="local")return true;
   ids=ids||[S.turn];
+  if(app.mode==="local")return !S.vsCpu||ids.some(id=>S.players[id]&&!S.players[id].cpu);
   return ids.some(id=>S.players[id]&&S.players[id].uid===app.uid);
 }
 function canAct(){return mayAct()&&app.S.phase!=="duel"&&app.S.phase!=="trade";}
 /* Sofortiger Spielerwechsel: ist im Zug nichts mehr zu entscheiden, gibt derselbe Spielzug direkt an den Nächsten weiter.
    Die letzte Karte bleibt mit Namen sichtbar, damit alle sehen, was passiert ist. */
 function autoPass(S){
+  if(S.vsCpu&&S.status==="playing"&&S.players.every(p=>p.cpu||p.bankrupt))finish(S);
   if(S.status!=="playing"||S.phase!=="end"||canDuel(S))return S;
   const c=S.card,who=cur(S).name;actEnd(S);
   if(c&&!S.card)S.card=Object.assign({},c,{t:who+": "+c.t});
@@ -741,30 +757,108 @@ function commit(fn,ids){
 /* ---------- Rangliste ---------- */
 async function saveResult(S){
   if(S.unranked)return;
-  const id=(app.mode==="online"?S.code:"local")+"-"+S.finishedAt;
+  const id=(S.vsCpu?"cpu":app.mode==="online"?S.code:"local")+"-"+S.finishedAt;
   if(app.savedResult===id)return;app.savedResult=id;
-  const doc={at:S.finishedAt,mode:app.mode,rounds:S.round,ranking:S.ranking.map(r=>({name:r.name,worth:r.worth,place:r.place,bankrupt:r.bankrupt}))};
+  const doc={at:S.finishedAt,mode:S.vsCpu?"cpu":app.mode,rounds:S.round,ranking:S.ranking.map(r=>({name:r.name,worth:r.worth,place:r.place,bankrupt:r.bankrupt,cpu:!!r.cpu}))};if(S.vsCpu)doc.lvl=S.cpuLvl;
   if(app.db){try{await app.db.collection("results").doc(id).set(doc);return;}catch(e){}}
   const loc=store.get("rbm-results")||[];if(!loc.some(r=>r.id===id)){loc.push(Object.assign({id},doc));store.set("rbm-results",loc);app.results=mergeResults();render();}
 }
 let remoteResults=[];
 function mergeResults(){const loc=store.get("rbm-results")||[];return app.db?remoteResults:loc;}
-function leaderboard(){
+/* Testpartien, die nicht in die Rangliste gehören. */
+const HIDDEN_RESULTS=new Set(["local-1791071934532"]);
+function leaderboard(cpu){
   const m={};
-  for(const r of app.results){const n=r.ranking.length;for(const x of r.ranking){const k=String(x.name).trim().toLowerCase();if(!k)continue;const e=m[k]||(m[k]={name:String(x.name).trim(),games:0,wins:0,pts:0,best:0});e.games++;if(x.place===1)e.wins++;e.pts+=x.place===n?0:[3,2,1][x.place-1]||0;e.best=Math.max(e.best,x.worth||0);}}
+  for(const r of app.results){if(HIDDEN_RESULTS.has(r.id)||(r.mode==="cpu")!==!!cpu)continue;const n=r.ranking.length;for(const x of r.ranking){if(x.cpu)continue;const k=String(x.name).trim().toLowerCase();if(!k)continue;const e=m[k]||(m[k]={name:String(x.name).trim(),games:0,wins:0,pts:0,best:0});e.games++;if(x.place===1)e.wins++;e.pts+=x.place===n?0:[3,2,1][x.place-1]||0;e.best=Math.max(e.best,x.worth||0);}}
   return Object.values(m).sort((a,b)=>b.pts-a.pts||b.wins-a.wins||b.best-a.best);
 }
 function lbHTML(){
-  const rows=leaderboard();
-  if(!rows.length)return `<p class="note">Noch keine fertige Partie. Das erste beendete Spiel landet hier, egal ob online oder reihum am Handy.</p>`;
-  return `<div class="lb-wrap"><table class="lb"><thead><tr><th>#</th><th>Name</th><th>Punkte</th><th>Siege</th><th>Spiele</th><th>Rekord</th></tr></thead><tbody>${rows.slice(0,20).map((r,i)=>`<tr><td class="rank">${i+1}</td><td>${esc(r.name)}</td><td><b>${r.pts}</b></td><td>${r.wins}</td><td>${r.games}</td><td>${fmt(r.best)}</td></tr>`).join("")}</tbody></table></div><p class="note">Punkte pro Partie: 1. Platz 3, 2. Platz 2, 3. Platz 1, Letzter 0. Rekord ist das höchste Endvermögen in Euro.</p>`;
+  const cpu=app.lbTab==="cpu",rows=leaderboard(cpu);
+  const tabs=`<div class="tabs" role="tablist"><button role="tab" class="${cpu?"":"on"}" data-a="lb-tab" data-v="multi" aria-selected="${!cpu}">👥 Mehrspieler</button><button role="tab" class="${cpu?"on":""}" data-a="lb-tab" data-v="cpu" aria-selected="${cpu}">🤖 Gegen Computer</button></div>`;
+  if(!rows.length)return tabs+`<p class="note">${cpu?"Noch keine fertige Partie gegen den Computer. Schlag Freddy, Big A und Kilian und du stehst hier ganz oben.":"Noch keine fertige Partie. Das erste beendete Spiel landet hier, egal ob online oder reihum am Handy."}</p>`;
+  return tabs+`<div class="lb-wrap"><table class="lb"><thead><tr><th>#</th><th>Name</th><th>Punkte</th><th>Siege</th><th>Spiele</th><th>Rekord</th></tr></thead><tbody>${rows.slice(0,20).map((r,i)=>`<tr><td class="rank">${i+1}</td><td>${esc(r.name)}</td><td><b>${r.pts}</b></td><td>${r.wins}</td><td>${r.games}</td><td>${fmt(r.best)}</td></tr>`).join("")}</tbody></table></div><p class="note">Punkte pro Partie: 1. Platz 3, 2. Platz 2, 3. Platz 1, Letzter 0. Rekord ist das höchste Endvermögen in Euro.${cpu?" Die Computergegner zählen beim Platz mit, stehen aber nicht in der Liste.":""}</p>`;
+}
+
+/* ---------- Computergegner ----------
+   Die Bots spielen nur, wenn ein Mensch zuschaut (app.mode local, Spiel vsCpu). Jede Entscheidung ist ein normaler Spielzug. */
+function cpuActor(S){
+  if(!S||!S.vsCpu||S.status!=="playing")return null;
+  const P=id=>S.players[id]&&S.players[id].cpu?id:null;
+  if(S.phase==="duel"&&S.duel){const d=S.duel;if(d.state==="ask")return P(d.to);if(d.state==="play"){const id=miniPending(d).find(id=>S.players[id].cpu);return id??null;}return P(d.from);}
+  if(S.phase==="trade"&&S.trade)return P(S.trade.to);
+  return P(S.turn);
+}
+function cpuKick(){
+  clearTimeout(app.cpuT);app.cpuT=null;const S=app.S;
+  if(app.mode!=="local"||app.screen!=="game"||mg)return;
+  const id=cpuActor(S);if(id==null)return;
+  const wait=S.phase==="roll"?(S.card?1700:1000):S.phase==="duel"?1300:900;
+  app.cpuT=setTimeout(()=>{app.cpuT=null;if(app.S!==S||mg)return;cpuCommit(T=>cpuMove(T,id));},wait);
+}
+function cpuCommit(fn){
+  const next=autoPass(fn(JSON.parse(JSON.stringify(app.S))));next.rev=(next.rev||0)+1;
+  app.S=next;render();store.set("rbm-local",next);if(next.status==="over")saveResult(next);
+}
+/* Wie gut ein Bot ein Minispiel spielt. Stärke 1 bis 3, mit Streuung, damit jedes Duell offen bleibt. */
+function cpuScore(kind,lvl,q){
+  const g=()=>{let x=0;for(let i=0;i<4;i++)x+=Math.random();return (x-2)/1.15;},s=[0,.3,.55,.8][lvl]||.55;
+  const n=(base,span,sd)=>Math.max(0,Math.round(base+span*s+sd*g()));
+  if(kind==="whack")return n(7,13,3);
+  if(kind==="rennen")return n(28,32,5);
+  if(kind==="faengt")return n(7,11,2.5);
+  if(kind==="glocken")return Math.max(1,n(2,7,1.3));
+  if(kind==="rechnen")return Math.round(4+10*s+3*g());
+  if(kind==="farben")return Math.round(5+11*s+3*g());
+  if(kind==="stopp")return Math.max(1500,Math.round(5000+(900-800*s)*g()));
+  if(kind==="schaetz"){const a=SCHAETZ[q].a;return Math.max(0,Math.round(a*(1+(.45-.35*s)*g())));}
+  return 0;
+}
+function cpuValue(S,i){const f=BOARD[i];let v=f.p;if(f.g){const grp=BOARD.map((b,j)=>b.g===f.g?j:-1).filter(j=>j>=0);const own=grp.filter(j=>S.props[j]&&S.props[j].owner===S.props[i]?.owner).length;v*=1+own/grp.length;}return v;}
+function cpuMove(S,id){
+  const me=S.players[id],lvl=S.cpuLvl||2,reserve=[0,90,150,220][lvl];
+  if(S.phase==="duel"&&S.duel){const d=S.duel;
+    if(d.state==="ask")return actDuelAnswer(S,Math.random()<(d.stake>me.money*.4?.45:.85));
+    if(d.state==="play")return actDuelInput(S,id,cpuScore(d.kind,lvl,d.q));
+    return S;}
+  if(S.phase==="trade"&&S.trade){const t=S.trade;
+    const val=(l,pid)=>l.props.reduce((a,i)=>a+BOARD[i].p*(BOARD[i].g&&wouldComplete(S,i,pid)?2.5:1),0)+l.money;
+    const get=val(t.give,id),give=val(t.get,t.from);
+    return actTradeAnswer(S,get>=give*([0,1.05,1.25,1.5][lvl])+20);}
+  if(id!==S.turn)return S;
+  if(S.phase==="roll"){
+    cpuBuild(S,me,reserve);
+    if(canDuel(S)&&cpuDuel(S,me,lvl))return S;
+    if(me.jail&&me.jailCards&&S.round<12)return actRoll(actJailCard(S));
+    if(me.jail&&me.money>reserve+200&&S.round<12)actJailPay(S);
+    return actRoll(S);}
+  if(S.phase==="buy"){const f=BOARD[me.pos],key=f.g&&wouldComplete(S,me.pos,me.id);return (me.money-f.p>=reserve*(key?.3:1)||(key&&me.money>=f.p))?actBuy(S):actSkip(S);}
+  if(S.phase==="challenge"&&S.challenge)return actChallenge(S,cpuScore(S.challenge.kind,lvl,S.challenge.q));
+  if(S.phase==="penalty")return actPenalty(S,pick(["links","Mitte","rechts"]));
+  if(S.phase==="end"){cpuBuild(S,me,reserve);if(canDuel(S)&&cpuDuel(S,me,lvl))return S;return actEnd(S);}
+  return S;
+}
+function wouldComplete(S,i,pid){const g=BOARD[i].g;return !!g&&BOARD.every((f,j)=>f.g!==g||j===+i||(S.props[j]&&S.props[j].owner===pid));}
+/* Bauen: gleichmäßig auf vollen Gruppen, aber immer mit Notgroschen. */
+function cpuBuild(S,me,reserve){
+  for(let k=0;k<12;k++){
+    const opts=Object.keys(S.props).map(Number).filter(i=>{const o=S.props[i],f=BOARD[i];return o.owner===me.id&&f.t==="prop"&&o.h<MAXH&&ownsGroup(S,me.id,f.g)&&me.money-houseCost(f)>=reserve+60;});
+    if(!opts.length)return;
+    opts.sort((a,b)=>S.props[a].h-S.props[b].h||BOARD[b].p-BOARD[a].p);actBuild(S,opts[0]);
+  }
+}
+function cpuDuel(S,me,lvl){
+  if(Math.random()>[0,.35,.55,.7][lvl])return false;
+  const os=others(S,me).filter(o=>o.money>=20);if(!os.length)return false;
+  const human=os.find(o=>!o.cpu),o=human&&Math.random()<.75?human:pick(os);
+  const stake=Math.min(200,Math.max(20,Math.round(Math.min(me.money,o.money)*.12/10)*10));
+  actDuelStart(S,o.id,stake,pick(OFFER));return S.phase==="duel";
 }
 
 /* ---------- Bildschirme ---------- */
 function header(){return `<header class="row" style="gap:14px;flex-wrap:nowrap"><div class="crest hd">${WAPPEN}</div><div class="stack" style="gap:6px;min-width:0"><div class="eyebrow">Rollmisch-Edition · Spessart · 408 m ü. NN</div><h1>Rotten<span>berg</span>-Monopoly</h1></div></header>`;}
 function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary><ul>
 <li>Tippe auf ein Feld für Preise, Mieten und zum Bauen. ★ heißt Challenge, ! heißt Ereignis.</li><li>2 bis 4 Spieler, jeder startet mit 1.500 €. Über Los gibt es 200, wer genau auf Los landet, bekommt 400.</li>
-<li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Rottenberg-Aufschlag: Die billigste Miete sind 10 €, alle Mieten liegen deutlich über dem Original.</li>
+<li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Rottenberg-Aufschlag: Alle Mieten sind etwa doppelt so hoch wie im Original, die billigste Miete sind 10 €.</li>
 <li>Pasch heißt nochmal würfeln. Drei Pasche hintereinander: ab in den Bunker bei Big A, dort wird erstmal gemeinsam einer geraucht. Raus kommst du mit Pasch, 50 € oder Freikarte.</li>
 <li><b>Rollmisch!</b> Wer eine Doppel-Eins würfelt, kassiert 50 von jedem Mitspieler.</li>
 <li><b>Biergarten</b> ist Frei Parken: Wer dort landet, räumt die Kasse ab, in der alle Strafen landen.</li><li><b>Tadan!</b> Wer im Gasthaus zum Löwen („Marry“) landet, gibt Freddy, der Dorflegende, einen aus und zahlt 10 € in die Kasse im Biergarten.</li>
@@ -779,9 +873,10 @@ function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
   return header()+`<p class="lead">Kaufe die Feldkahler Straße, das Marry und den Bambuspark, überlebe den Bunker bei Big A, Wildschwein-Alarm und Dorfklatsch, gib Freddy im Marry einen aus und werde Rottenberg-Baron.</p>
   <section class="panel"><h2>Neues Spiel</h2><div class="big-choice">
-   ${resume&&resume.status==="playing"&&resume.board===BOARD_V?`<button class="gold" data-a="resume-local">Reihum-Spiel fortsetzen<small>${esc(resume.players.map(p=>p.name).join(", "))} · Runde ${resume.round}</small></button>`:""}
+   ${resume&&resume.status==="playing"&&resume.board===BOARD_V?`<button class="gold" data-a="resume-local">${resume.vsCpu?"Spiel gegen Computer":"Reihum-Spiel"} fortsetzen<small>${esc(resume.players.map(p=>p.name).join(", "))} · Runde ${resume.round}</small></button>`:""}
    ${onl?`<button class="gold" data-a="resume-online" data-code="${esc(onl)}">Zurück zu Online-Spiel ${esc(onl)}<small>Dein letztes Online-Spiel auf diesem Gerät</small></button>`:""}
    <button class="primary" data-a="go-local">Reihum an einem Handy<small>Bis zu 4 Spieler, das Handy wird weitergereicht</small></button>
+   <button class="primary" data-a="go-cpu">Allein gegen den Computer<small>Gegen Freddy, Big A und Kilian, mit eigener Rangliste</small></button>
    <button data-a="go-create" ${app.db&&app.uid?"":"disabled"}>Online-Spiel eröffnen<small>Jeder spielt am eigenen Handy, du bekommst einen Code</small></button>
    <button data-a="go-join" ${app.db&&app.uid?"":"disabled"}>Online-Spiel beitreten<small>Mit dem Code deiner Mitspieler</small></button>
   </div>${app.db&&app.uid?"":`<p class="note">Online-Spiele brauchen eine Anmeldung bei Claude mit Bearbeitungsrecht für diese Seite. Reihum am Handy geht immer.</p>`}</section>
@@ -795,6 +890,17 @@ function renderLocal(){
   <div class="stack">${[0,1,2,3].map(i=>`<div class="stack" style="gap:6px"><div class="row"><span class="dot" style="background:${COLORS[i]}"></span><input id="n${i}" maxlength="16" placeholder="Spieler ${i+1}" value="${esc(last[i]||"")}" style="flex:1"></div>${tokPicker(app.ltok[i],[],"ltok",i)}</div>`).join("")}</div>
   <div class="row">${roundsSelect()}</div>${app.err?`<p class="err">${esc(app.err)}</p>`:""}
   <div class="row"><button class="primary" data-a="start-local">Los geht's</button><button class="ghost" data-a="home">Zurück</button></div></section>`;
+}
+const BOTS=[{name:"Freddy",tag:"die Dorflegende"},{name:"Big A",tag:"der Bunkerkönig"},{name:"Kilian",tag:"der Bürgermeister"}];
+const LVL={1:"Leicht",2:"Normal",3:"Schwer"};
+function renderCpu(){
+  if(app.ctok==null)app.ctok=store.get("rbm-ctok")??0;const c=store.get("rbm-cpu")||{n:2,l:2};
+  return header()+`<section class="panel"><h2>🤖 Allein gegen den Computer</h2><p class="note">Du spielst gegen Rottenberger Computergegner. Sie kaufen, bauen, fordern dich zu Minispielen heraus und nehmen deine Tauschangebote nur, wenn sie sich lohnen.</p>
+  <label>Dein Name<input id="cname" maxlength="16" value="${esc(store.get("rbm-me")||(store.get("rbm-names")||[])[0]||"")}"></label>${tokPicker(app.ctok,[],"ctok",0)}
+  <div class="row"><label>Gegner<select id="cnum">${[1,2,3].map(n=>`<option value="${n}" ${n===c.n?"selected":""}>${BOTS.slice(0,n).map(b=>b.name).join(", ")}</option>`).join("")}</select></label>
+  <label>Stärke<select id="clvl">${[1,2,3].map(n=>`<option value="${n}" ${n===c.l?"selected":""}>${LVL[n]}</option>`).join("")}</select></label>${roundsSelect()}</div>
+  ${app.err?`<p class="err">${esc(app.err)}</p>`:""}
+  <div class="row"><button class="primary" data-a="start-cpu">Los geht's</button><button class="ghost" data-a="home">Zurück</button></div></section>`;
 }
 function renderCreate(){return header()+`<section class="panel"><h2>Online-Spiel eröffnen</h2><div class="row"><label>Dein Name<input id="myname" maxlength="16" value="${esc(store.get("rbm-me")||"")}"></label>${roundsSelect()}</div>${app.err?`<p class="err">${esc(app.err)}</p>`:""}<div class="row"><button class="primary" data-a="create">Spiel eröffnen</button><button class="ghost" data-a="home">Zurück</button></div></section>`;}
 function renderJoin(){return header()+`<section class="panel"><h2>Online-Spiel beitreten</h2><div class="row"><label>Spiel-Code<input id="code" maxlength="4" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:.2em"></label><label>Dein Name<input id="myname" maxlength="16" value="${esc(store.get("rbm-me")||"")}"></label></div>${app.err?`<p class="err">${esc(app.err)}</p>`:""}<div class="row"><button class="primary" data-a="join">Mit Code beitreten</button><button class="ghost" data-a="home">Zurück</button></div></section>
@@ -854,7 +960,7 @@ function centerHTML(){
     else if(d.state==="play")acts=miniHTML(d);
     else acts=mayAct([d.from,d.to])?`<button class="gold" data-a="duel-win" data-w="${A.id}">${esc(A.name)}</button><button class="gold" data-a="duel-win" data-w="${B.id}">${esc(B.name)}</button><button class="ghost" data-a="duel-win" data-w="">Unentschieden</button>`:`<div class="note">${esc(A.name)} und ${esc(B.name)} duellieren sich …</div>`;
   }else{
-    acts=`<div class="note waitturn"><span class="avatar" style="background:${p.color}">${tokSvg(tokOf(p))}</span>${esc(p.name)} ist dran …</div>`;
+    acts=`<div class="note waitturn"><span class="avatar" style="background:${p.color}">${tokSvg(tokOf(p))}</span>${p.cpu?"🤖 "+esc(p.name)+" "+pick(["überlegt","rechnet","grübelt","zählt sein Geld"]):esc(p.name)+" ist dran"} …</div>`;
   }
   const q=S.card?"":quipFor(S),card=S.card?`<div class="card ${S.card.deck}"><b>${esc(S.card.t)}</b>${esc(S.card.x)}</div>`:`<div class="msg">${esc(S.log[0]||"")}</div>${q?`<div class="quip">„${esc(q)}“</div>`:""}`;
   return `<div class="wm" aria-hidden="true">${WAPPEN}</div><div class="crest">${WAPPEN}</div><div class="mark">Rottenberg<small>Runde ${S.round}${S.maxRounds?" von "+S.maxRounds:""} · Kasse ${fmt(S.pot)} €</small></div>
@@ -872,13 +978,25 @@ function mathQ(){const t=Math.floor(Math.random()*3);let a,b,r,txt;
   const o=new Set([r]);while(o.size<3){const x=r+(Math.random()<.5?-1:1)*(1+Math.floor(Math.random()*10));if(x>=0)o.add(x);}
   return {t:txt,a:r,opts:shuffle([...o])};}
 function newInk(m){m.word=Math.floor(Math.random()*4);m.ink=Math.random()<.75?(m.word+1+Math.floor(Math.random()*3))%4:m.word;}
+function nextBoar(m){m.hole=newHole(m.hole);const r=Math.random();m.ht=r<.14?"gold":r<.3?"freddy":"boar";m.next=performance.now()+(m.ht==="gold"?520:Math.max(480,850-m.count*25));}
+/* Richtig +1, falsch −1, jede 5er-Serie gibt einen Bonuspunkt. */
+function scoreAns(m,ok,b){if(ok){m.score++;m.streak++;if(m.streak%5===0){m.score++;floatTxt(b,"🔥 +2");buzz([20,30,20]);}else{floatTxt(b,"+1");buzz(12);}}else{m.score--;m.streak=0;floatTxt(b,"−1",true);buzz([60,40,60]);}}
+function floatTxt(b,t,bad){const r=b.getBoundingClientRect(),el=document.createElement("div");el.className="mgfloat"+(bad?" bad":"");el.textContent=t;el.style.left=(r.left+r.width/2)+"px";el.style.top=(r.top)+"px";document.body.appendChild(el);setTimeout(()=>el.remove(),700);}
 function newHole(h){let x;do{x=Math.floor(Math.random()*9)}while(x===h);return x;}
 const leftS=m=>Math.max(0,Math.ceil((m.end-performance.now())/1000))+" s";
 function mgBegin(ctx,pid,kind,q){
-  if(mg){clearInterval(mg.iv);clearTimeout(mg.to);}
-  const m=mg={ctx,pid,kind,q,stage:"ready",count:0,score:0},now=performance.now();
+  if(mg){clearInterval(mg.iv);clearTimeout(mg.to);clearInterval(mg.to);}
+  const m=mg={ctx,pid,kind,q,stage:"ready",count:0,score:0,streak:0};
+  if(kind==="schaetz"||kind==="ssp"||kind==="huetchen"||kind==="tap"||kind==="reflex"){mgInit(m);render();return;}
+  /* 3-2-1-Los: alle starten gleich vorbereitet, niemand wird überrumpelt. */
+  m.stage="count";m.cd=3;render();buzz(20);
+  m.to=setInterval(()=>{if(mg!==m){clearInterval(m.to);return;}m.cd--;if(m.cd>0){mgRefresh();buzz(20);}else{clearInterval(m.to);m.to=null;buzz(60);mgInit(m);mgRefresh();}},650);
+}
+function buzz(p){try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}}
+function mgInit(m){
+  const kind=m.kind,q=m.q,now=performance.now();m.stage="ready";
   if(kind==="reflex"){m.stage="wait";m.to=setTimeout(()=>{if(mg===m){m.stage="go";m.t0=performance.now();mgRefresh();}},1500+Math.random()*3000);}
-  if(kind==="whack"){m.stage="go";m.end=now+10000;m.hole=newHole(-1);m.next=now+800;}
+  if(kind==="whack"){m.stage="go";m.end=now+12000;m.hole=newHole(-1);m.ht="boar";m.next=now+800;}
   if(kind==="stopp"){m.stage="go";m.t0=now;}
   if(kind==="rechnen"){m.stage="go";m.end=now+20000;m.pq=mathQ();}
   if(kind==="farben"){m.stage="go";m.end=now+15000;newInk(m);}
@@ -886,7 +1004,6 @@ function mgBegin(ctx,pid,kind,q){
   if(kind==="faengt"){m.stage="go";m.end=now+12000;m.nextA=now+300;m.aid=0;}
   if(kind==="glocken"){let x=q||(1+Math.floor(Math.random()*1e6));m.rng=()=>(x=(x*16807)%2147483647)%4;m.seq=[m.rng(),m.rng()];m.round=0;startBells(m);}
   if(["whack","stopp","rechnen","farben","rennen","faengt"].includes(kind))m.iv=setInterval(()=>mgTick(m),80);
-  render();
 }
 function mgTick(m){
   if(mg!==m){clearInterval(m.iv);return;}const now=performance.now();
@@ -894,7 +1011,7 @@ function mgTick(m){
   if(now>=m.end){miniSubmit(["whack","rennen","faengt"].includes(m.kind)?m.count:m.score);return;}
   const l=document.getElementById("mg-left");if(l)l.textContent=leftS(m);
   if(m.kind==="faengt"&&now>=m.nextA){m.nextA=now+Math.max(330,620-m.count*18);dropApple(m);}
-  if(m.kind==="whack"&&now>=m.next){m.hole=newHole(m.hole);m.next=now+Math.max(450,800-m.count*30);mgRefresh();}
+  if(m.kind==="whack"&&now>=m.next){nextBoar(m);mgRefresh();}
 }
 function dropApple(m){
   const box=document.getElementById("mg-tree");if(!box)return;const b=document.createElement("button");
@@ -914,6 +1031,7 @@ function flashBell(i){const el=document.querySelector(`[data-a="mg-bell"][data-v
 function mgRefresh(){const el=document.getElementById("mg-area");if(el&&mg)el.innerHTML=mgBody();}
 function mgBody(){
   const m=mg,k=m.kind;
+  if(m.stage==="count")return `<div class="countdown"><span>${m.cd}</span><small>${esc(KIND_N(k))} · Rekord: ${bestText(k)}</small></div>`;
   if(k==="ssp")return `<div class="acts">${[["schere","✌️ Schere"],["stein","✊ Stein"],["papier","✋ Papier"]].map(([v,l])=>`<button class="gold" data-a="mg-pick" data-v="${v}">${l}</button>`).join("")}</div>`;
   if(k==="huetchen")return `<div class="acts">${[1,2,3].map(v=>`<button class="gold" data-a="mg-pick" data-v="${v}" style="font-size:24px;padding:10px 14px">🍺<small style="font-size:12px"> ${v}</small></button>`).join("")}</div>`;
   if(k==="schaetz")return `<div class="row" style="justify-content:center"><input id="mg-num" type="number" inputmode="numeric" style="width:8em"><button class="gold" data-a="mg-send">Tipp abgeben</button></div>`;
@@ -922,19 +1040,19 @@ function mgBody(){
   if(k==="rennen"){const pct=Math.min(100,m.count*1.6);return `<div class="track"><span class="flag">🏁</span><span class="runner" style="left:calc(${pct}% - ${pct*.28}px)">🐗</span></div><div class="feet"><button class="gold ${m.last==="L"?"used":""}" data-a="mg-foot" data-v="L">👣 LINKS</button><button class="gold ${m.last==="R"?"used":""}" data-a="mg-foot" data-v="R">RECHTS 👣</button></div><div class="note">Schritte: <b id="mg-score">${m.count}</b> · noch <span id="mg-left">${leftS(m)}</span></div>`;}
   if(k==="faengt")return `<div class="tree" id="mg-tree"><span class="crown">🌳</span></div><div class="note">Gefangen: <b id="mg-score">${m.count}</b> · noch <span id="mg-left">${leftS(m)}</span></div>`;
   if(k==="glocken")return `<div class="bells">${BELLS.map((c,i)=>`<button data-a="mg-bell" data-v="${i}" style="--bell:${c[0]}" aria-label="Glocke ${c[1]}" ${m.stage!=="input"?"disabled":""}>🔔</button>`).join("")}</div><div class="note">${m.stage==="input"?"Jetzt du! ":"Hör gut zu … "}Runde <b>${m.round+1}</b> · ${m.seq.length} Töne</div>`;
-  if(k==="whack")return `<div class="whack">${[...Array(9)].map((_,h)=>`<button data-a="mg-whack" data-h="${h}" class="${h===m.hole?"boar":""}" aria-label="Loch ${h+1}">${h===m.hole?"🐗":""}</button>`).join("")}</div><div class="note">Treffer: <b>${m.count}</b> · noch <span id="mg-left">${leftS(m)}</span></div>`;
+  if(k==="whack")return `<div class="whack">${[...Array(9)].map((_,h)=>`<button data-a="mg-whack" data-h="${h}" class="${h===m.hole?"boar "+m.ht:""}" aria-label="Loch ${h+1}">${h===m.hole?(m.ht==="freddy"?"🧔":"🐗"):""}</button>`).join("")}</div><div class="note">🐗 +1 · goldene 🐗 +3 · 🧔 Freddy −2 · <b>${m.count}</b> Pkt · <span id="mg-left">${leftS(m)}</span></div>`;
   if(k==="stopp")return `<div class="bigq" id="mg-clock">0,00</div><button class="primary" data-a="mg-stop" style="font-size:20px;padding:12px 26px">⏱️ Stopp!</button>`;
-  if(k==="rechnen")return `<div class="bigq">${m.pq.t} = ?</div><div class="acts">${m.pq.opts.map(v=>`<button class="gold" data-a="mg-ans" data-v="${v}" style="min-width:64px;font-size:18px">${v}</button>`).join("")}</div><div class="note">Punkte: <b>${m.score}</b> · noch <span id="mg-left">${leftS(m)}</span></div>`;
-  if(k==="farben")return `<div class="bigq" style="color:${INK[m.ink][1]}">${INK[m.word][0]}</div><div class="acts">${INK.map((c,i)=>`<button class="ghost" data-a="mg-ink" data-v="${i}">${c[0]}</button>`).join("")}</div><div class="note">Punkte: <b>${m.score}</b> · noch <span id="mg-left">${leftS(m)}</span></div>`;
+  if(k==="rechnen")return `<div class="bigq">${m.pq.t} = ?</div><div class="acts">${m.pq.opts.map(v=>`<button class="gold" data-a="mg-ans" data-v="${v}" style="min-width:64px;font-size:18px">${v}</button>`).join("")}</div><div class="note">Punkte: <b>${m.score}</b>${m.streak>=2?` · 🔥 ${m.streak}er-Serie`:""} · noch <span id="mg-left">${leftS(m)}</span></div>`;
+  if(k==="farben")return `<div class="bigq" style="color:${INK[m.ink][1]}">${INK[m.word][0]}</div><div class="acts">${INK.map((c,i)=>`<button class="ghost" data-a="mg-ink" data-v="${i}">${c[0]}</button>`).join("")}</div><div class="note">Punkte: <b>${m.score}</b>${m.streak>=2?` · 🔥 ${m.streak}er-Serie`:""} · noch <span id="mg-left">${leftS(m)}</span></div>`;
   return "";
 }
 function miniHTML(d){
-  const S=app.S,pend=miniPending(d),mine=pend.filter(id=>app.mode==="local"||S.players[id].uid===app.uid);
+  const S=app.S,pend=miniPending(d),mine=pend.filter(id=>app.mode==="local"?!S.players[id].cpu:S.players[id].uid===app.uid);
   if(mg&&(mg.ctx!=="duel"||!pend.includes(mg.pid)||mg.kind!==d.kind)){clearInterval(mg.iv);clearTimeout(mg.to);mg=null;}
   if(!mg){
     if(!mine.length)return `<div class="note">Warte auf ${pend.map(id=>esc(S.players[id].name)).join(" und ")} …</div>`;
     const id=mine[0],secret=d.kind==="ssp"||d.kind==="schaetz"||d.kind==="huetchen";
-    return `${app.mode==="local"?`<div class="note">Handy an ${esc(S.players[id].name)} geben${secret?", die anderen schauen weg":""}.</div>`:""}<button class="gold" data-a="mg-start" data-p="${id}">${esc(S.players[id].name)}: Los geht's</button>`;
+    return `${app.mode==="local"&&!S.vsCpu?`<div class="note">Handy an ${esc(S.players[id].name)} geben${secret?", die anderen schauen weg":""}.</div>`:""}<button class="gold" data-a="mg-start" data-p="${id}">${esc(S.players[id].name)}: Los geht's</button>${d.kind!=="schaetz"?`<div class="note">Dein Rekord: ${bestText(d.kind)}</div>`:""}`;
   }
   return `<div class="note">${esc(S.players[mg.pid].name)} spielt ${esc(KIND_N(d.kind))}</div><div id="mg-area" class="mg">${mgBody()}</div>`;
 }
@@ -944,7 +1062,13 @@ function soloHTML(c){
   if(!mg)return `<button class="gold" data-a="mg-solo">${esc(p.name)}: Challenge starten</button>`;
   return `<div id="mg-area" class="mg">${mgBody()}</div>`;
 }
-function miniSubmit(val){const m=mg;if(!m)return;clearInterval(m.iv);clearTimeout(m.to);mg=null;app.deferRender=false;
+const BEST_LOWER={stopp:true};
+function bestOf(k){const b=store.get("rbm-best")||{};return b[k];}
+function bestText(k){const v=bestOf(k);return v==null?"noch keiner":valText(k,v,{q:0}).replace(/, richtig.*$/,"");}
+function noteBest(k,v){if(k==="schaetz"||typeof v!=="number")return false;const b=store.get("rbm-best")||{},cur=b[k];
+  const sc=k==="stopp"?-Math.abs(v-5000):v,old=cur==null?null:(k==="stopp"?-Math.abs(cur-5000):cur);
+  if(old==null||sc>old){b[k]=v;store.set("rbm-best",b);return old!=null;}return false;}
+function miniSubmit(val){const m=mg;if(!m)return;if(m.stage==="go"||m.stage==="input"||m.stage==="done"||m.stage==="ready"){if(noteBest(m.kind,val))setTimeout(()=>toast("🏆 Neuer Rekord: "+valText(m.kind,val,{q:0})),400);}clearInterval(m.iv);clearTimeout(m.to);mg=null;app.deferRender=false;
   if(m.ctx==="solo")commit(S=>actChallenge(S,val));else commitLeased(S=>actDuelInput(S,m.pid,val),[m.pid]);}
 async function commitLeased(fn,ids){
   if(!mayAct(ids))return;
@@ -995,11 +1119,11 @@ function confetti(){
 function renderBar(){
   const bar=document.getElementById("mybar"),S=app.S;
   const show=app.screen==="game"&&S&&S.status==="playing";document.body.classList.toggle("has-bar",!!show);bar.hidden=!show;if(!show){app.barPid=null;return;}
-  let p;if(app.mode==="local")p=cur(S);else{const mine=S.players.filter(q=>q.uid===app.uid);p=mine.find(q=>q.id===S.turn)||mine[0];}
+  let p;if(app.mode==="local")p=S.vsCpu?S.players.find(q=>!q.cpu):cur(S);else{const mine=S.players.filter(q=>q.uid===app.uid);p=mine.find(q=>q.id===S.turn)||mine[0];}
   if(!p){bar.hidden=true;document.body.classList.remove("has-bar");app.barPid=null;return;}
   app.barPid=p.id;const n=Object.values(S.props).filter(o=>o.owner===p.id).length;
   const place=1+S.players.filter(q=>!q.bankrupt&&worth(S,q)>worth(S,p)).length;
-  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.id===S.turn?" · du bist dran":""}</span></div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
+  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.id===S.turn?" · du bist dran":""}</span></div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
 }
 /* Flüssiger Spielerwechsel: ist im Zug nichts mehr zu entscheiden, geht es nach kurzer Pause automatisch weiter. */
 const AUTO_MS=2600;
@@ -1037,13 +1161,19 @@ function postGame(){
   S.players.forEach(p=>{const pr=app.prevMoney[p.id];if(pr!=null&&pr!==p.money)floater(p.id,p.money-pr);app.prevMoney[p.id]=p.money;});
   const lc=S.lc||0;if(app.seenLc!=null&&lc>app.seenLc)showBanner(S.log.slice(0,Math.min(lc-app.seenLc,S.log.length)));app.seenLc=lc;
   const key=S.card?S.card.t+S.card.x:"";if(key&&key!==app.cardKey){const el=document.querySelector(".center .card");if(el)el.classList.add("flip");}app.cardKey=key;
-  if(S.status==="over"&&!app.confetti){app.confetti=true;if(!S.unranked)confetti();}
+  if(S.status==="over"&&!app.confetti){app.confetti=true;if(!S.unranked&&!(S.vsCpu&&S.ranking[0].cpu))confetti();}
+  cpuKick();
   turnAlert();armAutoEnd();
 }
 function quitPanel(){
   const S=app.S;if(!app.quitOpen||!S||S.status!=="playing")return "";
   const mine=S.players.filter(p=>!p.bankrupt&&(app.mode==="local"||p.uid===app.uid));
   const rest=alive(S),votes=rest.filter(p=>S.abort&&S.abort[p.id]).length;
+  if(S.vsCpu)return `<section class="panel quit"><h2>⏻ Spiel beenden</h2>
+    <p class="note">Aufgeben zählt als letzter Platz in der Computer-Rangliste. Abbrechen beendet das Spiel ohne Wertung.</p>
+    <div class="acts2">${mine.filter(p=>!p.cpu).map(p=>`<button class="ghost" data-a="quit" data-p="${p.id}">Aufgeben</button>`).join("")}</div>
+    <button class="primary" data-a="abort-all">Abbrechen (zählt nicht)</button>
+    <button class="ghost small" data-a="quit-close">Weiterspielen</button></section>`;
   if(app.mode==="local")return `<section class="panel quit"><h2>⏻ Spiel beenden</h2>
     <p class="note">Wer aussteigt, scheidet aus, seine Straßen werden wieder frei.</p>
     <div class="acts2">${mine.map(p=>`<button class="ghost" data-a="quit" data-p="${p.id}">${esc(p.name)} steigt aus</button>`).join("")}</div>
@@ -1062,7 +1192,7 @@ function duelPanel(){
   const p=cur(S),os=others(S,p);
   return `<section class="panel"><h2>⚔ Herausforderung</h2><p class="note">Du stehst auf dem Minigame-Feld und darfst jemanden herausfordern. Wer kneift, zahlt dir 10 €.</p>
   <div class="row"><label>Gegner<select id="d-to">${os.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join("")}</select></label>
-  <label>Minigame<select id="d-kind">${Object.keys(DUELS).map(k=>`<option value="${k}">${DUELS[k]}</option>`).join("")}</select></label>
+  <label>Minigame<select id="d-kind">${["zufall",...OFFER].map(k=>`<option value="${k}">${DUELS[k]}</option>`).join("")}</select></label>
   <label>Einsatz<select id="d-stake"><option>20</option><option selected>50</option><option>100</option><option>200</option></select></label></div>
   <div class="row"><button class="primary" data-a="duel-go">Herausfordern</button><button class="ghost" data-a="duel-close">Abbrechen</button></div></section>`;
 }
@@ -1107,7 +1237,7 @@ function patchGame(){
 function render(){
   if(app.screen==="game"&&app.lastScreen==="game"&&patchGame()){renderChat();postGame();return;}
   app.lastScreen=app.screen;if(app.screen!=="game")app.gp=null;
-  const v={home:renderHome,local:renderLocal,create:renderCreate,join:renderJoin,lobby:renderLobby,game:renderGame}[app.screen]();
+  const v={home:renderHome,local:renderLocal,cpu:renderCpu,create:renderCreate,join:renderJoin,lobby:renderLobby,game:renderGame}[app.screen]();
   const keep={};document.querySelectorAll("#app input,#app select").forEach(el=>{if(el.id)keep[el.id]=el.type==="checkbox"?el.checked:el.value});
   const bw=document.querySelector(".boardwrap"),scr=bw?[bw.scrollLeft,bw.scrollTop]:null;
   document.getElementById("app").innerHTML=v;renderChat();
@@ -1161,17 +1291,17 @@ document.addEventListener("change",ev=>{if(ev.target&&ev.target.id==="t-to"){app
 const FAST=new Set(["mg-foot","mg-apple","mg-bell","mg-whack","mg-stop","mg-ans","mg-ink","mg-hit","mg-tap"]);
 function mgFast(a,b){
   switch(a){
-    case "mg-foot":if(mg&&mg.kind==="rennen"){const v=b.dataset.v;if(v!==mg.last){mg.count++;mg.last=v;}else{mg.count=Math.max(0,mg.count-1);}
+    case "mg-foot":if(mg&&mg.kind==="rennen"&&mg.stage==="go"){const v=b.dataset.v;if(v!==mg.last){mg.count++;mg.last=v;}else{mg.count=Math.max(0,mg.count-1);}
       const r=document.querySelector(".track .runner"),pct=Math.min(100,mg.count*1.6);if(r)r.style.left=`calc(${pct}% - ${pct*.28}px)`;
       document.querySelectorAll('[data-a="mg-foot"]').forEach(x=>x.classList.toggle("used",x.dataset.v===mg.last));const sc=document.getElementById("mg-score");if(sc)sc.textContent=mg.count;}break;
     case "mg-apple":if(mg&&mg.kind==="faengt"){mg.count++;b.classList.add("caught");b.dataset.a="";b.textContent="✨";setTimeout(()=>b.remove(),250);const sc=document.getElementById("mg-score");if(sc)sc.textContent=mg.count;try{navigator.vibrate&&navigator.vibrate(15);}catch(e){}}break;
     case "mg-bell":if(mg&&mg.kind==="glocken"&&mg.stage==="input"){const v=+b.dataset.v;flashBell(v);
       if(v!==mg.seq[mg.pos]){const m=mg;m.stage="done";b.classList.add("wrong");setTimeout(()=>{if(mg===m)miniSubmit(m.round);},500);break;}
       mg.pos++;if(mg.pos>=mg.seq.length){mg.round++;mg.seq.push(mg.rng());const m=mg;m.stage="show";setTimeout(()=>{if(mg===m)startBells(m);},350);mgRefresh();}}break;
-    case "mg-whack":if(mg&&mg.kind==="whack"&&+b.dataset.h===mg.hole){mg.count++;mg.hole=newHole(mg.hole);mg.next=performance.now()+Math.max(450,800-mg.count*30);mgRefresh();}break;
-    case "mg-stop":if(mg&&mg.kind==="stopp")miniSubmit(Math.round(performance.now()-mg.t0));break;
-    case "mg-ans":if(mg&&mg.kind==="rechnen"){mg.score+=(+b.dataset.v===mg.pq.a)?1:-1;mg.pq=mathQ();mgRefresh();}break;
-    case "mg-ink":if(mg&&mg.kind==="farben"){mg.score+=(+b.dataset.v===mg.ink)?1:-1;newInk(mg);mgRefresh();}break;
+    case "mg-whack":if(mg&&mg.kind==="whack"&&mg.stage==="go"&&+b.dataset.h===mg.hole){const t=mg.ht;mg.count=Math.max(0,mg.count+(t==="gold"?3:t==="freddy"?-2:1));buzz(t==="freddy"?[60,40,60]:15);floatTxt(b,t==="gold"?"+3":t==="freddy"?"−2":"+1",t==="freddy");nextBoar(mg);mgRefresh();}break;
+    case "mg-stop":if(mg&&mg.kind==="stopp"&&mg.stage==="go")miniSubmit(Math.round(performance.now()-mg.t0));break;
+    case "mg-ans":if(mg&&mg.kind==="rechnen"&&mg.stage==="go"){scoreAns(mg,+b.dataset.v===mg.pq.a,b);mg.pq=mathQ();mgRefresh();}break;
+    case "mg-ink":if(mg&&mg.kind==="farben"&&mg.stage==="go"){scoreAns(mg,+b.dataset.v===mg.ink,b);newInk(mg);mgRefresh();}break;
     case "mg-hit":if(mg){if(mg.stage==="go")miniSubmit(Math.round(performance.now()-mg.t0));else{toast("Zu früh! 5 Sekunden Strafe.");miniSubmit(5000);}}break;
     case "mg-tap":if(mg){mg.count++;const c=document.getElementById("mg-count");if(c)c.textContent=mg.count;
       if(mg.stage==="ready"){mg.stage="go";const m=mg;const tEl=document.getElementById("mg-time");if(tEl)tEl.textContent="Läuft …";setTimeout(()=>{if(mg===m)miniSubmit(m.count);},5000);}}break;
@@ -1185,6 +1315,18 @@ document.addEventListener("click",async ev=>{
   try{switch(a){
     case "home":if(unsubGame){unsubGame();unsubGame=null;}stopChat();app.code=null;app.duelOpen=false;app.sel=null;app.S=null;app.mode=null;go("home");break;
     case "go-local":go("local");break;
+    case "go-cpu":go("cpu");break;
+    case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
+    case "lb-tab":app.lbTab=b.dataset.v;render();break;
+    case "start-cpu":{
+      const name=document.getElementById("cname").value.trim(),n=+document.getElementById("cnum").value,l=+document.getElementById("clvl").value;
+      if(!name){app.err="Bitte gib deinen Namen ein.";render();break;}
+      if(BOTS.slice(0,n).some(b=>b.name.toLowerCase()===name.toLowerCase())){app.err="Der Name ist schon an einen Computergegner vergeben.";render();break;}
+      store.set("rbm-me",name);store.set("rbm-ctok",app.ctok);store.set("rbm-cpu",{n,l});
+      const list=[{name,tok:app.ctok}],used=[app.ctok];BOTS.slice(0,n).forEach(b=>{const t=freeTok(used);used.push(t);list.push({name:b.name,tok:t,cpu:true});});
+      resetFx();app.mode="local";app.S=newState(list,+document.getElementById("rounds").value,{vsCpu:true,cpuLvl:l});
+      app.S.log=[name+" gegen "+BOTS.slice(0,n).map(b=>b.name+", "+b.tag).join(" und ")+". Viel Glück!"];
+      app.sel=null;app.savedResult=null;store.set("rbm-local",app.S);go("game");break;}
     case "ltok":{const i=+b.dataset.i,k=+b.dataset.k;const names=[0,1,2,3].map(n=>document.getElementById("n"+n).value);store.set("rbm-names",names);const j=app.ltok.indexOf(k);if(j>=0&&j!==i)app.ltok[j]=app.ltok[i];app.ltok[i]=k;render();break;}
     case "otok":{const i=+b.dataset.i,k=+b.dataset.k,ref=app.db.doc("games/"+app.code);
       await withLease(ref,async()=>{const d=JSON.parse(JSON.stringify((await ref.get()).data()));if(d.status!=="lobby"||!d.players[i]||d.players[i].uid!==app.uid)return;if(d.players.some((q,j)=>j!==i&&q.tok===k))return;d.players[i].tok=k;await ref.set(d);});break;}
@@ -1339,7 +1481,7 @@ function start(data){
     if(!window.claude||!window.claude.use)return;
     const [db,user]=await Promise.all([claude.use("db"),claude.use("user")]);
     app.user=user;app.uid=user?await user.id():null;app.db=db;
-    if(db){db.collection("results").orderBy("at","desc").limit(300).onSnapshot(s=>{remoteResults=s.docs.map(d=>d.data());app.results=remoteResults;if(app.screen==="home"||(app.S&&app.S.status==="over"))render();},()=>{});}
+    if(db){db.collection("results").orderBy("at","desc").limit(300).onSnapshot(s=>{remoteResults=s.docs.map(d=>Object.assign({id:d.id},d.data()));app.results=remoteResults;if(app.screen==="home"||(app.S&&app.S.status==="over"))render();},()=>{});}
     if(app.screen==="home")render();
   })();
 }
