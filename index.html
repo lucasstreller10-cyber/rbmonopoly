@@ -381,10 +381,11 @@ const COLORS=["#d6452a","#2f74e0","#efc02b","#9354d8"];
 const MAXH=5;
 /* Mieten wie im Original (Lucas: halbiert), 4 Häuser und Hotel etwas günstiger, die billigste Grundmiete ist 10 €.
    Per Simulation abgestimmt: Mieten tun weh, aber niemand ist nach ein paar Runden schon raus. */
-const RENT_X=1,RENT_K=[1,1,.9,.8,.75,.7],r5=x=>Math.round(x/5)*5;
-BOARD.forEach(f=>{if(!f.r)return;const c=f.r,out=[Math.max(10,c[0]*RENT_X)];
+/* Mieten: klassische Werte +30 % (Lucas, 04.10.), Häuser und Hotels etwas gedämpft, auf 5 € gerundet. */
+const RENT_X=1.3,RENT_K=[1,1,.9,.8,.75,.7],r5=x=>Math.round(x/5)*5;
+BOARD.forEach(f=>{if(!f.r)return;const c=f.r,out=[Math.max(10,r5(c[0]*RENT_X))];
   for(let k=1;k<6;k++)out.push(Math.max(r5(c[k]*RENT_X*RENT_K[k]),k===1?2*out[0]+10:out[k-1]+10));f.r=out;});
-const BUS_BASE=25*RENT_X,WERK1=4*RENT_X,WERK2=10*RENT_X;
+const BUS_BASE=Math.round(25*RENT_X),WERK1=Math.round(4*RENT_X),WERK2=Math.round(10*RENT_X);
 const ownable=f=>f.t==="prop"||f.t==="bus"||f.t==="werk";
 const houseCost=f=>f.hc||100;
 const WAPPEN=`<svg viewBox="0 0 200 240" role="img" aria-label="Wappen von Rottenberg"><defs><clipPath id="wclip"><path d="M10 10H190V120C190 185 140 220 100 236C60 220 10 185 10 120Z"/></clipPath></defs>
@@ -564,6 +565,35 @@ function bausparRate(S,p){
   p.money-=BS_RATE;p.bs.paid+=BS_RATE;const n=p.bs.paid/BS_RATE;
   log(S,"🏦 "+p.name+" zahlt "+BS_RATE+" € in den Bausparvertrag ("+n+"/"+BS_N+").");
   if(p.money<0)settle(S,p,null);
+}
+/* Dorfbank Rottenberg: ab und zu (etwa jeder 9. Zug) ein verlockendes Angebot vor dem Würfeln. Annehmen oder ablehnen. */
+const LOAN_N=5;
+function bankOffer(S){
+  const p=cur(S);if(S.status!=="playing"||S.round<2||p.jail||p.bankrupt||Math.random()>.11)return;
+  const opts=[];
+  if(!p.loan){const amt=pick([300,400,500]);opts.push({k:"kredit",amt,rate:Math.round(amt*1.3/LOAN_N/5)*5});}
+  const mine=BOARD.map((f,i)=>i).filter(i=>{const o=S.props[i];return o&&o.owner===p.id&&!o.h&&!(BOARD[i].g&&ownsGroup(S,p.id,BOARD[i].g));});
+  if(mine.length){const i=pick(mine);opts.push({k:"ankauf",i,amt:r5(BOARD[i].p*1.6)});}
+  const free=BOARD.map((f,i)=>i).filter(i=>["prop","bus","werk"].includes(BOARD[i].t)&&!S.props[i]);
+  if(free.length){const i=pick(free);opts.push({k:"rabatt",i,amt:r5(BOARD[i].p*.6)});}
+  if(!opts.length)return;const o=pick(opts);S.offer=o;S.phase="bank";
+  const x=o.k==="kredit"?"Sofort "+o.amt+" € auf die Hand! Zurückzahlen in "+LOAN_N+" Runden je "+o.rate+" € (zusammen "+o.rate*LOAN_N+" €)."
+    :o.k==="ankauf"?"Die Bank will "+BOARD[o.i].n+" kaufen und zahlt "+o.amt+" € bar, deutlich mehr als den Kaufpreis von "+BOARD[o.i].p+" €."
+    :"Sonderangebot: "+BOARD[o.i].n+" für nur "+o.amt+" € statt "+BOARD[o.i].p+" €, egal wo du stehst.";
+  S.card={deck:"ch",t:"🏦 Angebot der Dorfbank",x};log(S,"Die Dorfbank macht "+p.name+" ein Angebot.");
+}
+function actBank(S,yes){
+  const p=cur(S),o=S.offer;if(S.phase!=="bank"||!o)return S;S.offer=null;S.phase="roll";let x="";
+  if(yes&&o.k==="kredit"){p.money+=o.amt;p.loan={left:LOAN_N,rate:o.rate};x=p.name+" nimmt "+o.amt+" € Kredit.";}
+  else if(yes&&o.k==="ankauf"&&S.props[o.i]&&S.props[o.i].owner===p.id&&!S.props[o.i].h){delete S.props[o.i];p.money+=o.amt;x=p.name+" verkauft "+BOARD[o.i].n+" für "+o.amt+" € an die Bank.";}
+  else if(yes&&o.k==="rabatt"&&!S.props[o.i]&&p.money>=o.amt){p.money-=o.amt;S.props[o.i]={owner:p.id,h:0};st(S,p.id).buy=(st(S,p.id).buy||0)+1;x=p.name+" schlägt zu: "+BOARD[o.i].n+" für "+o.amt+" €.";}
+  else x=p.name+" lehnt das Angebot der Dorfbank ab.";
+  log(S,"🏦 "+x);S.card={deck:"ch",t:"🏦 Dorfbank",x};return S;
+}
+function loanRate(S,p){
+  if(!p.loan||p.bankrupt)return;p.money-=p.loan.rate;p.loan.left--;
+  log(S,"🏦 "+p.name+" zahlt "+p.loan.rate+" € Kreditrate"+(p.loan.left?" (noch "+p.loan.left+")":", Kredit abbezahlt")+".");
+  if(!p.loan.left)p.loan=null;if(p.money<0)settle(S,p,null);
 }
 function pay(S,from,to,amt){
   if(from.bankrupt||amt<=0)return;
@@ -753,9 +783,9 @@ function actEnd(S){
     if(q.sleep>0){q.sleep--;if(q.sleep){log(S,q.name+" pennt im Bunker weiter (noch "+q.sleep+").");continue;}q.jail=false;q.jailTurns=0;log(S,q.name+" wacht im Bunker auf, reibt sich die Augen und darf raus.");continue;}
     if(q.skip>0){q.skip--;log(S,q.name+(q.skipWhy==="glaab"?" muss bei Bernd Glaab nachsitzen und setzt aus":" hängt in Hermann Pfeufers eiserner Kralle und setzt aus")+(q.skip?" (noch "+q.skip+")":" (jetzt frei)")+".");continue;}break;}
   S.turn=t;
-  if(S.round!==r0&&!(S.maxRounds&&S.round>S.maxRounds)){alive(S).forEach(q=>bausparRate(S,q));S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));if(S.round%3===0||(S.maxRounds&&S.round===S.maxRounds))roundEvent(S);}
+  if(S.round!==r0&&!(S.maxRounds&&S.round>S.maxRounds)){alive(S).forEach(q=>{bausparRate(S,q);loanRate(S,q);});S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));if(S.round%3===0||(S.maxRounds&&S.round===S.maxRounds))roundEvent(S);}
   if(S.maxRounds&&S.round>S.maxRounds){S.round=S.maxRounds;finish(S);return S;}
-  S.phase="roll";if(S.round!==r0&&S.round%10===0&&alive(S).length>1)tourStart(S);return S;
+  S.phase="roll";if(S.round!==r0&&S.round%10===0&&alive(S).length>1)tourStart(S);else bankOffer(S);return S;
 }
 function actBuild(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||f.t!=="prop"||o.h>=MAXH||!ownsGroup(S,p.id,f.g)||p.money<houseCost(f)||S.phase==="buy")return S;p.money-=houseCost(f);o.h++;st(S,p.id).hs++;log(S,p.name+" baut "+(o.h===MAXH?"ein Hotel":"ein Haus")+" auf "+f.n+".");return S;}
 function actSell(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||o.h<1)return S;o.h--;p.money+=houseCost(f)/2;log(S,p.name+" verkauft ein Haus auf "+f.n+".");return S;}
@@ -865,14 +895,14 @@ function actTradeAnswer(S,yes){
   S.card={deck:"trade",t:"🏛️ Getauscht!",x:"Kilian stempelt ab. "+A.name+" zahlt 10 € Gebühr."};
   pay(S,A,null,10);if(S.status==="playing"&&cur(S).bankrupt)S.phase="end";return S;
 }
-function worth(S,p){if(p.bankrupt)return 0;let w=p.money+(p.bs?p.bs.paid:0);Object.keys(S.props).forEach(i=>{const o=S.props[i];if(o.owner===p.id)w+=BOARD[i].p+o.h*houseCost(BOARD[i]);});return w;}
+function worth(S,p){if(p.bankrupt)return 0;let w=p.money+(p.bs?p.bs.paid:0)-(p.loan?p.loan.left*p.loan.rate:0);Object.keys(S.props).forEach(i=>{const o=S.props[i];if(o.owner===p.id)w+=BOARD[i].p+o.h*houseCost(BOARD[i]);});return w;}
 /* Aussteigen: Straßen des Spielers werden frei (Häuser weg), er scheidet aus. */
 function actQuit(S,pid){
   const p=S.players[pid];if(S.status!=="playing"||!p||p.bankrupt)return S;
   if(S.duel&&(S.duel.from===pid||S.duel.to===pid)){const d=S.duel;S.duel=null;S.phase=d.prev;}
   if(S.trade&&(S.trade.from===pid||S.trade.to===pid)){const t=S.trade;S.trade=null;S.phase=t.prev;}
   Object.keys(S.props).forEach(i=>{if(S.props[i].owner===pid)delete S.props[i];});
-  p.bankrupt=true;p.left=true;p.bankruptAt=++S.seq;p.money=0;p.bs=null;p.jail=false;p.skip=0;p.sleep=0;
+  p.bankrupt=true;p.left=true;p.bankruptAt=++S.seq;p.money=0;p.bs=null;p.loan=null;p.jail=false;p.skip=0;p.sleep=0;
   if(S.abort)delete S.abort[pid];
   log(S,p.name+" steigt aus. Seine Straßen sind wieder frei.");
   const rest=alive(S);
@@ -1020,6 +1050,7 @@ function cpuMove(S,id){
   if(S.phase==="buy"){const f=BOARD[me.pos],key=f.g&&wouldComplete(S,me.pos,me.id);return (me.money-f.p>=reserve*(key?.3:1)||(key&&me.money>=f.p))?actBuy(S):actSkip(S);}
   if(S.phase==="challenge"&&S.challenge)return actChallenge(S,cpuScore(S.challenge.kind,lvl,S.challenge.q));
   if(S.phase==="penalty")return actPenalty(S,pick(["links","Mitte","rechts"]));
+  if(S.phase==="bank"&&S.offer){const o=S.offer;return actBank(S,o.k==="kredit"?me.money<250:o.k==="ankauf"?!BOARD[o.i].g||BOARD.filter((f,j)=>f.g===BOARD[o.i].g&&S.props[j]&&S.props[j].owner===me.id).length<2:me.money-o.amt>=reserve);}
   if(S.phase==="casino"){if(S.bj)return bjVal(S.bj.p)<17?actBjHit(S):actBjStand(S);if(me.money<250)return actCasinoSkip(S);return actCasino(S,Math.random()<.5?"bj":"wheel",me.money>900?100:50);}
   if(S.phase==="end"){cpuBuild(S,me,reserve);if(canDuel(S)&&cpuDuel(S,me,lvl))return S;return actEnd(S);}
   return S;
@@ -1280,6 +1311,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Die Mieten sind wie im Original, mit 4 Häusern und Hotel etwas günstiger. Die billigste Miete sind 10 €.</li>
 <li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Waldfest (Mieten +50 %), Sommerloch (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
 <li><b>📜 Spielbericht und 🏅 Erfolge:</b> Am Ende gibt es Auszeichnungen wie Miethai oder Duellkönig und den Verlauf aller Vermögen. Auf jedem Handy sammelst du 37 Erfolge.</li>
+<li><b>🏦 Dorfbank:</b> Ab und zu macht die Dorfbank vor dem Würfeln ein verlockendes Angebot: ein schneller Kredit (in 5 Runden mit Zinsen zurück), ein Ankauf eines deiner Grundstücke weit über Wert oder eine freie Straße zum Sonderpreis. Annehmen oder ablehnen.</li>
 <li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, wählt einen Einsatz (50, 100 oder 200 €) und spielt Glücksrad (bis zum Dreifachen, die Kasse, eine Gratis-Straße, aber auch der Bunker) oder eine Hand Blackjack gegen die Bank (Bank zieht bis 17, Blackjack zahlt 3:2). Man kann auch einfach weitergehen.</li>
 <li><b>🏆 Dorfmeisterschaft:</b> Jede 10. Runde spielen alle dasselbe Minispiel, ohne Einsatz. Platz 1 bekommt 300 € oder abwechselnd eine freie Straße, Platz 2 150 €, Platz 3 75 €.</li>
 <li><b>👀 Zuschauen:</b> Bei Online-Spielen kann jeder mit dem Code oder über „Laufende Spiele“ zuschauen, ohne mitzuspielen, und im Chat mitreden.</li>
@@ -1295,7 +1327,8 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==11?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+  const news=store.get("rbm-news")!==12?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>🏦 Verlockende Angebote der Dorfbank, Mieten um 30 % höher</li>
    <li>⭕ Neues Minispiel: Tic-Tac-Toe gegen die Wildsau</li>
    <li>🃏 Casino mit Einsatz: Glücksrad bis zum Dreifachen oder eine Hand Blackjack</li>
    <li>🏆 Jede zweite Dorfmeisterschaft geht um Grundstücke</li>
@@ -1382,6 +1415,7 @@ function centerHTML(){
       acts+=`<button class="primary" data-a="roll">${p.jail?"Pasch versuchen":"Würfeln"}</button>`;
     }else if(S.phase==="buy"){const f=BOARD[p.pos];acts+=`<button class="gold" data-a="buy">${esc(f.s.replace(/\|/g,""))} kaufen (${f.p})</button><button class="ghost" data-a="skip">Nein</button>`;}
     else if(S.phase==="challenge"&&S.challenge)acts+=soloHTML(S.challenge);
+    else if(S.phase==="bank"&&S.offer){const o=S.offer;acts+=`<button class="gold" data-a="bank-yes" ${o.k==="rabatt"&&p.money<o.amt?"disabled":""}>Annehmen</button><button class="ghost" data-a="bank-no">Ablehnen</button>`;}
     else if(S.phase==="casino"){if(S.bj)acts+=`<button class="gold" data-a="bj-hit">Karte</button><button class="primary" data-a="bj-stand">Stehen</button>`;
       else{const sk=CAS_STAKES.includes(app.casStake)?app.casStake:50,ok=p.money>=sk;
         acts+=`<div class="stakes">Einsatz: ${CAS_STAKES.map(v=>`<button class="chip ${v===sk?"on":""}" data-a="cas-stake" data-v="${v}" ${p.money<v?"disabled":""}>${v} €</button>`).join("")}</div><button class="gold" data-a="casino" data-g="wheel" ${ok?"":"disabled"}>🎡 Glücksrad</button><button class="gold" data-a="casino" data-g="bj" ${ok?"":"disabled"}>🃏 Blackjack</button><button class="ghost" data-a="cas-skip">Weitergehen</button>`;}}
@@ -1617,7 +1651,7 @@ function renderBar(){
   if(!p){bar.hidden=true;document.body.classList.remove("has-bar");app.barPid=null;return;}
   app.barPid=p.id;const n=Object.values(S.props).filter(o=>o.owner===p.id).length;
   const place=1+S.players.filter(q=>!q.bankrupt&&worth(S,q)>worth(S,p)).length;
-  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.bs?` · 🏦 ${p.bs.paid/BS_RATE}/${BS_N}`:""}${p.id===S.turn?" · du bist dran":""}</span></div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
+  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.bs?` · 🏦 ${p.bs.paid/BS_RATE}/${BS_N}`:""}${p.loan?` · Kredit noch ${p.loan.left}×${p.loan.rate} €`:""}${p.id===S.turn?" · du bist dran":""}</span></div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
 }
 /* Flüssiger Spielerwechsel: ist im Zug nichts mehr zu entscheiden, geht es nach kurzer Pause automatisch weiter. */
 const AUTO_MS=2600;
@@ -1764,7 +1798,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v21";
+const BUILD="rbm-v22";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -1830,7 +1864,7 @@ document.addEventListener("click",async ev=>{
     case "go-local":go("local");break;
     case "go-cpu":go("cpu");break;
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",11);render();break;
+    case "news-ok":store.set("rbm-news",12);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
@@ -1929,6 +1963,8 @@ document.addEventListener("click",async ev=>{
     case "casino":{const g=b.dataset.g,v=CAS_STAKES.includes(app.casStake)?app.casStake:50;commit(S=>actCasino(S,g,v));break;}
     case "cas-stake":app.casStake=+b.dataset.v;render();break;
     case "cas-skip":commit(actCasinoSkip);break;
+    case "bank-yes":commit(S=>actBank(S,true));break;
+    case "bank-no":commit(S=>actBank(S,false));break;
     case "bj-hit":commit(actBjHit);break;
     case "bj-stand":commit(actBjStand);break;
     case "mg-solo":{const c=app.S.challenge;if(c)mgBegin("solo",app.S.turn,c.kind,c.q);break;}
