@@ -215,6 +215,12 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .wptr{position:absolute;left:50%;top:-12px;transform:translateX(-50%);color:var(--gold);font-size:22px;z-index:2;text-shadow:0 2px 3px rgba(0,0,0,.6)}
 @keyframes wspin{from{transform:rotate(0)}to{transform:rotate(var(--end))}}
 body.busy .center .acts button{pointer-events:none;opacity:.55;transition:opacity .2s}
+.kilian{position:fixed;left:12px;bottom:calc(96px + env(safe-area-inset-bottom));z-index:28;display:flex;align-items:flex-end;gap:6px;pointer-events:none;animation:kin .5s cubic-bezier(.2,1.3,.4,1);transition:opacity .5s,transform .5s}
+.kilian .kfig{width:96px;height:111px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}.kilian .kfig svg{width:100%;height:100%}
+.kilian .ksay{background:var(--paper);color:var(--ink);border-radius:14px 14px 14px 4px;padding:8px 12px;font-size:13.5px;max-width:200px;margin-bottom:62px;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.kilian .ksay b{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.kilian.out{opacity:0;transform:translateX(-30px)}
+@keyframes kin{from{transform:translateX(-120%)}}
 .countdown{display:flex;flex-direction:column;align-items:center;gap:4px}
 .countdown span{font-family:var(--f-display);font-size:clamp(56px,20vw,96px);color:var(--gold);line-height:1;animation:pop .6s ease}
 .countdown small{color:var(--dim-on-forest);font-size:12px}
@@ -1131,6 +1137,29 @@ const SOUNDMAP=[[/Spielende/,"win"],[/Dorfmeisterschaft/,"fanfare"],[/Glücksrad
 function playLog(lines){const t=lines.join("\n");let d=0;if(/ würfelt \d/.test(t)){sfx("dice");d=420;}const h=SOUNDMAP.find(([re])=>re.test(t));if(h)setTimeout(()=>sfx(h[1]),d);}
 document.addEventListener("pointerdown",()=>{if(SND.on)au();},{passive:true});
 
+/* ---------- Kilian bei Steuerzahlungen: gezeichnete Figur (bewusst kein Foto) mit Daumen hoch ---------- */
+const KILIAN_SVG=`<svg viewBox="0 0 130 150" aria-hidden="true">
+ <path d="M18 150 C20 112 38 98 65 98 C92 98 110 112 112 150Z" fill="#1f2f5c"/>
+ <path d="M52 99 L65 126 L78 99Z" fill="#fff"/><path d="M52 99 L60 116 L55 120 L46 104Z M78 99 L70 116 L75 120 L84 104Z" fill="#2a3d73"/>
+ <rect x="57" y="82" width="16" height="18" rx="6" fill="#efc4a0"/>
+ <ellipse cx="65" cy="58" rx="27" ry="31" fill="#f4cfae"/>
+ <ellipse cx="38.5" cy="61" rx="4" ry="7" fill="#efc4a0"/><ellipse cx="91.5" cy="61" rx="4" ry="7" fill="#efc4a0"/>
+ <path d="M37 52 C35 28 52 21 67 22 C84 22 96 32 93 52 C90 41 82 36 74 37 C64 33 52 40 43 38 C40 43 38 47 37 52Z" fill="#3a2618"/>
+ <path d="M50 54 q5-4 10 0 M70 54 q5-4 10 0" stroke="#3a2618" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+ <circle cx="55" cy="61" r="3" fill="#222"/><circle cx="75" cy="61" r="3" fill="#222"/>
+ <path d="M53 74 q12 10 24 0" stroke="#8a3b2a" stroke-width="3" fill="#fff" stroke-linecap="round"/>
+ <path d="M96 150 L100 112 C101 104 112 102 116 108 L122 140Z" fill="#1f2f5c"/>
+ <rect x="99" y="86" width="22" height="22" rx="7" fill="#f4cfae"/>
+ <rect x="104" y="62" width="9" height="28" rx="4.5" fill="#f4cfae"/>
+ <path d="M101 93 h18 M101 99 h18 M101 104 h17" stroke="#d9a983" stroke-width="1.6"/>
+</svg>`;
+const KILIAN_SAY=["Danke für Ihre Steuern! Rottenberg dankt.","Ordnungsgemäß bezahlt, sehr schön!","Das kommt direkt in den Gemeindehaushalt.","Vorbildlicher Steuerzahler, weiter so!","Quittung kommt per Post. Daumen hoch!"];
+function kilianThumb(){
+  if(RM||document.querySelector(".kilian"))return;const el=document.createElement("div");el.className="kilian";
+  el.innerHTML=`<div class="kfig">${KILIAN_SVG}</div><div class="ksay"><b>Kilian</b>${esc(pick(KILIAN_SAY))}</div>`;
+  document.body.appendChild(el);setTimeout(()=>el.classList.add("out"),3200);setTimeout(()=>el.remove(),3800);
+}
+
 /* ---------- Sprüche der Computergegner ---------- */
 const BOT_SAY={
  "Freddy":{buy:["Des kaaf ich, des is jetzt Freddy-Land!","Zack, meins. Prost!","Für des Grundstück hab ich schon immer geschwärmt."],
@@ -1524,7 +1553,7 @@ function postGame(){
   }else if(!app.hopT&&performance.now()<(app.holdUntil||0)){setBusy(true);setTimeout(()=>{if(!app.hopT)setBusy(false);},app.holdUntil-performance.now());}
   renderBar();
   S.players.forEach(p=>{const pr=app.prevMoney[p.id];if(pr!=null&&pr!==p.money)floater(p.id,p.money-pr);app.prevMoney[p.id]=p.money;});
-  const lc=S.lc||0;if(app.seenLc!=null&&lc>app.seenLc){const nl=S.log.slice(0,Math.min(lc-app.seenLc,S.log.length));showBanner(nl);playLog(nl);botTalk(S,nl);}app.seenLc=lc;
+  const lc=S.lc||0;if(app.seenLc!=null&&lc>app.seenLc){const nl=S.log.slice(0,Math.min(lc-app.seenLc,S.log.length));showBanner(nl);playLog(nl);botTalk(S,nl);if(nl.some(l=>/zahlt 500 € nach|kassiert Grundsteuer/.test(l)))setTimeout(kilianThumb,700);}app.seenLc=lc;
   achCheck(S);
   const key=S.card?S.card.t+S.card.x:"";if(key&&key!==app.cardKey){const el=document.querySelector(".center .card");if(el)el.classList.add("flip");}app.cardKey=key;
   if(S.status==="over"&&!app.confetti){app.confetti=true;if(!S.unranked&&!(S.vsCpu&&S.ranking[0].cpu))confetti();}
