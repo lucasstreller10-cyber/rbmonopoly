@@ -212,6 +212,9 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .news{border:2px solid var(--gold)}.news ul{margin:6px 0 10px;padding-left:4px;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px}
 .stakes{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%;font-size:13px;color:var(--muted)}.chip{padding:6px 11px;border-radius:999px;border:1px solid var(--gold);background:transparent;color:var(--paper);font-weight:700}.chip.on{background:var(--gold);color:#1b2a1f}.chip:disabled{opacity:.35}
 .bj .bjrow{margin-top:6px;display:flex;gap:5px;align-items:center;flex-wrap:wrap}.pc{display:inline-block;min-width:30px;padding:3px 5px;border-radius:6px;background:#fff;color:#1b1b1b;border:1px solid #bbb;font-weight:800;text-align:center}.pc.red{color:#c2402b}.pc.back{background:#2f5a3d;color:#e6b43d}
+.cell.mort{filter:grayscale(.7) brightness(.85)}.cell.mort::after{content:"🏦";position:absolute;right:1px;bottom:1px;font-size:9px}
+.king{background:linear-gradient(135deg,#e6b43d,#b8860b);color:#1b2a1f;border-radius:14px;padding:10px 14px;margin:8px 0;font-size:16px;display:flex;flex-direction:column}.king small{font-size:12px;opacity:.8}
+.push h3{margin:10px 0 2px;font-size:15px}.push code.topic{background:var(--paper);color:var(--ink);padding:6px 10px;border-radius:8px;font-size:15px;user-select:all}
 .wheelbox{position:relative;width:min(58%,170px);aspect-ratio:1;margin:2px auto}
 .wheel{width:100%;height:100%;border-radius:50%;border:4px solid var(--gold);box-shadow:0 6px 20px rgba(0,0,0,.45);position:relative;animation:wspin 4s cubic-bezier(.12,.6,.15,1) forwards}
 .wheel span{position:absolute;left:50%;top:50%;width:60px;margin:-8px 0 0 -30px;text-align:center;font-size:10.5px;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.7);transform-origin:50% 50%}
@@ -572,7 +575,7 @@ function bankOffer(S){
   const p=cur(S);if(S.status!=="playing"||S.round<2||p.jail||p.bankrupt||Math.random()>.11)return;
   const opts=[];
   if(!p.loan){const amt=pick([300,400,500]);opts.push({k:"kredit",amt,rate:Math.round(amt*1.3/LOAN_N/5)*5});}
-  const mine=BOARD.map((f,i)=>i).filter(i=>{const o=S.props[i];return o&&o.owner===p.id&&!o.h&&!(BOARD[i].g&&ownsGroup(S,p.id,BOARD[i].g));});
+  const mine=BOARD.map((f,i)=>i).filter(i=>{const o=S.props[i];return o&&o.owner===p.id&&!o.h&&!o.m&&!(BOARD[i].g&&ownsGroup(S,p.id,BOARD[i].g));});
   if(mine.length){const i=pick(mine);opts.push({k:"ankauf",i,amt:r5(BOARD[i].p*1.6)});}
   const free=BOARD.map((f,i)=>i).filter(i=>["prop","bus","werk"].includes(BOARD[i].t)&&!S.props[i]);
   if(free.length){const i=pick(free);opts.push({k:"rabatt",i,amt:r5(BOARD[i].p*.6)});}
@@ -585,7 +588,7 @@ function bankOffer(S){
 function actBank(S,yes){
   const p=cur(S),o=S.offer;if(S.phase!=="bank"||!o)return S;S.offer=null;S.phase="roll";let x="";
   if(yes&&o.k==="kredit"){p.money+=o.amt;p.loan={left:LOAN_N,rate:o.rate};x=p.name+" nimmt "+o.amt+" € Kredit.";}
-  else if(yes&&o.k==="ankauf"&&S.props[o.i]&&S.props[o.i].owner===p.id&&!S.props[o.i].h){delete S.props[o.i];p.money+=o.amt;x=p.name+" verkauft "+BOARD[o.i].n+" für "+o.amt+" € an die Bank.";}
+  else if(yes&&o.k==="ankauf"&&S.props[o.i]&&S.props[o.i].owner===p.id&&!S.props[o.i].h&&!S.props[o.i].m){delete S.props[o.i];p.money+=o.amt;x=p.name+" verkauft "+BOARD[o.i].n+" für "+o.amt+" € an die Bank.";}
   else if(yes&&o.k==="rabatt"&&!S.props[o.i]&&p.money>=o.amt){p.money-=o.amt;S.props[o.i]={owner:p.id,h:0};st(S,p.id).buy=(st(S,p.id).buy||0)+1;x=p.name+" schlägt zu: "+BOARD[o.i].n+" für "+o.amt+" €.";}
   else x=p.name+" lehnt das Angebot der Dorfbank ab.";
   log(S,"🏦 "+x);S.card={deck:"ch",t:"🏦 Dorfbank",x};return S;
@@ -606,7 +609,7 @@ function settle(S,p,cred){
   for(const i of mine().sort((a,b)=>S.props[b].h-S.props[a].h)){
     while(p.money<0&&S.props[i].h>0){S.props[i].h--;p.money+=houseCost(BOARD[i])/2;log(S,p.name+" verkauft ein Haus auf "+BOARD[i].n+".");}
   }
-  for(const i of mine()){if(p.money>=0)break;p.money+=BOARD[i].p/2;delete S.props[i];log(S,p.name+" verkauft "+BOARD[i].n+" an die Bank.");}
+  for(const i of mine()){if(p.money>=0)break;mortgage(S,p,+i);}
   if(p.money<0){
     const d=-p.money; if(cred)cred.money-=d; else S.pot=Math.max(0,S.pot-d);
     p.money=0;p.bankrupt=true;p.bankruptAt=++S.seq;p.jail=false;
@@ -625,6 +628,7 @@ function land(S,p,depth){
   if(ownable(f)){
     const o=S.props[p.pos];
     if(!o){if(p.money>=f.p)canBuy=true;else log(S,p.name+" kann sich "+f.n+" nicht leisten.");}
+    else if(o.owner!==p.id&&o.m){log(S,f.n+" hat eine Hypothek, "+p.name+" zahlt keine Miete.");}
     else if(o.owner!==p.id){const ow=S.players[o.owner];let r=rent(S,p.pos);if(ow.bonus){r*=2;ow.bonus=false;log(S,"Waldfest-Zuschlag! Doppelte Miete.");}log(S,p.name+" zahlt "+r+" Miete an "+ow.name+".");{const a=st(S,p.id),b=st(S,ow.id);a.rp+=r;b.rg+=r;b.rgMax=Math.max(b.rgMax,r);if(evNow(S)&&evNow(S).k==="kerwa")b.wf=(b.wf||0)+r;if(r>a.mx){a.mx=r;a.mxf=p.pos;a.mxto=ow.id;}}pay(S,p,ow,r);}
   }else if(f.t==="tax"){log(S,p.name+" zahlt "+f.a+" ("+f.n+") in die Kasse im Biergarten.");pay(S,p,null,f.a);}
   else if(f.t==="pot"){if(S.pot>0){log(S,p.name+" räumt die Kasse im Biergarten ab: +"+S.pot+" €!");{const a=st(S,p.id);a.pot+=S.pot;a.potMax=Math.max(a.potMax,S.pot);}p.money+=S.pot;S.pot=0;}else log(S,p.name+" parkt am Dorfplatz. Die Kasse ist leer.");}
@@ -784,7 +788,14 @@ function actEnd(S){
   if(S.maxRounds&&S.round>S.maxRounds){S.round=S.maxRounds;finish(S);return S;}
   S.phase="roll";if(S.round!==r0&&S.round%10===0&&alive(S).length>1)tourStart(S);else bankOffer(S);return S;
 }
-function actBuild(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||f.t!=="prop"||o.h>=MAXH||!ownsGroup(S,p.id,f.g)||p.money<houseCost(f)||S.phase==="buy")return S;p.money-=houseCost(f);o.h++;st(S,p.id).hs++;log(S,p.name+" baut "+(o.h===MAXH?"ein Hotel":"ein Haus")+" auf "+f.n+".");return S;}
+/* Hypothek: unbebaute Grundstücke bei der Dorfbank beleihen. Man bekommt den halben Kaufpreis, solange gibt es keine Miete. Auslösen kostet 10 % mehr. */
+const mortVal=f=>r5(f.p/2),unmortCost=f=>r5(f.p*.55);
+const grpBuilt=(S,i)=>{const g=BOARD[i].g;return !!g&&BOARD.some((f,j)=>f.g===g&&S.props[j]&&S.props[j].h);};
+const grpMort=(S,g)=>BOARD.some((f,j)=>f.g===g&&S.props[j]&&S.props[j].m);
+function mortgage(S,p,i){const o=S.props[i];if(!o||o.owner!==p.id||o.m||o.h||grpBuilt(S,i))return false;o.m=true;p.money+=mortVal(BOARD[i]);log(S,"🏦 "+p.name+" nimmt eine Hypothek auf "+BOARD[i].n+" auf: +"+mortVal(BOARD[i])+" €.");return true;}
+function actMortgage(S,pid,i){const p=S.players[pid];if(!p||S.status!=="playing")return S;mortgage(S,p,i);return S;}
+function actUnmortgage(S,pid,i){const p=S.players[pid],o=S.props[i];if(!p||!o||o.owner!==p.id||!o.m||p.money<unmortCost(BOARD[i]))return S;p.money-=unmortCost(BOARD[i]);delete o.m;log(S,"🏦 "+p.name+" löst die Hypothek auf "+BOARD[i].n+" ab ("+unmortCost(BOARD[i])+" €).");return S;}
+function actBuild(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||f.t!=="prop"||o.h>=MAXH||!ownsGroup(S,p.id,f.g)||grpMort(S,f.g)||p.money<houseCost(f)||S.phase==="buy")return S;p.money-=houseCost(f);o.h++;st(S,p.id).hs++;log(S,p.name+" baut "+(o.h===MAXH?"ein Hotel":"ein Haus")+" auf "+f.n+".");return S;}
 function actSell(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||o.h<1)return S;o.h--;p.money+=houseCost(f)/2;log(S,p.name+" verkauft ein Haus auf "+f.n+".");return S;}
 const DUELS={zufall:"🎲 Zufalls-Minigame",ttt:"⭕ Tic-Tac-Toe",rennen:"🏁 Wildsau-Rennen",faengt:"🍏 Äppler-Fangen",glocken:"🔔 Klosterglocken",whack:"🐗 Wildsau-Jagd",stopp:"⏱️ Stopp bei 5 Sekunden",rechnen:"🧮 Kopfrechen-Sprint",farben:"🎨 Farb-Chaos",reflex:"⚡ Wildsau-Reflex",tap:"🍎 Äppler-Pumpen",schaetz:"🤔 Schätzen",huetchen:"🍺 Bembel-Hütchenspiel",ssp:"✊ Schnick-Schnack-Schnuck",wuerfel:"🎲 Würfel-Duell"};
 const KIND_N=k=>DUELS[k].replace(/^\S+\s/,"");
@@ -892,7 +903,7 @@ function actTradeAnswer(S,yes){
   S.card={deck:"trade",t:"🏛️ Getauscht!",x:"Kilian stempelt ab. "+A.name+" zahlt 10 € Gebühr."};
   pay(S,A,null,10);if(S.status==="playing"&&cur(S).bankrupt)S.phase="end";return S;
 }
-function worth(S,p){if(p.bankrupt)return 0;let w=p.money+(p.bs?p.bs.paid:0)-(p.loan?p.loan.left*p.loan.rate:0);Object.keys(S.props).forEach(i=>{const o=S.props[i];if(o.owner===p.id)w+=BOARD[i].p+o.h*houseCost(BOARD[i]);});return w;}
+function worth(S,p){if(p.bankrupt)return 0;let w=p.money+(p.bs?p.bs.paid:0)-(p.loan?p.loan.left*p.loan.rate:0);Object.keys(S.props).forEach(i=>{const o=S.props[i];if(o.owner===p.id)w+=(o.m?BOARD[i].p-mortVal(BOARD[i]):BOARD[i].p)+o.h*houseCost(BOARD[i]);});return w;}
 /* Aussteigen: Straßen des Spielers werden frei (Häuser weg), er scheidet aus. */
 function actQuit(S,pid){
   const p=S.players[pid];if(S.status!=="playing"||!p||p.bankrupt)return S;
@@ -954,11 +965,12 @@ function autoPass(S){
 }
 function commit(fn,ids){
   if(!mayAct(ids))return;
+  const prev0={turn:app.S.turn,round:app.S.round};
   const next=autoPass(fn(JSON.parse(JSON.stringify(app.S))));
   next.rev=(next.rev||0)+1;
   app.S=next;render();
   if(app.mode==="local")store.set("rbm-local",next);
-  else{const ref=app.db.doc("games/"+app.code);ref.set(next).catch(e=>toast("Zug konnte nicht gespeichert werden ("+(e&&e.code||"Fehler")+")."));}
+  else{const ref=app.db.doc("games/"+app.code),before=prev0;ref.set(next).then(()=>notifyTurn(before,next)).catch(e=>toast("Zug konnte nicht gespeichert werden ("+(e&&e.code||"Fehler")+")."));}
   if(next.status==="over")saveResult(next);
 }
 
@@ -975,14 +987,25 @@ let remoteResults=[];
 function mergeResults(){const loc=store.get("rbm-results")||[];return app.db?remoteResults:loc;}
 /* Testpartien, die nicht in die Rangliste gehören. */
 const HIDDEN_RESULTS=new Set(["local-1791071934532"]);
-function leaderboard(cpu){
+function leaderboard(cpu,from,to){
   const m={};
-  for(const r of app.results){if(HIDDEN_RESULTS.has(r.id)||(r.mode==="cpu")!==!!cpu)continue;const n=r.ranking.length;for(const x of r.ranking){if(x.cpu)continue;const k=String(x.name).trim().toLowerCase();if(!k)continue;const e=m[k]||(m[k]={name:String(x.name).trim(),games:0,wins:0,pts:0,best:0});e.games++;if(x.place===1)e.wins++;e.pts+=x.place===n?0:[3,2,1][x.place-1]||0;e.best=Math.max(e.best,x.worth||0);}}
+  for(const r of app.results){if(HIDDEN_RESULTS.has(r.id)||(r.mode==="cpu")!==!!cpu)continue;if(from!=null&&!(r.at>=from&&r.at<to))continue;const n=r.ranking.length;for(const x of r.ranking){if(x.cpu)continue;const k=String(x.name).trim().toLowerCase();if(!k)continue;const e=m[k]||(m[k]={name:String(x.name).trim(),games:0,wins:0,pts:0,best:0});e.games++;if(x.place===1)e.wins++;e.pts+=x.place===n?0:[3,2,1][x.place-1]||0;e.best=Math.max(e.best,x.worth||0);}}
   return Object.values(m).sort((a,b)=>b.pts-a.pts||b.wins-a.wins||b.best-a.best);
 }
+const MONATE=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const monthRange=(y,mo)=>[new Date(y,mo,1).getTime(),new Date(y,mo+1,1).getTime()];
+/* Dorfkönig des Monats: Mehrspieler-Partien des laufenden Monats, gleiche Punkte wie die ewige Rangliste. */
+function monthHTML(tabs){
+  const d=new Date(),y=d.getFullYear(),mo=d.getMonth(),[a,b]=monthRange(y,mo),[pa,pb]=monthRange(mo?y:y-1,mo?mo-1:11);
+  const rows=leaderboard(false,a,b),prev=leaderboard(false,pa,pb)[0],left=Math.ceil((b-Date.now())/864e5);
+  const prevTxt=prev?`<p class="note">👑 Dorfkönig ${MONATE[mo?mo-1:11]}: <b>${esc(prev.name)}</b> (${prev.pts} Punkte)</p>`:"";
+  if(!rows.length)return tabs+`<p class="note">Im ${MONATE[mo]} wurde noch keine Partie zu Ende gespielt. Die erste beendete Mehrspieler-Partie zählt schon für den Dorfkönig des Monats.</p>`+prevTxt;
+  return tabs+`<div class="king">👑 <b>${esc(rows[0].name)}</b> ist Dorfkönig im ${MONATE[mo]}<small>noch ${left} Tag${left===1?"":"e"} bis zur Krönung</small></div><div class="lb-wrap"><table class="lb"><thead><tr><th>#</th><th>Name</th><th>Punkte</th><th>Siege</th><th>Spiele</th></tr></thead><tbody>${rows.slice(0,20).map((r,i)=>`<tr><td class="rank">${i===0?"👑":i+1}</td><td>${esc(r.name)}</td><td><b>${r.pts}</b></td><td>${r.wins}</td><td>${r.games}</td></tr>`).join("")}</tbody></table></div>${prevTxt}<p class="note">Zählt alle beendeten Mehrspieler-Partien in diesem Monat. Am 1. geht es wieder bei null los.</p>`;
+}
 function lbHTML(){
-  const cpu=app.lbTab==="cpu",rows=leaderboard(cpu);
-  const tabs=`<div class="tabs" role="tablist"><button role="tab" class="${cpu?"":"on"}" data-a="lb-tab" data-v="multi" aria-selected="${!cpu}">👥 Mehrspieler</button><button role="tab" class="${cpu?"on":""}" data-a="lb-tab" data-v="cpu" aria-selected="${cpu}">🤖 Gegen Computer</button></div>`;
+  const tab=app.lbTab||"month",cpu=tab==="cpu",month=tab==="month",rows=leaderboard(cpu);
+  const tabs=`<div class="tabs" role="tablist"><button role="tab" class="${month?"on":""}" data-a="lb-tab" data-v="month" aria-selected="${month}">👑 Monat</button><button role="tab" class="${cpu||month?"":"on"}" data-a="lb-tab" data-v="multi" aria-selected="${!cpu&&!month}">👥 Ewig</button><button role="tab" class="${cpu?"on":""}" data-a="lb-tab" data-v="cpu" aria-selected="${cpu}">🤖 Computer</button></div>`;
+  if(month)return monthHTML(tabs);
   if(!rows.length)return tabs+`<p class="note">${cpu?"Noch keine fertige Partie gegen den Computer. Schlag Freddy, Big A und Kilian und du stehst hier ganz oben.":"Noch keine fertige Partie. Das erste beendete Spiel landet hier, egal ob online oder reihum am Handy."}</p>`;
   return tabs+`<div class="lb-wrap"><table class="lb"><thead><tr><th>#</th><th>Name</th><th>Punkte</th><th>Siege</th><th>Spiele</th><th>Rekord</th></tr></thead><tbody>${rows.slice(0,20).map((r,i)=>`<tr><td class="rank">${i+1}</td><td>${esc(r.name)}</td><td><b>${r.pts}</b></td><td>${r.wins}</td><td>${r.games}</td><td>${fmt(r.best)}</td></tr>`).join("")}</tbody></table></div><p class="note">Punkte pro Partie: 1. Platz 3, 2. Platz 2, 3. Platz 1, Letzter 0. Rekord ist das höchste Endvermögen in Euro.${cpu?" Die Computergegner zählen beim Platz mit, stehen aber nicht in der Liste.":""}</p>`;
 }
@@ -1068,8 +1091,9 @@ function cpuOffer(S,me,lvl,reserve){
 function wouldComplete(S,i,pid){const g=BOARD[i].g;return !!g&&BOARD.every((f,j)=>f.g!==g||j===+i||(S.props[j]&&S.props[j].owner===pid));}
 /* Bauen: gleichmäßig auf vollen Gruppen, aber immer mit Notgroschen. */
 function cpuBuild(S,me,reserve){
+  Object.keys(S.props).map(Number).filter(i=>S.props[i].owner===me.id&&S.props[i].m).forEach(i=>{if(me.money-unmortCost(BOARD[i])>=reserve+150)actUnmortgage(S,me.id,i);});
   for(let k=0;k<12;k++){
-    const opts=Object.keys(S.props).map(Number).filter(i=>{const o=S.props[i],f=BOARD[i];return o.owner===me.id&&f.t==="prop"&&o.h<MAXH&&ownsGroup(S,me.id,f.g)&&me.money-houseCost(f)>=reserve+60;});
+    const opts=Object.keys(S.props).map(Number).filter(i=>{const o=S.props[i],f=BOARD[i];return o.owner===me.id&&f.t==="prop"&&o.h<MAXH&&ownsGroup(S,me.id,f.g)&&!grpMort(S,f.g)&&me.money-houseCost(f)>=reserve+60;});
     if(!opts.length)return;
     opts.sort((a,b)=>S.props[a].h-S.props[b].h||BOARD[b].p-BOARD[a].p);actBuild(S,opts[0]);
   }
@@ -1308,6 +1332,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Die Mieten sind wie im Original, mit 4 Häusern und Hotel etwas günstiger. Die billigste Miete sind 10 €.</li>
 <li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Waldfest (Mieten +50 %), Sommerloch (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
 <li><b>📜 Spielbericht und 🏅 Erfolge:</b> Am Ende gibt es Auszeichnungen wie Miethai oder Duellkönig und den Verlauf aller Vermögen. Auf jedem Handy sammelst du 37 Erfolge.</li>
+<li><b>🏦 Hypothek:</b> Tippe auf ein eigenes unbebautes Grundstück und nimm eine Hypothek auf: du bekommst den halben Kaufpreis, dafür gibt es dort keine Miete und in der Gruppe wird nicht gebaut. Ablösen kostet 10 % mehr. Wer pleite zu gehen droht, beleiht automatisch, bevor er aufgeben muss.</li>
 <li><b>🏦 Dorfbank:</b> Ab und zu macht die Dorfbank vor dem Würfeln ein verlockendes Angebot: ein schneller Kredit (in 5 Runden mit Zinsen zurück), ein Ankauf eines deiner Grundstücke weit über Wert oder eine freie Straße zum Sonderpreis. Annehmen oder ablehnen.</li>
 <li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, wählt einen Einsatz (50, 100 oder 200 €) und spielt Glücksrad (bis zum Dreifachen, die Kasse, eine Gratis-Straße, aber auch der Bunker) oder eine Hand Blackjack gegen die Bank (Bank zieht bis 17, Blackjack zahlt 3:2). Man kann auch einfach weitergehen.</li>
 <li><b>🏆 Dorfmeisterschaft:</b> Jede 10. Runde spielen alle dasselbe Minispiel. Platz 2 bekommt 150 €, Platz 3 75 €. Platz 1 bekommt 300 €, bei jeder zweiten Meisterschaft stattdessen eine Straße vom Letzten.</li>
@@ -1324,8 +1349,10 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==12?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
-   <li>🏦 Verlockende Angebote der Dorfbank, Mieten um 30 % höher</li>
+  const news=store.get("rbm-news")!==13?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>👑 Dorfkönig des Monats in der Rangliste</li>
+   <li>🔔 Bescheid, wenn du dran bist (auch bei geschlossener App)</li>
+   <li>🏦 Hypotheken, Angebote der Dorfbank, Mieten +30 %</li>
    <li>⭕ Neues Minispiel: Tic-Tac-Toe gegen die Wildsau</li>
    <li>🃏 Casino mit Einsatz: Glücksrad bis zum Dreifachen oder eine Hand Blackjack</li>
    <li>🏆 Jede zweite Dorfmeisterschaft: Der Sieger bekommt eine Straße vom Letzten</li>
@@ -1390,13 +1417,17 @@ function fieldSheet(i){
   else if(f.t==="werk")body=`<table><tr><td>Kaufpreis</td><td>${f.p} €</td></tr><tr><td>Miete mit 1 Werk</td><td>${WERK1} × Augenzahl</td></tr><tr><td>mit beiden Werken</td><td>${WERK2} × Augenzahl</td></tr></table>`;
   else body=`<p class="note">${{start:"Über Los gibt es 200 €, genau drauf 400 €.",klatsch:"Ziehe eine Dorfklatsch-Karte.",wahn:"Ziehe eine Spessart-Wahnsinn-Karte. Hier wird es verrückt.",tax:"Zahle "+f.a+" € in die Kasse im Biergarten.",jail:"Nur zu Besuch, oder du sitzt bei Big A im Bunker fest. Dort wird gemeinsam einer geraucht. Raus mit Pasch, 50 € oder Freikarte.",pot:"Frei Parken: Wer hier landet, nimmt die ganze Kasse mit, gerade "+S.pot+" €.",loewe:"Tadan! Du gibst Freddy, der Dorflegende, einen aus: 10 € in die Kasse im Biergarten.",gojail:"Direkt in den Bunker bei Big A, kein Geld über Los.",mini:"Minigame-Feld: Nur hier darfst du einen Mitspieler um Geld herausfordern.",casino:"Rottenberger Casino: Wer hier landet, dreht am Glücksrad. +200, +100, +50, die ganze Kasse oder eine Gratis-Straße, aber auch −50, −100 oder ab in den Bunker."}[f.t]||""}</p>`;
   let own="";
-  if(o){const ow=S.players[o.owner];own=`<p class="row" style="gap:6px"><span class="dot" style="background:${ow.color}"></span>Gehört ${esc(ow.name)}${o.h?` · ${o.h===MAXH?"Hotel":o.h===1?"1 Haus":o.h+" Häuser"}`:""}</p>`;}
+  if(o){const ow=S.players[o.owner];own=`<p class="row" style="gap:6px"><span class="dot" style="background:${ow.color}"></span>Gehört ${esc(ow.name)}${o.m?" · 🏦 Hypothek":""}${o.h?` · ${o.h===MAXH?"Hotel":o.h===1?"1 Haus":o.h+" Häuser"}`:""}</p>`;}
   else if(ownable(f))own=`<p class="note">Noch zu haben.</p>`;
   let acts="";
+  const me=o&&S.status==="playing"?S.players[o.owner]:null,mineHere=me&&!me.bankrupt&&(app.mode==="local"?!me.cpu&&(S.vsCpu||o.owner===S.turn):me.uid===app.uid);
+  const mortRow=mineHere?(o.m?`<div class="row"><button class="gold small" data-a="unmort" data-i="${i}" ${me.money<unmortCost(f)?"disabled":""}>Hypothek ablösen (−${unmortCost(f)} €)</button></div><p class="note">🏦 Mit Hypothek: Hier gibt es keine Miete${f.g?" und in der Gruppe wird nicht gebaut":""}.</p>`
+    :`<div class="row"><button class="ghost small" data-a="mort" data-i="${i}" ${o.h||grpBuilt(S,i)?"disabled":""}>🏦 Hypothek aufnehmen (+${mortVal(f)} €)</button></div>${o.h||grpBuilt(S,i)?`<p class="note">Erst die Häuser der Gruppe verkaufen.</p>`:""}`):"";
   if(o&&f.t==="prop"&&canAct()&&o.owner===cur(S).id){
     const p=cur(S),full=ownsGroup(S,p.id,f.g);
     acts=`<div class="row"><button class="primary small" data-a="build" data-i="${i}" ${!full||o.h>=MAXH||p.money<houseCost(f)||S.phase==="buy"?"disabled":""}>${o.h===MAXH-1?"Hotel":"Haus"} bauen (${houseCost(f)})</button><button class="ghost small" data-a="sell" data-i="${i}" ${o.h<1?"disabled":""}>Haus verkaufen (+${houseCost(f)/2})</button></div>${full?"":`<p class="note">Bauen geht erst, wenn dir die ganze Gruppe ${grp.n} gehört.</p>`}`;
   }
+  acts+=mortRow;
   return `<section class="sheet">${grp?`<div class="bar" style="background:${grp.c}"></div>`:""}<div class="row" style="justify-content:space-between"><h3>${esc(f.n)}</h3><button class="ghost small" data-a="unsel">Schließen</button></div>${own}${f.ev?`<div class="ev"><b>${f.fx==="challenge"?"★ ":"! "}</b>${esc(f.ev)}</div>`:""}${body}${acts}</section>`;
 }
 function centerHTML(){
@@ -1588,7 +1619,8 @@ async function commitLeased(fn,ids){
   const base=app.S.rev||0,bsid=app.S.sid,nsid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);let opt=null;
   try{opt=autoPass(fn(JSON.parse(JSON.stringify(app.S))));opt.rev=base+1;opt.sid=nsid();app.S=opt;render();}catch(e){opt=null;}
   const decide=d=>{if(opt&&(d.rev||0)===base&&d.sid===bsid)return opt;const c=JSON.parse(JSON.stringify(d));const n=autoPass(fn(c));n.rev=(c.rev||0)+1;n.sid=nsid();return n;};
-  const done=next=>{if(next!==opt){app.S=next;render();}if(next.status==="over")saveResult(next);};
+  const before={turn:app.S.turn,round:app.S.round};
+  const done=next=>{if(next!==opt){app.S=next;render();}if(next.status==="over")saveResult(next);notifyTurn(before,next);};
   /* Eigene Züge nacheinander speichern, damit schnelles Tippen nichts durcheinanderbringt. */
   const job=async()=>{try{
     if(ref.txn){done(await ref.txn(s=>decide(s.data())));}
@@ -1671,6 +1703,7 @@ function turnAlert(){
   if(mine&&app.turnKey!==key&&app.turnKey!==undefined){
     const b=document.getElementById("banner");b.innerHTML=`<span>🎲 Du bist dran, ${esc(p.name)}!</span>`;b.hidden=false;clearTimeout(showBanner.t);showBanner.t=setTimeout(()=>b.hidden=true,1600);
     try{navigator.vibrate&&navigator.vibrate([120,60,120]);}catch(e){}sfx("turn");
+    if(document.hidden)sysNotify("🎲 Du bist dran, "+p.name+"!","Rottenberg-Monopoly, Runde "+S.round+".");
   }
   app.turnKey=mine?key:null;
 }
@@ -1692,6 +1725,38 @@ function postGame(){
   if(S.status==="over"&&!app.confetti){app.confetti=true;if(!S.unranked&&!(S.vsCpu&&S.ranking[0].cpu))confetti();}
   cpuKick();
   turnAlert();armAutoEnd();
+}
+/* ---------- Bescheid, wenn du dran bist ----------
+   1) App im Hintergrund noch offen: Mitteilung über das Handy (Notification API).
+   2) App ganz zu: kostenlos über ntfy.sh. Jeder Spieler abonniert in der ntfy-App sein eigenes, zufälliges Thema.
+      Das Handy, das den Zug weitergibt, schickt dem Nächsten eine kurze Nachricht. Kein eigener Server nötig. */
+function ntfyTopic(){let t=store.get("rbm-ntfy");if(!t){t="rbm-"+Math.random().toString(36).slice(2,8)+Math.random().toString(36).slice(2,8);store.set("rbm-ntfy",t);}return t;}
+function ntfySend(topic,msg){
+  const url="https://ntfy.sh/"+encodeURIComponent(topic)+"?title="+encodeURIComponent("Rottenberg-Monopoly")+"&tags=game_die&click="+encodeURIComponent(location.origin+location.pathname);
+  return fetch(url,{method:"POST",body:msg}).then(r=>r.ok).catch(()=>false);
+}
+function notifyTurn(prev,next){
+  if(app.mode!=="online"||!next||next.status!=="playing"||!prev||(prev.turn===next.turn&&prev.round===next.round))return;
+  const q=next.players[next.turn];if(!q||q.bankrupt||!q.ntfy||q.uid===app.uid)return;
+  ntfySend(q.ntfy,"🎲 "+q.name+", du bist dran! Spiel "+(next.code||app.code)+", Runde "+next.round+".");
+}
+function actSetPush(S,pid,topic){const p=S.players[pid];if(p){if(topic)p.ntfy=topic;else delete p.ntfy;}return S;}
+function pushMine(on){const S=app.S;if(!S||app.mode!=="online")return;const t=on?ntfyTopic():null;S.players.filter(p=>p.uid===app.uid&&(p.ntfy||null)!==t).forEach(p=>commitLeased(T=>actSetPush(T,p.id,t),[p.id]));}
+function sysNotify(title,body){
+  try{if(!("Notification" in window)||Notification.permission!=="granted")return;
+    const opt={body,tag:"rbm-turn",renotify:true,icon:"icon-192.png",badge:"icon-192.png"};
+    if(navigator.serviceWorker&&navigator.serviceWorker.controller)navigator.serviceWorker.ready.then(r=>r.showNotification(title,opt)).catch(()=>{});else new Notification(title,opt);}catch(e){}
+}
+function pushPanel(){
+  const S=app.S;if(!app.pushOpen||!S||app.mode!=="online"||isSpect())return "";
+  const perm=("Notification" in window)?Notification.permission:"unsupported",on=!!store.get("rbm-ntfy-on"),t=ntfyTopic();
+  return `<section class="panel push"><div class="row" style="justify-content:space-between"><h2>🔔 Bescheid, wenn du dran bist</h2><button class="ghost small" data-a="push-close">Schließen</button></div>
+  <h3>1. App im Hintergrund</h3><p class="note">Solange die App noch im Hintergrund läuft, meldet sich das Handy mit einer Mitteilung.${perm==="unsupported"?" Auf dem iPhone geht das nur, wenn die App über „Zum Home-Bildschirm“ installiert ist.":""}</p>
+  ${perm==="granted"?`<p class="note">✅ Mitteilungen sind erlaubt.</p>`:perm==="denied"?`<p class="note">Mitteilungen sind gesperrt. Das lässt sich in den Handy-Einstellungen wieder erlauben.</p>`:perm==="unsupported"?"":`<button class="gold small" data-a="push-perm">Mitteilungen erlauben</button>`}
+  <h3>2. Auch wenn die App zu ist</h3><p class="note">Installiere die kostenlose App <b>ntfy</b> (App Store oder Google Play), tippe dort auf „+“ und abonniere dein persönliches Thema:</p>
+  <div class="row"><code class="topic">${esc(t)}</code><button class="ghost small" data-a="push-copy">Kopieren</button></div>
+  <div class="row">${on?`<button class="ghost small" data-a="push-off">Ausschalten</button><button class="gold small" data-a="push-test">Test schicken</button>`:`<button class="gold small" data-a="push-on">Einschalten</button>`}</div>
+  <p class="note">${on?"✅ Eingeschaltet. Wenn du dran bist, schickt das Handy deines Vorgängers dir eine Nachricht.":"Erst einschalten, wenn du das Thema in ntfy abonniert hast."} Das Thema ist geheim und zufällig, teile es nicht.</p></section>`;
 }
 function quitPanel(){
   const S=app.S;if(!app.quitOpen||!S||S.status!=="playing")return "";
@@ -1729,7 +1794,7 @@ function renderGame(){
   const cellArr=BOARD.map((f,i)=>{
     const [r,c]=cellPos(i),o=S.props[i],corner=CORNERS.includes(i);
     const strip=f.g?`<div class="strip" style="background:${GROUPS[f.g].c}">${o&&o.h?(o.h===MAXH?'<i class="hotel"></i>':"<i></i>".repeat(o.h)):""}</div>`:"";
-    return `<button class="cell ${corner?"corner":""} ${o?"owned":""} ${app.sel===i?"sel":""}" style="grid-row:${r};grid-column:${c};${o?"--own:"+S.players[o.owner].color:""}" data-a="sel" data-i="${i}" aria-label="${esc(f.n)}">${strip}${f.fx?`<span class="fxb">${f.fx==="challenge"?"★":"!"}</span>`:""}${f.ic?`<div class="ic">${f.ic}</div>`:""}<div class="nm">${esc(S_(f.s))}</div>${ownable(f)?`<div class="pr">${f.p}</div>`:f.t==="tax"?`<div class="pr">−${f.a}</div>`:f.t==="pot"?`<div class="pr">${fmt(S.pot)}</div>`:f.t==="loewe"?`<div class="pr">−10</div>`:""}<div class="tok" id="t${i}"></div></button>`;
+    return `<button class="cell ${corner?"corner":""} ${o?"owned":""} ${o&&o.m?"mort":""} ${app.sel===i?"sel":""}" style="grid-row:${r};grid-column:${c};${o?"--own:"+S.players[o.owner].color:""}" data-a="sel" data-i="${i}" aria-label="${esc(f.n)}">${strip}${f.fx?`<span class="fxb">${f.fx==="challenge"?"★":"!"}</span>`:""}${f.ic?`<div class="ic">${f.ic}</div>`:""}<div class="nm">${esc(S_(f.s))}</div>${ownable(f)?`<div class="pr">${f.p}</div>`:f.t==="tax"?`<div class="pr">−${f.a}</div>`:f.t==="pot"?`<div class="pr">${fmt(S.pot)}</div>`:f.t==="loewe"?`<div class="pr">−10</div>`:""}<div class="tok" id="t${i}"></div></button>`;
   });
   const players=S.players.map(p=>{
     const props=Object.keys(S.props).filter(i=>S.props[i].owner===p.id).map(Number).sort((a,b)=>a-b);
@@ -1738,9 +1803,9 @@ function renderGame(){
     <div class="chips">${props.map(i=>`<i data-a="sel" data-i="${i}" title="${esc(BOARD[i].n)}" style="background:${BOARD[i].g?GROUPS[BOARD[i].g].c:"var(--paper-2)"}"></i>`).join("")}</div></div>`;
   }).join("");
   const over=S.status==="over"?`<section class="panel"><h2>Endstand</h2><div class="podium">${S.ranking.map(r=>`<div><span class="pl-place">${r.place}.</span><span class="dot" style="background:${r.color}"></span><b>${esc(r.name)}</b><span class="w">${r.left?"ausgestiegen":r.bankrupt?"pleite":fmt(r.worth)+" €"}</span></div>`).join("")}</div>${reportHTML(S)}<p class="note">${S.unranked?"Das Spiel wurde abgebrochen und zählt nicht für die Rangliste.":"Das Ergebnis steht jetzt in der Rangliste."}</p><h2>Rangliste</h2>${lbHTML()}</section>`:"";
-  const top=`<div class="gtop"><div class="eyebrow">${isSpect()?"👀 ":""}${app.mode==="online"?esc(app.code)+" · ":""}Runde ${S.round}${S.maxRounds?"/"+S.maxRounds:""}</div><div class="gbtns">${app.mode==="online"?`<button class="ghost small" data-a="tochat" aria-label="Chat">💬</button>`:""}<button class="ghost small" data-a="snd" aria-label="${SND.on?"Ton aus":"Ton an"}">${SND.on?"🔊":"🔇"}</button><button class="ghost small" data-a="zoom" aria-label="${app.zoom?"Brett verkleinern":"Brett vergrößern"}">${app.zoom?"🔍−":"🔍+"}</button>${S.status==="playing"&&!isSpect()?`<button class="ghost small" data-a="quit-open">⏻ Beenden</button>`:""}${isSpect()?`<button class="ghost small" data-a="leave">👀 Verlassen</button>`:""}<button class="ghost small" data-a="home" aria-label="Menü">☰</button></div></div>${evNow(S)&&S.status==="playing"?`<div class="evbar">${evNow(S).ic} <b>${evNow(S).n}</b> · ${esc(evNow(S).x)}</div>`:""}`;
+  const top=`<div class="gtop"><div class="eyebrow">${isSpect()?"👀 ":""}${app.mode==="online"?esc(app.code)+" · ":""}Runde ${S.round}${S.maxRounds?"/"+S.maxRounds:""}</div><div class="gbtns">${app.mode==="online"?`<button class="ghost small" data-a="tochat" aria-label="Chat">💬</button>`:""}<button class="ghost small" data-a="snd" aria-label="${SND.on?"Ton aus":"Ton an"}">${SND.on?"🔊":"🔇"}</button><button class="ghost small" data-a="zoom" aria-label="${app.zoom?"Brett verkleinern":"Brett vergrößern"}">${app.zoom?"🔍−":"🔍+"}</button>${app.mode==="online"&&S.status==="playing"&&!isSpect()?`<button class="ghost small" data-a="push-open" aria-label="Bescheid, wenn du dran bist">${store.get("rbm-ntfy-on")||(("Notification" in window)&&Notification.permission==="granted")?"🔔":"🔕"}</button>`:""}${S.status==="playing"&&!isSpect()?`<button class="ghost small" data-a="quit-open">⏻ Beenden</button>`:""}${isSpect()?`<button class="ghost small" data-a="leave">👀 Verlassen</button>`:""}<button class="ghost small" data-a="home" aria-label="Menü">☰</button></div></div>${evNow(S)&&S.status==="playing"?`<div class="evbar">${evNow(S).ic} <b>${evNow(S).n}</b> · ${esc(evNow(S).x)}</div>`:""}`;
   const abortNote=S.status==="playing"&&S.abort&&Object.keys(S.abort).length&&!app.quitOpen?`<button class="ghost small abortnote" data-a="quit-open">⏻ ${Object.keys(S.abort).length} von ${alive(S).length} wollen aufhören. Tippen zum Abstimmen</button>`:"";
-  const center=centerHTML(),below=`${quitPanel()}${abortNote}${app.sel!=null?fieldSheet(app.sel):""}${duelPanel()}${tradePanel()}${over}<div class="players">${players}</div>${rulesHTML()}`;
+  const center=centerHTML(),below=`${pushPanel()}${quitPanel()}${abortNote}${app.sel!=null?fieldSheet(app.sel):""}${duelPanel()}${tradePanel()}${over}<div class="players">${players}</div>${rulesHTML()}`;
   app.gp={top,cells:cellArr,center,below,zoom:!!app.zoom};
   return `<div id="g-top">${top}</div><div class="boardwrap"><div class="board ${app.zoom?"zoom":""}">${cellArr.join("")}<div class="center" id="g-center">${center}</div></div></div><div id="g-below">${below}</div>`;
 }
@@ -1795,7 +1860,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v23";
+const BUILD="rbm-v24";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -1818,6 +1883,7 @@ function watchGame(code,spect){
     if(app.S&&(app.S.rev||0)>(d.rev||0))return;
     const turnChanged=!app.S||app.S.turn!==d.turn;if(turnChanged)app.takeover=false;
     app.S=JSON.parse(JSON.stringify(d));if(app.screen!=="game")app.screen="game";
+    if(store.get("rbm-ntfy-on")&&d.status==="playing"&&app.pushSync!==code&&d.players.some(p=>p.uid===app.uid)){app.pushSync=code;setTimeout(()=>pushMine(true),800);}
     if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
     if(d.status==="over"&&d.players.some(p=>p.uid===app.uid))saveResult(app.S);
   },e=>{toast("Verbindung zum Spiel verloren.");});
@@ -1861,7 +1927,7 @@ document.addEventListener("click",async ev=>{
     case "go-local":go("local");break;
     case "go-cpu":go("cpu");break;
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",12);render();break;
+    case "news-ok":store.set("rbm-news",13);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
@@ -1931,9 +1997,18 @@ document.addEventListener("click",async ev=>{
     case "jailpay":commit(actJailPay);break;
     case "jailcard":commit(actJailCard);break;
     case "build":commit(S=>actBuild(S,i));break;
+    case "mort":{const pid=app.S.props[i]&&app.S.props[i].owner;if(pid!=null)(app.mode==="local"?commit:commitLeased)(S=>actMortgage(S,pid,i),[pid]);break;}
+    case "unmort":{const pid=app.S.props[i]&&app.S.props[i].owner;if(pid!=null)(app.mode==="local"?commit:commitLeased)(S=>actUnmortgage(S,pid,i),[pid]);break;}
     case "sell":commit(S=>actSell(S,i));break;
     case "tochat":document.getElementById("chatwrap").scrollIntoView({behavior:"smooth"});break;
     case "zoom":app.zoom=!app.zoom;render();if(app.zoom){const S=app.S,c=document.querySelector(`.cell[data-i="${cur(S).pos}"]`);if(c)c.scrollIntoView({block:"nearest",inline:"center"});}break;
+    case "push-open":app.pushOpen=!app.pushOpen;render();window.scrollTo({top:0,behavior:"smooth"});break;
+    case "push-close":app.pushOpen=false;render();break;
+    case "push-perm":try{await Notification.requestPermission();}catch(e){}render();break;
+    case "push-copy":try{await navigator.clipboard.writeText(ntfyTopic());toast("Thema kopiert.");}catch(e){toast("Kopieren ging nicht, bitte abtippen.");}break;
+    case "push-on":store.set("rbm-ntfy-on",true);pushMine(true);ntfySend(ntfyTopic(),"✅ Klappt! Ab jetzt bekommst du hier Bescheid, wenn du in Rottenberg-Monopoly dran bist.").then(ok=>toast(ok?"Eingeschaltet. Eine Test-Nachricht ist unterwegs.":"Eingeschaltet, aber ntfy war gerade nicht erreichbar."));render();break;
+    case "push-off":store.set("rbm-ntfy-on",false);pushMine(false);render();break;
+    case "push-test":ntfySend(ntfyTopic(),"🔔 Test aus Rottenberg-Monopoly.").then(ok=>toast(ok?"Test geschickt.":"ntfy ist gerade nicht erreichbar."));break;
     case "quit-open":app.quitOpen=true;stopAutoEnd();render();window.scrollTo({top:0,behavior:"smooth"});break;
     case "quit-close":app.quitOpen=false;render();break;
     case "quit":{const pid=+b.dataset.p;app.quitOpen=false;commitLeased(S=>actQuit(S,pid),[pid]);break;}
