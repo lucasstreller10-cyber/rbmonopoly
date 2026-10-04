@@ -647,11 +647,20 @@ function actCasino(S){
 /* Dorfmeisterschaft: jede 10. Runde spielen alle dasselbe Minispiel, ohne Einsatz. Preise für Platz 1 bis 3,
    abwechselnd Geld und (beim nächsten Mal) eine freie Straße für den Sieger. */
 const TOUR_CASH=[300,150,75];
+/* Einsatz bei der Grundstücks-Meisterschaft: das günstigste eigene Grundstück ohne Häuser in seiner Farbgruppe. */
+function tourStakeOf(S,pid){
+  const ok=BOARD.map((f,i)=>i).filter(i=>{const o=S.props[i];if(!o||o.owner!==pid||o.h)return false;const g=BOARD[i].g;return !g||BOARD.every((f,j)=>f.g!==g||!S.props[j]||!S.props[j].h);});
+  ok.sort((a,b)=>BOARD[a].p-BOARD[b].p);return ok.length?ok[0]:null;
+}
 function tourStart(S){
   S.tourN=(S.tourN||0)+1;const kind=pick(OFFER),streets=S.tourN%2===0;
   S.tour={kind,q:kind==="schaetz"?Math.floor(Math.random()*SCHAETZ.length):kind==="glocken"?1+Math.floor(Math.random()*1e6):0,in:{},players:alive(S).map(p=>p.id),streets,prev:"roll"};
+  if(streets){S.tour.stake={};alive(S).forEach(p=>{const i=tourStakeOf(S,p.id);if(i!=null)S.tour.stake[p.id]=i;});}
+  const st=S.tour.stake||{},sk=Object.keys(st);
   S.phase="tour";
-  S.card={deck:"ev",t:"🏆 Rottenberger Dorfmeisterschaft!",x:"Alle spielen "+KIND_N(kind)+", ohne Einsatz. "+(kind==="schaetz"?SCHAETZ[S.tour.q].q+" ":"")+"Preise: "+(streets?"1. Platz eine freie Straße":"1. Platz 300 €")+", 2. Platz 150 €, 3. Platz 75 €."};
+  S.card={deck:"ev",t:streets?"🏆 Dorfmeisterschaft um Grundstücke!":"🏆 Rottenberger Dorfmeisterschaft!",x:"Alle spielen "+KIND_N(kind)+". "+(kind==="schaetz"?SCHAETZ[S.tour.q].q+" ":"")+
+    (streets?(sk.length?"Einsatz: "+sk.map(id=>S.players[id].name+" setzt "+BOARD[st[id]].n).join(", ")+". Der Sieger bekommt alle Einsätze und eine freie Straße obendrauf.":"Der Sieger bekommt eine freie Straße.")+" 2. Platz 150 €, 3. Platz 75 €."
+      :"Ohne Einsatz. Preise: 1. Platz 300 €, 2. Platz 150 €, 3. Platz 75 €.")};
   log(S,"Dorfmeisterschaft! Alle spielen "+KIND_N(kind)+".");
 }
 function tourPending(S){const t=S.tour;return t?t.players.filter(id=>!S.players[id].bankrupt&&!(id in t.in)):[];}
@@ -666,7 +675,11 @@ function tourResolve(S){
   const ids=t.players.filter(id=>!S.players[id].bankrupt&&id in t.in).sort((a,b)=>tourScore(t,t.in[b])-tourScore(t,t.in[a]));
   const res=[];let place=0,last=null;
   ids.forEach((id,n)=>{const sc=tourScore(t,t.in[id]);if(sc!==last){place=n;last=sc;}const p=S.players[id];let prize="";
-    if(place===0&&t.streets){const free=BOARD.map((f,i)=>i).filter(i=>BOARD[i].t==="prop"&&!S.props[i]);if(free.length){const i=pick(free);S.props[i]={owner:id,h:0};prize=BOARD[i].n;}else{p.money+=TOUR_CASH[0];prize="+"+TOUR_CASH[0]+" €";}}
+    if(place===0&&t.streets&&n===0){const won=[];
+      Object.keys(t.stake||{}).forEach(k=>{const i=t.stake[k],o=S.props[i];if(+k!==id&&o&&o.owner===+k&&!o.h){o.owner=id;won.push(BOARD[i].n);}});
+      const free=BOARD.map((f,i)=>i).filter(i=>BOARD[i].t==="prop"&&!S.props[i]);if(free.length){const i=pick(free);S.props[i]={owner:id,h:0};won.push(BOARD[i].n);}
+      if(!won.length){p.money+=TOUR_CASH[0];prize="+"+TOUR_CASH[0]+" €";}else{prize="gewinnt "+won.join(", ");if(won.length>1)log(S,"🏆 "+p.name+" räumt ab: "+won.join(", ")+".");}}
+    else if(place===0&&t.streets){p.money+=TOUR_CASH[1];prize="+"+TOUR_CASH[1]+" €";}
     else if(place<3){p.money+=TOUR_CASH[place];prize="+"+TOUR_CASH[place]+" €";}
     if(place===0)st(S,id).tw=(st(S,id).tw||0)+1;
     res.push((place+1)+". "+p.name+" ("+valText(t.kind,t.in[id],{q:t.q}).replace(/, richtig.*$/,"")+")"+(prize?" "+prize:""));});
@@ -1688,7 +1701,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v18";
+const BUILD="rbm-v19";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
