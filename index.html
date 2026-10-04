@@ -210,6 +210,8 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .bubble.out{opacity:0}
 @keyframes achin2{from{opacity:0;transform:translate(-50%,10px)}}
 .news{border:2px solid var(--gold)}.news ul{margin:6px 0 10px;padding-left:4px;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.stakes{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%;font-size:13px;color:var(--muted)}.chip{padding:6px 11px;border-radius:999px;border:1px solid var(--gold);background:transparent;color:var(--paper);font-weight:700}.chip.on{background:var(--gold);color:#1b2a1f}.chip:disabled{opacity:.35}
+.bj .bjrow{margin-top:6px;display:flex;gap:5px;align-items:center;flex-wrap:wrap}.pc{display:inline-block;min-width:30px;padding:3px 5px;border-radius:6px;background:#fff;color:#1b1b1b;border:1px solid #bbb;font-weight:800;text-align:center}.pc.red{color:#c2402b}.pc.back{background:#2f5a3d;color:#e6b43d}
 .wheelbox{position:relative;width:min(58%,170px);aspect-ratio:1;margin:2px auto}
 .wheel{width:100%;height:100%;border-radius:50%;border:4px solid var(--gold);box-shadow:0 6px 20px rgba(0,0,0,.45);position:relative;animation:wspin 4s cubic-bezier(.12,.6,.15,1) forwards}
 .wheel span{position:absolute;left:50%;top:50%;width:60px;margin:-8px 0 0 -30px;text-align:center;font-size:10.5px;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.7);transform-origin:50% 50%}
@@ -596,7 +598,7 @@ function land(S,p,depth){
   }else if(f.t==="tax"){log(S,p.name+" zahlt "+f.a+" ("+f.n+") in die Kasse im Biergarten.");pay(S,p,null,f.a);}
   else if(f.t==="pot"){if(S.pot>0){log(S,p.name+" räumt die Kasse im Biergarten ab: +"+S.pot+" €!");{const a=st(S,p.id);a.pot+=S.pot;a.potMax=Math.max(a.potMax,S.pot);}p.money+=S.pot;S.pot=0;}else log(S,p.name+" parkt am Dorfplatz. Die Kasse ist leer.");}
   else if(f.t==="gojail"){sendJail(S,p);}
-  else if(f.t==="casino"){S.phase="casino";S.card={deck:"ch",t:"🎰 Rottenberger Casino",x:"Dreh am Glücksrad! Von +200 € über die Kasse im Biergarten bis zur Gratis-Straße ist alles drin, aber auch Minus und der Bunker."};log(S,p.name+" betritt das Rottenberger Casino.");}
+  else if(f.t==="casino"){S.phase="casino";S.card={deck:"ch",t:"🎰 Rottenberger Casino",x:"Wähl deinen Einsatz und spiel: Glücksrad (bis zum Dreifachen, die Kasse oder eine Gratis-Straße, aber auch der Bunker) oder eine Hand Blackjack. Du kannst auch einfach weitergehen."};log(S,p.name+" betritt das Rottenberger Casino.");}
   else if(f.t==="mini"){S.miniHere=true;S.card={deck:"wahn",t:"🐗 Wildsau-Wahnsinn",x:others(S,p).length?"Minigame-Feld! Nur hier darfst du jemanden um Geld herausfordern.":"Minigame-Feld, aber es ist niemand mehr da zum Herausfordern."};log(S,p.name+" landet auf dem Minigame-Feld und darf herausfordern.");}
   else if(f.t==="klatsch"){
     if(!S.decks[f.t].length)S.decks[f.t]=shuffle(CARDS[f.t].map((_,i)=>i));
@@ -627,22 +629,55 @@ function actPenalty(S,dir){
   else{log(S,"Gehalten! "+p.name+" schießt nach "+dir+": −20 €.");S.card={deck:"ch",t:"Gehalten!",x:"Der Torwart ahnt die Ecke. 20 € in die Kasse."};pay(S,p,null,20);}
   return resume(S);
 }
-/* Glücksrad im Casino: 8 Felder, das Ergebnis steht sofort im Spielstand, die Handys spielen die Drehung ab. */
-const WHEEL=[{l:"+200",c:"#3f9b5f"},{l:"−100",c:"#c2402b"},{l:"+50",c:"#e6b43d"},{l:"🍻 Kasse",c:"#ff9f1c"},{l:"🚬 Bunker",c:"#4a3a2a"},{l:"+100",c:"#2f7fc4"},{l:"−50",c:"#b6472e"},{l:"🏠 Straße",c:"#8e4fc4"}];
-function actCasino(S){
-  const p=cur(S);if(S.phase!=="casino"||S.status!=="playing")return S;
-  const k=Math.floor(Math.random()*WHEEL.length);S.wheel={seg:k,k:(S.wheel?S.wheel.k:0)+1,who:p.id};let x="";
-  if(k===0){p.money+=200;x="+200 €!";}
-  else if(k===1){x="100 € gehen in die Kasse im Biergarten.";pay(S,p,null,100);}
-  else if(k===2){p.money+=50;x="+50 €.";}
-  else if(k===3){const g=S.pot;p.money+=g;S.pot=0;x=g?"Die ganze Kasse im Biergarten: +"+g+" €!":"Die Kasse ist leider leer.";}
-  else if(k===4){st(S,p.id).wb=(st(S,p.id).wb||0)+1;x="Ab in den Bunker bei Big A!";sendJail(S,p);}
-  else if(k===5){p.money+=100;x="+100 €.";}
-  else if(k===6){x="50 € gehen in die Kasse im Biergarten.";pay(S,p,null,50);}
-  else{const free=BOARD.map((f,i)=>i).filter(i=>BOARD[i].t==="prop"&&!S.props[i]);
-    if(free.length){const i=pick(free);S.props[i]={owner:p.id,h:0};st(S,p.id).ws=(st(S,p.id).ws||0)+1;x="Gratis-Straße: "+BOARD[i].n+" gehört jetzt "+p.name+"!";}else{p.money+=150;x="Keine Straße mehr frei, dafür +150 €.";}}
-  log(S,"Glücksrad: "+p.name+" dreht "+WHEEL[k].l+". "+x);S.card={deck:"ch",t:"🎡 "+WHEEL[k].l,x};
-  S.phase="x";settlePhase(S);return S;
+/* Casino: Einsatz wählen, dann Glücksrad oder eine Hand Blackjack. Verlorene Einsätze behält das Casino. */
+const CAS_STAKES=[50,100,200];
+const WHEEL=[{l:"×3",c:"#3f9b5f",m:3},{l:"Weg",c:"#c2402b",m:0},{l:"×2",c:"#e6b43d",m:2},{l:"🍻 Kasse",c:"#ff9f1c",m:1},{l:"🚬 Bunker",c:"#4a3a2a",m:0},{l:"Zurück",c:"#2f7fc4",m:1},{l:"Weg",c:"#b6472e",m:0},{l:"🏠 Straße",c:"#8e4fc4",m:1}];
+function casDone(S){S.bj=null;S.phase="x";settlePhase(S);return S;}
+function actCasinoSkip(S){const p=cur(S);if(S.phase!=="casino"||S.bj)return S;log(S,p.name+" schaut nur kurz rein und geht weiter.");S.card=null;return casDone(S);}
+function actCasino(S,game,stake){
+  const p=cur(S);if(S.phase!=="casino"||S.status!=="playing"||S.bj)return S;
+  stake=CAS_STAKES.includes(stake)?stake:CAS_STAKES[0];if(p.money<stake)return S;
+  if(game==="bj")return bjDeal(S,p,stake);
+  p.money-=stake;const k=Math.floor(Math.random()*WHEEL.length),w=WHEEL[k];S.wheel={seg:k,k:(S.wheel?S.wheel.k:0)+1,who:p.id};
+  const back=stake*w.m;p.money+=back;let x=w.m>1?"Einsatz "+stake+" € wird zu "+back+" €!":w.m===1?"Einsatz "+stake+" € zurück.":"Einsatz "+stake+" € ist weg.";
+  if(k===3){const g=S.pot;p.money+=g;S.pot=0;x+=g?" Dazu die ganze Kasse im Biergarten: +"+g+" €!":" Die Kasse ist leider leer.";}
+  else if(k===4){st(S,p.id).wb=(st(S,p.id).wb||0)+1;x+=" Und ab in den Bunker bei Big A!";sendJail(S,p);}
+  else if(k===7){const free=BOARD.map((f,i)=>i).filter(i=>BOARD[i].t==="prop"&&!S.props[i]);
+    if(free.length){const i=pick(free);S.props[i]={owner:p.id,h:0};st(S,p.id).ws=(st(S,p.id).ws||0)+1;x+=" Gratis-Straße: "+BOARD[i].n+" gehört jetzt "+p.name+"!";}else{p.money+=150;x+=" Keine Straße mehr frei, dafür +150 €.";}}
+  log(S,"Glücksrad: "+p.name+" setzt "+stake+" € und dreht "+w.l+". "+x);S.card={deck:"ch",t:"🎡 "+w.l,x};
+  return casDone(S);
+}
+/* Eine Hand Blackjack gegen die Bank: Bank zieht bis 17, Blackjack zahlt 3:2. */
+const BJ_R=["A","2","3","4","5","6","7","8","9","10","B","D","K"],BJ_S=["♠","♥","♦","♣"];
+const bjCard=()=>BJ_R[Math.floor(Math.random()*13)]+BJ_S[Math.floor(Math.random()*4)];
+function bjVal(h){let v=0,a=0;h.forEach(c=>{const r=c.slice(0,-1);if(r==="A"){a++;v+=11;}else v+=/[BDK]|10/.test(r)?10:+r;});while(v>21&&a){v-=10;a--;}return v;}
+const bjTxt=h=>h.join(" ")+" ("+bjVal(h)+")";
+function bjDeal(S,p,stake){
+  p.money-=stake;S.bj={stake,p:[bjCard(),bjCard()],d:[bjCard(),bjCard()]};
+  log(S,p.name+" setzt "+stake+" € auf eine Hand Blackjack.");
+  if(bjVal(S.bj.p)===21)return bjEnd(S);
+  S.card=null;return S;
+}
+function actBjHit(S){const p=cur(S),b=S.bj;if(S.phase!=="casino"||!b)return S;b.p.push(bjCard());const v=bjVal(b.p);if(v>21||v===21)return bjEnd(S);return S;}
+function actBjStand(S){if(S.phase!=="casino"||!S.bj)return S;return bjEnd(S);}
+function bjEnd(S){
+  const p=cur(S),b=S.bj,pv=bjVal(b.p),nat=pv===21&&b.p.length===2;
+  if(pv<=21&&!nat)while(bjVal(b.d)<17)b.d.push(bjCard());
+  const dv=bjVal(b.d),dnat=dv===21&&b.d.length===2;let back=0,t;
+  if(pv>21)t="Überkauft! Einsatz weg.";
+  else if(nat&&!dnat){back=Math.round(b.stake*2.5);t="Blackjack! +"+(back-b.stake)+" €";}
+  else if(dv>21){back=b.stake*2;t="Die Bank überkauft sich. +"+b.stake+" €";}
+  else if(pv>dv){back=b.stake*2;t="Gewonnen! +"+b.stake+" €";}
+  else if(pv===dv){back=b.stake;t="Unentschieden, Einsatz zurück.";}
+  else t="Die Bank gewinnt. Einsatz weg.";
+  p.money+=back;
+  log(S,"Blackjack: "+p.name+" "+(back>b.stake?"gewinnt "+(back-b.stake)+" €":back===b.stake?"spielt unentschieden":"verliert "+b.stake+" €")+".");
+  S.card={deck:"ch",t:"🃏 "+t,x:"Du: "+bjTxt(b.p)+" · Bank: "+bjTxt(b.d)};
+  return casDone(S);
+}
+function bjHTML(b){
+  const c=h=>h.map(x=>`<span class="pc ${/[♥♦]/.test(x)?"red":""}">${esc(x)}</span>`).join("");
+  return `<div class="card ch bj"><b>🃏 Blackjack · Einsatz ${b.stake} €</b><div class="bjrow">Bank: ${c([b.d[0]])}<span class="pc back">?</span></div><div class="bjrow">Du: ${c(b.p)} <b>${bjVal(b.p)}</b></div></div>`;
 }
 /* Dorfmeisterschaft: jede 10. Runde spielen alle dasselbe Minispiel, ohne Einsatz. Preise für Platz 1 bis 3,
    abwechselnd Geld und (beim nächsten Mal) eine freie Straße für den Sieger. */
@@ -983,7 +1018,7 @@ function cpuMove(S,id){
   if(S.phase==="buy"){const f=BOARD[me.pos],key=f.g&&wouldComplete(S,me.pos,me.id);return (me.money-f.p>=reserve*(key?.3:1)||(key&&me.money>=f.p))?actBuy(S):actSkip(S);}
   if(S.phase==="challenge"&&S.challenge)return actChallenge(S,cpuScore(S.challenge.kind,lvl,S.challenge.q));
   if(S.phase==="penalty")return actPenalty(S,pick(["links","Mitte","rechts"]));
-  if(S.phase==="casino")return actCasino(S);
+  if(S.phase==="casino"){if(S.bj)return bjVal(S.bj.p)<17?actBjHit(S):actBjStand(S);if(me.money<250)return actCasinoSkip(S);return actCasino(S,Math.random()<.5?"bj":"wheel",me.money>900?100:50);}
   if(S.phase==="end"){cpuBuild(S,me,reserve);if(canDuel(S)&&cpuDuel(S,me,lvl))return S;return actEnd(S);}
   return S;
 }
@@ -1161,7 +1196,7 @@ function clack(when,vol,freq){const c=au();if(!c)return;const t=c.currentTime+wh
   s.connect(bp);bp.connect(hp);hp.connect(g);g.connect(c.destination);s.start(t);}
 function thud(when,vol){const c=au();if(!c)return;const t=c.currentTime+when,o=c.createOscillator(),g=c.createGain();o.type="sine";o.frequency.setValueAtTime(190,t);o.frequency.exponentialRampToValueAtTime(70,t+.05);g.gain.setValueAtTime(vol*.35,t);g.gain.exponentialRampToValueAtTime(.0001,t+.07);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.09);}
 function sfx(k,a){if(!SND.on)return;try{SFX[k]&&SFX[k](a);}catch(e){}}
-const SOUNDMAP=[[/Spielende/,"win"],[/Dorfmeisterschaft/,"fanfare"],[/Glücksrad/,"wheel"],[/pleite/,"lose"],[/ROLLMISCH/,"fanfare"],[/Dorf-Ereignis/,"ev"],[/heraus: /,"duel"],[/sitzt im Bunker/,"jail"],[/baut (ein|eine)/,"build"],[/gewinnt \d|schafft die Challenge|TOOOR|räumt die Kasse|auf Los|über Los|kauft/,"coin"],[/Miete an|verpasst|Gehalten|zahlt/,"pay"]];
+const SOUNDMAP=[[/Spielende/,"win"],[/Blackjack: .* gewinnt/,"win"],[/Blackjack: .* verliert/,"lose"],[/Dorfmeisterschaft/,"fanfare"],[/Glücksrad/,"wheel"],[/pleite/,"lose"],[/ROLLMISCH/,"fanfare"],[/Dorf-Ereignis/,"ev"],[/heraus: /,"duel"],[/sitzt im Bunker/,"jail"],[/baut (ein|eine)/,"build"],[/gewinnt \d|schafft die Challenge|TOOOR|räumt die Kasse|auf Los|über Los|kauft/,"coin"],[/Miete an|verpasst|Gehalten|zahlt/,"pay"]];
 function playLog(lines){const t=lines.join("\n");let d=0;if(/ würfelt \d/.test(t)){sfx("dice");d=420;}const h=SOUNDMAP.find(([re])=>re.test(t));if(h)setTimeout(()=>sfx(h[1]),d);}
 document.addEventListener("pointerdown",()=>{if(SND.on)au();},{passive:true});
 
@@ -1243,7 +1278,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Die Mieten sind wie im Original, mit 4 Häusern und Hotel etwas günstiger. Die billigste Miete sind 10 €.</li>
 <li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Waldfest (Mieten +50 %), Sommerloch (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
 <li><b>📜 Spielbericht und 🏅 Erfolge:</b> Am Ende gibt es Auszeichnungen wie Miethai oder Duellkönig und den Verlauf aller Vermögen. Auf jedem Handy sammelst du 37 Erfolge.</li>
-<li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, dreht am Glücksrad: Geld, die Kasse, eine Gratis-Straße, aber auch Minus oder der Bunker.</li>
+<li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, wählt einen Einsatz (50, 100 oder 200 €) und spielt Glücksrad (bis zum Dreifachen, die Kasse, eine Gratis-Straße, aber auch der Bunker) oder eine Hand Blackjack gegen die Bank (Bank zieht bis 17, Blackjack zahlt 3:2). Man kann auch einfach weitergehen.</li>
 <li><b>🏆 Dorfmeisterschaft:</b> Jede 10. Runde spielen alle dasselbe Minispiel, ohne Einsatz. Platz 1 bekommt 300 € oder abwechselnd eine freie Straße, Platz 2 150 €, Platz 3 75 €.</li>
 <li><b>👀 Zuschauen:</b> Bei Online-Spielen kann jeder mit dem Code oder über „Laufende Spiele“ zuschauen, ohne mitzuspielen, und im Chat mitreden.</li>
 <li>Pasch heißt nochmal würfeln. Drei Pasche hintereinander: ab in den Bunker bei Big A, dort wird erstmal gemeinsam einer geraucht. Raus kommst du mit Pasch, 50 € oder Freikarte.</li>
@@ -1258,12 +1293,12 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==9?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
-   <li>🎰 Rottenberger Casino mit Glücksrad</li>
-   <li>🏆 Dorfmeisterschaft jede 10. Runde: alle gegen alle, ohne Einsatz</li>
-   <li>👀 Bei Online-Spielen zuschauen, ohne mitzuspielen</li>
-   <li>🏅 Jetzt 37 Erfolge, zum Beispiel Phönix aus dem Spessart, Hotelkette oder Dynastie</li>
-   <li>🌲 Waldfest, 🔊 Sound, 📜 Spielbericht, 🔁 Revanche und redende Computergegner</li></ul>
+  const news=store.get("rbm-news")!==10?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>🃏 Casino mit Einsatz: Glücksrad bis zum Dreifachen oder eine Hand Blackjack</li>
+   <li>🏆 Jede zweite Dorfmeisterschaft geht um Grundstücke</li>
+   <li>🏦 Neue Karte: Bennys Bausparvertrag</li>
+   <li>⚡ Schnellerer Spielerwechsel im Online-Spiel</li>
+   <li>👀 Zuschauen, 🏅 37 Erfolge, 🌲 Waldfest, 🔊 Sound und redende Computergegner</li></ul>
    <button class="ghost small" data-a="news-ok">Alles klar</button></section>`:"";
   return header()+news+`<p class="lead">Kaufe die Feldkahler Straße, das Marry und den Bambuspark, überlebe den Bunker bei Big A, Wildschwein-Alarm und Dorfklatsch, gib Freddy im Marry einen aus und werde Rottenberg-Baron.</p>
   <section class="panel"><h2>Neues Spiel</h2><div class="big-choice">
@@ -1344,7 +1379,9 @@ function centerHTML(){
       acts+=`<button class="primary" data-a="roll">${p.jail?"Pasch versuchen":"Würfeln"}</button>`;
     }else if(S.phase==="buy"){const f=BOARD[p.pos];acts+=`<button class="gold" data-a="buy">${esc(f.s.replace(/\|/g,""))} kaufen (${f.p})</button><button class="ghost" data-a="skip">Nein</button>`;}
     else if(S.phase==="challenge"&&S.challenge)acts+=soloHTML(S.challenge);
-    else if(S.phase==="casino")acts+=`<button class="gold" data-a="casino">🎡 Glücksrad drehen</button>`;
+    else if(S.phase==="casino"){if(S.bj)acts+=`<button class="gold" data-a="bj-hit">Karte</button><button class="primary" data-a="bj-stand">Stehen</button>`;
+      else{const sk=CAS_STAKES.includes(app.casStake)?app.casStake:50,ok=p.money>=sk;
+        acts+=`<div class="stakes">Einsatz: ${CAS_STAKES.map(v=>`<button class="chip ${v===sk?"on":""}" data-a="cas-stake" data-v="${v}" ${p.money<v?"disabled":""}>${v} €</button>`).join("")}</div><button class="gold" data-a="casino" data-g="wheel" ${ok?"":"disabled"}>🎡 Glücksrad</button><button class="gold" data-a="casino" data-g="bj" ${ok?"":"disabled"}>🃏 Blackjack</button><button class="ghost" data-a="cas-skip">Weitergehen</button>`;}}
     else if(S.phase==="penalty")acts+=["links","Mitte","rechts"].map(d=>`<button class="${d==="Mitte"?"gold":"ghost"}" data-a="pen" data-d="${d}">${d[0].toUpperCase()+d.slice(1)}</button>`).join("");
     else if(S.phase==="end")acts+=`<button class="primary ${autoEndOk()?"autoend":""}" data-a="end">${autoEndOk()?"Weiter ▸":"Zug beenden"}</button>`;
     if(canDuel(S))acts+=`<button class="gold" data-a="duel-open">⚔ Herausfordern</button>`;
@@ -1363,7 +1400,7 @@ function centerHTML(){
   if(app.wheelSeen==null)app.wheelSeen=S.wheel?S.wheel.k:0;
   const spin=!!S.wheel&&S.wheel.k!==app.wheelSeen;
   if(spin&&!app.wheelT){const k=S.wheel.k;app.wheelT=setTimeout(()=>{app.wheelT=null;app.wheelSeen=k;render();},4300);}
-  const q=S.card?"":quipFor(S),card=spin?wheelHTML(S.wheel):S.card?`<div class="card ${S.card.deck}"><b>${esc(S.card.t)}</b>${esc(S.card.x)}</div>`:`<div class="msg">${esc(S.log[0]||"")}</div>${q?`<div class="quip">„${esc(q)}“</div>`:""}`;
+  const q=S.card?"":quipFor(S),card=spin?wheelHTML(S.wheel):S.bj&&S.phase==="casino"?bjHTML(S.bj):S.card?`<div class="card ${S.card.deck}"><b>${esc(S.card.t)}</b>${esc(S.card.x)}</div>`:`<div class="msg">${esc(S.log[0]||"")}</div>${q?`<div class="quip">„${esc(q)}“</div>`:""}`;
   return `<div class="wm" aria-hidden="true">${WAPPEN}</div><div class="crest">${WAPPEN}</div><div class="mark">Rottenberg<small>Runde ${S.round}${S.maxRounds?" von "+S.maxRounds:""} · Kasse ${fmt(S.pot)} €</small></div>
    <div class="turnchip"><span class="avatar" style="background:${p.color}">${tokSvg(tokOf(p))}</span>${esc(p.name)}${p.jail?" · Bunker":""}</div>
    ${S.dice[0]?`<div class="dice" id="dice"><span>${DICE[S.dice[0]]}</span><span>${DICE[S.dice[1]]}</span></div>`:""}
@@ -1701,7 +1738,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v19";
+const BUILD="rbm-v20";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -1766,7 +1803,7 @@ document.addEventListener("click",async ev=>{
     case "go-local":go("local");break;
     case "go-cpu":go("cpu");break;
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",9);render();break;
+    case "news-ok":store.set("rbm-news",10);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
@@ -1862,7 +1899,11 @@ document.addEventListener("click",async ev=>{
     case "duel-win":{const d=app.S.duel;commitLeased(S=>actDuelJudge(S,b.dataset.w===""?null:+b.dataset.w),[d.from,d.to]);break;}
     case "mg-start":{const d=app.S.duel;mgBegin("duel",+b.dataset.p,d.kind,d.q);break;}
     case "tour-start":{const t=app.S.tour;if(t)mgBegin("tour",+b.dataset.p,t.kind,t.q);break;}
-    case "casino":commit(S=>actCasino(S));break;
+    case "casino":{const g=b.dataset.g,v=CAS_STAKES.includes(app.casStake)?app.casStake:50;commit(S=>actCasino(S,g,v));break;}
+    case "cas-stake":app.casStake=+b.dataset.v;render();break;
+    case "cas-skip":commit(actCasinoSkip);break;
+    case "bj-hit":commit(actBjHit);break;
+    case "bj-stand":commit(actBjStand);break;
     case "mg-solo":{const c=app.S.challenge;if(c)mgBegin("solo",app.S.turn,c.kind,c.q);break;}
     case "mg-pick":if(mg)miniSubmit(b.dataset.v);break;
     case "mg-send":{const v=document.getElementById("mg-num").value;if(mg&&v!=="")miniSubmit(Math.round(+v));break;}
