@@ -181,6 +181,30 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
   .center{padding:5px;gap:4px}
 }
 .tabs{display:flex;gap:6px;margin-bottom:10px}.tabs button{flex:1;padding:8px 10px;font-size:13px;background:transparent;border:1px solid var(--line,rgba(255,255,255,.2));color:inherit}.tabs button.on{background:var(--gold);color:#1b1b1b;border-color:var(--gold)}
+.card.ev{border-top-color:#ff9f1c;box-shadow:0 0 0 2px rgba(255,159,28,.35)}
+.evbar{margin:0 0 8px;padding:6px 12px;border-radius:10px;background:#ff9f1c;color:#1b1b1b;font-size:12.5px;line-height:1.3;animation:pop .4s ease}
+.chart{margin:6px 0 12px;background:var(--forest);border-radius:12px;padding:10px}
+.chart svg{width:100%;height:auto;display:block}
+.chart figcaption{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--dim-on-forest);margin-top:6px}
+.chart figcaption i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.awards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-bottom:12px}
+.aw{display:flex;gap:10px;align-items:center;background:var(--forest);border-radius:12px;padding:9px 12px;animation:pop .5s ease both}
+.aw .ai{font-size:26px}.aw b{display:block;color:var(--gold);font-size:14px}.aw span{font-size:13px}
+.aw .dot{display:inline-block;width:9px;height:9px;margin-right:5px}
+.achp summary{cursor:pointer;list-style:none}.achp summary::-webkit-details-marker{display:none}
+.achp summary h2{display:flex;justify-content:space-between;align-items:center;margin:0}.achn{font-size:14px;color:var(--gold)}
+.achgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:12px}
+.achi{display:flex;flex-direction:column;gap:2px;background:var(--forest);border-radius:12px;padding:10px;opacity:.55}
+.achi.on{opacity:1;box-shadow:inset 0 0 0 1px var(--gold)}.achi span{font-size:24px}.achi b{font-size:13px}.achi small{font-size:11px;color:var(--dim-on-forest)}
+.achtoast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%);z-index:30;display:flex;gap:10px;align-items:center;background:var(--paper);color:var(--ink);padding:10px 16px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.45);border:2px solid var(--gold);animation:achin .45s cubic-bezier(.2,1.4,.4,1);transition:opacity .5s,transform .5s}
+.achtoast span{font-size:30px}.achtoast small{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.achtoast b{font-size:15px}
+.achtoast.out{opacity:0;transform:translate(-50%,-20px)}
+@keyframes achin{from{transform:translate(-50%,-40px) scale(.8);opacity:0}}
+.bubble{position:absolute;transform:translate(-50%,0);z-index:25;max-width:220px;background:var(--paper);color:var(--ink);font-size:13px;font-weight:600;padding:7px 11px;border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.4);pointer-events:none;animation:achin2 .3s ease;transition:opacity .4s}
+.bubble::after{content:"";position:absolute;left:50%;top:-7px;margin-left:-7px;border:7px solid transparent;border-top:0;border-bottom-color:var(--paper)}
+.bubble.out{opacity:0}
+@keyframes achin2{from{opacity:0;transform:translate(-50%,10px)}}
+.news{border:2px solid var(--gold)}.news ul{margin:6px 0 10px;padding-left:4px;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px}
 .countdown{display:flex;flex-direction:column;align-items:center;gap:4px}
 .countdown span{font-family:var(--f-display);font-size:clamp(56px,20vw,96px);color:var(--gold);line-height:1;animation:pop .6s ease}
 .countdown small{color:var(--dim-on-forest);font-size:12px}
@@ -396,7 +420,7 @@ const SOLO_ALL={rennen:{g:"Schaffe mindestens 40 Schritte.",ok:v=>v>=40},faengt:
 const SOLO=Object.fromEntries(OFFER.map(k=>[k,SOLO_ALL[k]]));
 function valText(k,v,c){if(k==="reflex")return v>=5000?"zu früh getippt":(v/1000).toFixed(2).replace(".",",")+" s";if(k==="stopp")return (v/1000).toFixed(2).replace(".",",")+" s";if(k==="tap")return v+"× gepumpt";if(k==="rennen")return v+" Schritte";if(k==="faengt")return v+" Äppler";if(k==="glocken")return v+" Runden";if(k==="whack")return v+" Punkte";if(k==="rechnen"||k==="farben")return v+" Punkte";if(k==="schaetz")return Number(v).toLocaleString("de-DE")+" getippt, richtig: "+SCHAETZ[c.q].a.toLocaleString("de-DE");return "Bembel "+v;}
 function startChallenge(S){
-  const kind=pick(Object.keys(SOLO)),c={kind,w:SOLO[kind].w||80,l:SOLO[kind].l||40};if(kind==="schaetz")c.q=Math.floor(Math.random()*SCHAETZ.length);
+  const kind=pick(Object.keys(SOLO)),x2=evOn(S,"pay")||1,c={kind,w:(SOLO[kind].w||80)*x2,l:(SOLO[kind].l||40)*x2};if(kind==="schaetz")c.q=Math.floor(Math.random()*SCHAETZ.length);
   S.challenge=c;S.phase="challenge";
   S.card={deck:"ch",t:"★ Challenge: "+KIND_N(kind),x:(kind==="schaetz"?SCHAETZ[c.q].q+" ":MINI[kind]+" ")+"Ziel: "+SOLO[kind].g+" Geschafft +"+c.w+" €, sonst −"+c.l+" €."};
   log(S,cur(S).name+" muss eine Challenge spielen: "+KIND_N(kind)+".");
@@ -468,6 +492,9 @@ const CARDS={
 CARDS.klatsch=CARDS.klatsch.concat(CARDS.wahnX);delete CARDS.wahnX;
 
 /* ---------- Spiellogik (reine Zustandsfunktionen) ---------- */
+/* Statistik pro Spieler für den Spielbericht und die Erfolge. */
+function st(S,id){S.st=S.st||{};return S.st[id]||(S.st[id]={rp:0,rg:0,rgMax:0,mx:0,mxf:-1,mxto:-1,dw:0,dl:0,cw:0,cl:0,go:0,jail:0,dbl:0,rm:0,pot:0,potMax:0,hs:0,buy:0,kn:0});}
+function duelStat(S,W,L){st(S,W.id).dw++;st(S,L.id).dl++;}
 function log(S,t){S.lc=(S.lc||0)+1;S.log.unshift(t);if(S.log.length>40)S.log.length=40;}
 const cur=S=>S.players[S.turn];
 function newState(list,maxRounds,extra){
@@ -476,7 +503,26 @@ function newState(list,maxRounds,extra){
     decks:{klatsch:shuffle(CARDS.klatsch.map((_,i)=>i)),ch:shuffle(CHALLENGES.map((_,i)=>i))},wantBuy:false,challenge:null,seq:0,started:Date.now()},extra||{});
 }
 function ownsGroup(S,pid,g){return BOARD.every((f,i)=>f.g!==g||(S.props[i]&&S.props[i].owner===pid));}
-function rent(S,i){
+/* Dorf-Ereignisse: jede dritte Runde passiert im ganzen Dorf etwas, das für genau diese Runde gilt. */
+const DORF_EV=[
+ {k:"kerwa",ic:"🎪",n:"Kerwa",t:"Kerwa in Rottenberg!",x:"Das ganze Dorf feiert. Diese Runde sind alle Mieten 50 % höher.",rent:1.5},
+ {k:"loch",ic:"🏖️",n:"Sommerloch",t:"Sommerloch",x:"Halb Rottenberg ist am Gardasee. Diese Runde gibt es nur die halbe Miete.",rent:.5},
+ {k:"steuer",ic:"🏛️",n:"Grundsteuer",t:"Kilian kassiert Grundsteuer",x:"Jeder zahlt 15 € pro Grundstück in die Kasse im Biergarten.",f:S=>alive(S).forEach(p=>{const n=Object.values(S.props).filter(o=>o.owner===p.id).length;if(n)pay(S,p,null,15*n);})},
+ {k:"spende",ic:"🎁",n:"Dorffest",t:"Dorffest-Überschuss",x:"Der Feuerwehrverein verteilt den Gewinn vom Dorffest: Jeder bekommt 50 €.",f:S=>alive(S).forEach(p=>p.money+=50)},
+ {k:"jackpot",ic:"🍻",n:"Freibier",t:"Freibier-Jackpot",x:"Die Brauerei legt 200 € in die Kasse im Biergarten. Wer landet zuerst dort?",f:S=>{S.pot+=200;}},
+ {k:"frei",ic:"🔓",n:"Bunker leer",t:"Big A macht Feierabend",x:"Der Bunker wird geräumt, alle Insassen sind sofort frei.",f:S=>alive(S).forEach(p=>{if(p.jail){p.jail=false;p.jailTurns=0;p.sleep=0;}})},
+ {k:"saison",ic:"🐗",n:"Wildsau-Saison",t:"Wildsau-Saison",x:"Diese Runde zählen Challenges und Duelle doppelt: doppelter Gewinn, doppeltes Risiko.",pay:2},
+ {k:"finale",ic:"🏁",n:"Schlussrunde",t:"Schlussrunde!",x:"Letzte Runde in Rottenberg: Alle Mieten sind doppelt, Challenges und Duelle auch. Jetzt zählt jeder Euro!",rent:2,pay:2,fin:true}
+];
+function evNow(S){return S.ev&&S.ev.r===S.round?DORF_EV.find(e=>e.k===S.ev.k)||null:null;}
+function evOn(S,key){const e=evNow(S);return e&&e[key]||0;}
+function roundEvent(S){
+  const pool=DORF_EV.filter(e=>!e.fin&&(!S.ev||e.k!==S.ev.k)),e=S.maxRounds&&S.round===S.maxRounds?DORF_EV.find(e=>e.fin):pick(pool);
+  S.ev={k:e.k,r:S.round};if(e.f)e.f(S);
+  log(S,"Dorf-Ereignis: "+e.t+". "+e.x);S.card={deck:"ev",t:e.ic+" "+e.t,x:e.x};
+}
+function rent(S,i){const r=rent0(S,i),m=evOn(S,"rent");return m?Math.max(5,Math.round(r*m/5)*5):r;}
+function rent0(S,i){
   const f=BOARD[i],o=S.props[i];
   if(f.t==="prop"){let r=f.r[o.h];if(o.h===0&&ownsGroup(S,o.owner,f.g))r*=2;return r;}
   if(f.t==="bus"){const n=BOARD.filter((b,j)=>b.t==="bus"&&S.props[j]&&S.props[j].owner===o.owner).length;return BUS_BASE*Math.pow(2,n-1);}
@@ -502,8 +548,8 @@ function settle(S,p,cred){
     if(alive(S).length<=1)finish(S);
   }
 }
-function sendJail(S,p){p.pos=9;p.jail=true;p.jailTurns=0;S.again=false;log(S,p.name+" sitzt im Bunker bei Big A. Erstmal gemeinsam einer geraucht.");}
-function passGo(S,p,landed){const g=landed?400:200;p.money+=g;log(S,landed?p.name+" landet genau auf Los: 400!":p.name+" kommt über Los: +200.");}
+function sendJail(S,p){st(S,p.id).jail++;p.pos=9;p.jail=true;p.jailTurns=0;S.again=false;log(S,p.name+" sitzt im Bunker bei Big A. Erstmal gemeinsam einer geraucht.");}
+function passGo(S,p,landed){const g=landed?400:200;st(S,p.id).go++;p.money+=g;log(S,landed?p.name+" landet genau auf Los: 400!":p.name+" kommt über Los: +200.");}
 function move(S,p,steps){const np=(p.pos+steps)%N;if(p.pos+steps>=N)passGo(S,p,np===0);p.pos=np;land(S,p,0);}
 function moveTo(S,p,t,d){if(t<p.pos)passGo(S,p,t===0);else if(t===0&&p.pos!==0)passGo(S,p,true);p.pos=t;land(S,p,(d||0)+1);}
 function land(S,p,depth){
@@ -512,9 +558,9 @@ function land(S,p,depth){
   if(ownable(f)){
     const o=S.props[p.pos];
     if(!o){if(p.money>=f.p)canBuy=true;else log(S,p.name+" kann sich "+f.n+" nicht leisten.");}
-    else if(o.owner!==p.id){const ow=S.players[o.owner];let r=rent(S,p.pos);if(ow.bonus){r*=2;ow.bonus=false;log(S,"Kerwa-Zuschlag! Doppelte Miete.");}log(S,p.name+" zahlt "+r+" Miete an "+ow.name+".");pay(S,p,ow,r);}
+    else if(o.owner!==p.id){const ow=S.players[o.owner];let r=rent(S,p.pos);if(ow.bonus){r*=2;ow.bonus=false;log(S,"Kerwa-Zuschlag! Doppelte Miete.");}log(S,p.name+" zahlt "+r+" Miete an "+ow.name+".");{const a=st(S,p.id),b=st(S,ow.id);a.rp+=r;b.rg+=r;b.rgMax=Math.max(b.rgMax,r);if(r>a.mx){a.mx=r;a.mxf=p.pos;a.mxto=ow.id;}}pay(S,p,ow,r);}
   }else if(f.t==="tax"){log(S,p.name+" zahlt "+f.a+" ("+f.n+") in die Kasse im Biergarten.");pay(S,p,null,f.a);}
-  else if(f.t==="pot"){if(S.pot>0){log(S,p.name+" räumt die Kasse im Biergarten ab: +"+S.pot+" €!");p.money+=S.pot;S.pot=0;}else log(S,p.name+" parkt am Dorfplatz. Die Kasse ist leer.");}
+  else if(f.t==="pot"){if(S.pot>0){log(S,p.name+" räumt die Kasse im Biergarten ab: +"+S.pot+" €!");{const a=st(S,p.id);a.pot+=S.pot;a.potMax=Math.max(a.potMax,S.pot);}p.money+=S.pot;S.pot=0;}else log(S,p.name+" parkt am Dorfplatz. Die Kasse ist leer.");}
   else if(f.t==="gojail"){sendJail(S,p);}
   else if(f.t==="mini"){S.miniHere=true;S.card={deck:"wahn",t:"🐗 Wildsau-Wahnsinn",x:others(S,p).length?"Minigame-Feld! Nur hier darfst du jemanden um Geld herausfordern.":"Minigame-Feld, aber es ist niemand mehr da zum Herausfordern."};log(S,p.name+" landet auf dem Minigame-Feld und darf herausfordern.");}
   else if(f.t==="klatsch"){
@@ -535,8 +581,8 @@ function actChallenge(S,val){
   const p=cur(S),c=S.challenge;if(S.phase!=="challenge"||!c)return S;
   val=Number(val);if(!isFinite(val))return S;
   const ok=SOLO[c.kind].ok(val,c),vt=valText(c.kind,val,c);
-  if(ok){p.money+=c.w;log(S,p.name+" schafft die Challenge ("+vt+"): +"+c.w+" €!");S.card={deck:"ch",t:"★ Geschafft!",x:vt+". "+p.name+" bekommt "+c.w+" €."};}
-  else{log(S,p.name+" verpasst die Challenge ("+vt+"): −"+c.l+" €.");S.card={deck:"ch",t:"Nicht geschafft",x:vt+". "+p.name+" zahlt "+c.l+" € in die Kasse im Biergarten."};pay(S,p,null,c.l);}
+  if(ok){st(S,p.id).cw++;p.money+=c.w;log(S,p.name+" schafft die Challenge ("+vt+"): +"+c.w+" €!");S.card={deck:"ch",t:"★ Geschafft!",x:vt+". "+p.name+" bekommt "+c.w+" €."};}
+  else{st(S,p.id).cl++;log(S,p.name+" verpasst die Challenge ("+vt+"): −"+c.l+" €.");S.card={deck:"ch",t:"Nicht geschafft",x:vt+". "+p.name+" zahlt "+c.l+" € in die Kasse im Biergarten."};pay(S,p,null,c.l);}
   return resume(S);
 }
 function actPenalty(S,dir){
@@ -558,27 +604,28 @@ function actRoll(S){
     else S.phase="end";
     return S;
   }
-  if(dbl){S.doubles++;if(S.doubles>=3){log(S,"Dritter Pasch in Folge, das ist verdächtig! Ab in den Bunker.");sendJail(S,p);S.phase="end";return S;}}
-  if(a===1&&b===1){log(S,"ROLLMISCH! Doppel-Eins: jeder zahlt "+p.name+" 50.");others(S,p).forEach(o=>pay(S,o,p,50));}
+  if(dbl){st(S,p.id).dbl++;S.doubles++;if(S.doubles>=3){log(S,"Dritter Pasch in Folge, das ist verdächtig! Ab in den Bunker.");sendJail(S,p);S.phase="end";return S;}}
+  if(a===1&&b===1){st(S,p.id).rm++;log(S,"ROLLMISCH! Doppel-Eins: jeder zahlt "+p.name+" 50.");others(S,p).forEach(o=>pay(S,o,p,50));}
   S.again=dbl;
   move(S,p,a+b);settlePhase(S);return S;
 }
-function actBuy(S){const p=cur(S),f=BOARD[p.pos];if(S.phase!=="buy"||p.money<f.p)return S;p.money-=f.p;S.props[p.pos]={owner:p.id,h:0};log(S,p.name+" kauft "+f.n+" für "+f.p+".");S.phase="x";settlePhase(S);return S;}
+function actBuy(S){const p=cur(S),f=BOARD[p.pos];if(S.phase!=="buy"||p.money<f.p)return S;p.money-=f.p;S.props[p.pos]={owner:p.id,h:0};st(S,p.id).buy++;log(S,p.name+" kauft "+f.n+" für "+f.p+".");S.phase="x";settlePhase(S);return S;}
 function actSkip(S){const p=cur(S);if(S.phase!=="buy")return S;log(S,p.name+" verzichtet auf "+BOARD[p.pos].n+".");S.phase="x";settlePhase(S);return S;}
 function actJailPay(S){const p=cur(S);if(!p.jail||S.phase!=="roll"||p.money<50)return S;pay(S,p,null,50);p.jail=false;p.jailTurns=0;log(S,p.name+" kauft sich für 50 frei.");return S;}
 function actJailCard(S){const p=cur(S);if(!p.jail||S.phase!=="roll"||p.jailCards<1)return S;p.jailCards--;p.jail=false;p.jailTurns=0;log(S,p.name+" nutzt die Freikarte.");return S;}
 function actEnd(S){
   if(S.phase!=="end"||S.status!=="playing")return S;
-  S.doubles=0;S.again=false;S.card=null;S.duelUsed=false;S.miniHere=false;const n=S.players.length;
+  S.doubles=0;S.again=false;S.card=null;S.duelUsed=false;S.miniHere=false;const n=S.players.length,r0=S.round;
   let t=S.turn;
   for(let g=0;g<200;g++){const j=(t+1)%n;if(j===0)S.round++;t=j;const q=S.players[j];if(q.bankrupt)continue;
     if(q.sleep>0){q.sleep--;if(q.sleep){log(S,q.name+" pennt im Bunker weiter (noch "+q.sleep+").");continue;}q.jail=false;q.jailTurns=0;log(S,q.name+" wacht im Bunker auf, reibt sich die Augen und darf raus.");continue;}
     if(q.skip>0){q.skip--;log(S,q.name+(q.skipWhy==="glaab"?" muss bei Bernd Glaab nachsitzen und setzt aus":" hängt in Hermann Pfeufers eiserner Kralle und setzt aus")+(q.skip?" (noch "+q.skip+")":" (jetzt frei)")+".");continue;}break;}
   S.turn=t;
+  if(S.round!==r0&&!(S.maxRounds&&S.round>S.maxRounds)){S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));if(S.round%3===0||(S.maxRounds&&S.round===S.maxRounds))roundEvent(S);}
   if(S.maxRounds&&S.round>S.maxRounds){S.round=S.maxRounds;finish(S);return S;}
   S.phase="roll";return S;
 }
-function actBuild(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||f.t!=="prop"||o.h>=MAXH||!ownsGroup(S,p.id,f.g)||p.money<houseCost(f)||S.phase==="buy")return S;p.money-=houseCost(f);o.h++;log(S,p.name+" baut "+(o.h===MAXH?"ein Hotel":"ein Haus")+" auf "+f.n+".");return S;}
+function actBuild(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||f.t!=="prop"||o.h>=MAXH||!ownsGroup(S,p.id,f.g)||p.money<houseCost(f)||S.phase==="buy")return S;p.money-=houseCost(f);o.h++;st(S,p.id).hs++;log(S,p.name+" baut "+(o.h===MAXH?"ein Hotel":"ein Haus")+" auf "+f.n+".");return S;}
 function actSell(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||o.h<1)return S;o.h--;p.money+=houseCost(f)/2;log(S,p.name+" verkauft ein Haus auf "+f.n+".");return S;}
 const DUELS={zufall:"🎲 Zufalls-Minigame",rennen:"🏁 Wildsau-Rennen",faengt:"🍏 Äppler-Fangen",glocken:"🔔 Klosterglocken",whack:"🐗 Wildsau-Jagd",stopp:"⏱️ Stopp bei 5 Sekunden",rechnen:"🧮 Kopfrechen-Sprint",farben:"🎨 Farb-Chaos",reflex:"⚡ Wildsau-Reflex",tap:"🍎 Äppler-Pumpen",schaetz:"🤔 Schätzen",huetchen:"🍺 Bembel-Hütchenspiel",ssp:"✊ Schnick-Schnack-Schnuck",wuerfel:"🎲 Würfel-Duell"};
 const KIND_N=k=>DUELS[k].replace(/^\S+\s/,"");
@@ -616,14 +663,14 @@ function actDuelInput(S,pid,val){
   const L=W===A?B:A;
   log(S,KIND_N(d.kind)+": "+W.name+" gewinnt "+d.stake+" €. "+detail);
   S.card={deck:"duel",t:"⚔ "+W.name+" gewinnt!",x:detail+" "+L.name+" zahlt "+d.stake+" €."};
-  pay(S,L,W,d.stake);return endDuel(S);
+  duelStat(S,W,L);pay(S,L,W,d.stake);return endDuel(S);
 }
 function canDuel(S){const p=cur(S);return !S.duelUsed&&!!S.miniHere&&BOARD[p.pos].t==="mini"&&(S.phase==="roll"||S.phase==="end")&&others(S,p).length>0;}
 function actDuelStart(S,to,stake,kind){
   const p=cur(S),o=S.players[to];
   if(kind==="zufall")kind=pick(OFFER);
   if(S.duel||!canDuel(S)||!o||o.bankrupt||o.id===p.id||!OFFER.includes(kind))return S;
-  stake=Math.min(stake,p.money,o.money);if(stake<=0)return S;
+  stake=Math.min(stake*(evOn(S,"pay")||1),p.money,o.money);if(stake<=0)return S;
   const d={from:p.id,to:o.id,stake,kind,state:"ask",prev:S.phase};
   if(kind==="challenge"){const c=pick(CHALLENGES.filter(c=>c.t!=="Kellner-Dienst"));d.ct=c.t;d.cx=c.x;}
   if(kind==="schaetz")d.q=Math.floor(Math.random()*SCHAETZ.length);
@@ -640,13 +687,13 @@ function endDuel(S){
 function actDuelAnswer(S,yes){
   const d=S.duel;if(!d||S.phase!=="duel"||d.state!=="ask")return S;
   const A=S.players[d.from],B=S.players[d.to];
-  if(!yes){log(S,B.name+" kneift und zahlt 10 € Feiglingsgebühr an "+A.name+".");S.card={deck:"duel",t:"Gekniffen!",x:B.name+" traut sich nicht und zahlt "+A.name+" 10 €."};pay(S,B,A,10);return endDuel(S);}
+  if(!yes){log(S,B.name+" kneift und zahlt 10 € Feiglingsgebühr an "+A.name+".");S.card={deck:"duel",t:"Gekniffen!",x:B.name+" traut sich nicht und zahlt "+A.name+" 10 €."};st(S,B.id).kn++;pay(S,B,A,10);return endDuel(S);}
   if(d.kind==="wuerfel"){
     let ra,rb;do{ra=d6()+d6();rb=d6()+d6();}while(ra===rb);
     const W=ra>rb?A:B,L=W===A?B:A;
     log(S,"Würfel-Duell: "+A.name+" "+ra+", "+B.name+" "+rb+". "+W.name+" gewinnt "+d.stake+" €!");
     S.card={deck:"duel",t:"⚔ "+W.name+" gewinnt!",x:A.name+" würfelt "+ra+", "+B.name+" würfelt "+rb+". "+L.name+" zahlt "+d.stake+" €."};
-    pay(S,L,W,d.stake);return endDuel(S);
+    duelStat(S,W,L);pay(S,L,W,d.stake);return endDuel(S);
   }
   if(MINI[d.kind]){d.state="play";d.in={};S.card={deck:"duel",t:"⚔ "+KIND_N(d.kind),x:(d.kind==="schaetz"?SCHAETZ[d.q].q+" ":MINI[d.kind]+" ")+"Einsatz "+d.stake+" €."};log(S,B.name+" nimmt an: "+KIND_N(d.kind)+".");return S;}
   d.state="judge";
@@ -661,7 +708,7 @@ function actDuelJudge(S,winner){
   const W=S.players[winner],L=W===A?B:A;
   log(S,W.name+" gewinnt das Duell gegen "+L.name+": +"+d.stake+" €.");
   S.card={deck:"duel",t:"⚔ "+W.name+" gewinnt!",x:L.name+" zahlt "+d.stake+" €."};
-  pay(S,L,W,d.stake);return endDuel(S);
+  duelStat(S,W,L);pay(S,L,W,d.stake);return endDuel(S);
 }
 function tradeDesc(S,t){return [...t.props.map(i=>BOARD[i].n),...(t.money?[t.money.toLocaleString("de-DE")+" €"]:[])].join(", ")||"nichts";}
 function actTradeStart(S,to,give,get){
@@ -712,8 +759,9 @@ function actAbortVote(S,pid,yes){
 }
 function actAbortAll(S){if(S.status!=="playing")return S;S.abort={};alive(S).forEach(p=>S.abort[p.id]=true);abortReady(S);return S;}
 function finish(S){
+  S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));
   S.status="over";S.phase="over";S.finishedAt=Date.now();
-  const r=S.players.map(p=>({name:p.name,cpu:!!p.cpu,color:p.color,worth:worth(S,p),bankrupt:p.bankrupt,left:!!p.left,ba:p.bankruptAt}));
+  const r=S.players.map(p=>({id:p.id,name:p.name,cpu:!!p.cpu,color:p.color,worth:worth(S,p),bankrupt:p.bankrupt,left:!!p.left,ba:p.bankruptAt}));
   r.sort((a,b)=>(a.bankrupt-b.bankrupt)||(a.bankrupt?b.ba-a.ba:b.worth-a.worth));
   S.ranking=r.map((x,i)=>Object.assign(x,{place:i+1}));
   if(!S.unranked)log(S,"Spielende! "+S.ranking[0].name+" ist der neue Rottenberg-Baron.");
@@ -826,6 +874,7 @@ function cpuMove(S,id){
     return actTradeAnswer(S,get>=give*([0,1.05,1.25,1.5][lvl])+20);}
   if(id!==S.turn)return S;
   if(S.phase==="roll"){
+    if(cpuOffer(S,me,lvl,reserve))return S;
     cpuBuild(S,me,reserve);
     if(canDuel(S)&&cpuDuel(S,me,lvl))return S;
     if(me.jail&&me.jailCards&&S.round<12)return actRoll(actJailCard(S));
@@ -836,6 +885,19 @@ function cpuMove(S,id){
   if(S.phase==="penalty")return actPenalty(S,pick(["links","Mitte","rechts"]));
   if(S.phase==="end"){cpuBuild(S,me,reserve);if(canDuel(S)&&cpuDuel(S,me,lvl))return S;return actEnd(S);}
   return S;
+}
+/* Fehlt einem Bot genau eine Straße zur Farbgruppe und hat sie der Mensch, macht er ein Kaufangebot (höchstens alle 4 Runden). */
+function cpuOffer(S,me,lvl,reserve){
+  S.botTr=S.botTr||{};if(S.trade||S.duel||(S.botTr[me.id]??-99)>S.round-4)return false;
+  const human=S.players.find(q=>!q.cpu&&!q.bankrupt);if(!human)return false;
+  for(const g of Object.keys(GROUPS)){
+    const idx=BOARD.map((f,j)=>f.g===g?j:-1).filter(j=>j>=0);if(idx.some(j=>S.props[j]&&S.props[j].h))continue;
+    const mine=idx.filter(j=>S.props[j]&&S.props[j].owner===me.id),theirs=idx.filter(j=>S.props[j]&&S.props[j].owner===human.id);
+    if(mine.length!==idx.length-1||theirs.length!==1)continue;
+    const i=theirs[0],offer=Math.round(BOARD[i].p*(1.3+.25*lvl)/10)*10;if(me.money-offer<reserve)continue;
+    S.botTr[me.id]=S.round;actTradeStart(S,human.id,{props:[],money:offer},{props:[i],money:0});return S.phase==="trade";
+  }
+  return false;
 }
 function wouldComplete(S,i,pid){const g=BOARD[i].g;return !!g&&BOARD.every((f,j)=>f.g!==g||j===+i||(S.props[j]&&S.props[j].owner===pid));}
 /* Bauen: gleichmäßig auf vollen Gruppen, aber immer mit Notgroschen. */
@@ -854,16 +916,175 @@ function cpuDuel(S,me,lvl){
   actDuelStart(S,o.id,stake,pick(OFFER));return S.phase==="duel";
 }
 
+/* ---------- Spielbericht ---------- */
+const AWARDS=[
+ ["rg","🦈","Miethai",v=>"kassierte "+fmt(v)+" € Miete"],
+ ["rp","💸","Goldesel des Dorfes",v=>"zahlte "+fmt(v)+" € Miete"],
+ ["dw","⚔️","Duellkönig",v=>"gewann "+v+(v>1?" Duelle":" Duell")],
+ ["cw","🎮","Minispiel-Ass",v=>"schaffte "+v+(v>1?" Challenges":" Challenge")],
+ ["pot","🍻","Kassenknacker",v=>"räumte "+fmt(v)+" € im Biergarten ab"],
+ ["hs","🏗️","Baulöwe",v=>"baute "+v+(v>1?" Häuser":" Haus")],
+ ["dbl","🎲","Paschkönig",v=>"würfelte "+v+" Pasch"+(v>1?"e":"")],
+ ["jail","🚬","Stammgast bei Big A",v=>"saß "+v+"-mal im Bunker"],
+ ["kn","🐔","Angsthase",v=>"kniff "+v+"-mal vor einem Duell"]
+];
+function awards(S){
+  const out=[],sts=S.st||{};
+  for(const [k,ic,t,fx] of AWARDS){let best=null,bv=0;S.players.forEach(p=>{const v=(sts[p.id]||{})[k]||0;if(v>bv){bv=v;best=p;}});if(best)out.push({ic,t,who:best,txt:fx(bv)});}
+  let big=null;S.players.forEach(p=>{const a=sts[p.id];if(a&&a.mx&&(!big||a.mx>big.a.mx))big={p,a};});
+  if(big&&big.a.mxf>=0&&S.players[big.a.mxto])out.unshift({ic:"💥",t:"Teuerster Moment",who:big.p,txt:"zahlte "+fmt(big.a.mx)+" € an "+S.players[big.a.mxto].name+" für "+BOARD[big.a.mxf].n});
+  return out;
+}
+function chartSVG(S){
+  const H=S.hist||[];if(H.length<2)return "";
+  const rows=[S.players.map(()=>1500),...H],W=320,Ht=130,all=rows.flat(),max=Math.max(...all),min=Math.min(...all),span=Math.max(1,max-min),n=rows.length-1;
+  const X=i=>(i/n*(W-8)+4).toFixed(1),Y=v=>(Ht-6-((v-min)/span)*(Ht-14)).toFixed(1);
+  const lines=S.players.map((p,j)=>`<polyline fill="none" stroke="${p.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="${rows.map((r,i)=>X(i)+","+Y(r[j]||0)).join(" ")}"/>`).join("");
+  return `<figure class="chart"><svg viewBox="0 0 ${W} ${Ht}" role="img" aria-label="Vermögen im Spielverlauf"><line x1="4" x2="${W-4}" y1="${Y(1500)}" y2="${Y(1500)}" stroke="rgba(255,255,255,.18)" stroke-dasharray="4 4"/>${lines}</svg><figcaption>${S.players.map(p=>`<span><i style="background:${p.color}"></i>${esc(p.name)}</span>`).join("")}</figcaption></figure>`;
+}
+function reportHTML(S){
+  if(!S.st&&!S.hist)return "";
+  const aw=awards(S);
+  return `<h2>📜 Spielbericht</h2><p class="note">${S.round} Runden Rottenberg. Vermögen im Spielverlauf:</p>${chartSVG(S)}
+  ${aw.length?`<div class="awards">${aw.map(a=>`<div class="aw"><span class="ai">${a.ic}</span><div><b>${esc(a.t)}</b><span><span class="dot" style="background:${a.who.color}"></span>${esc(a.who.name)} ${esc(a.txt)}</span></div></div>`).join("")}</div>`:""}
+  <button class="ghost small" data-a="share-report">📤 Bericht teilen</button>`;
+}
+function reportText(S){
+  const aw=awards(S);
+  return "Rottenberg-Monopoly, "+S.round+" Runden\n"+S.ranking.map(r=>r.place+". "+r.name+" ("+(r.left?"ausgestiegen":r.bankrupt?"pleite":fmt(r.worth)+" €")+")").join("\n")+"\n\n"+aw.map(a=>a.ic+" "+a.t+": "+a.who.name+" "+a.txt).join("\n");
+}
+
+/* ---------- Erfolge (pro Handy) ---------- */
+const ACH=[
+ ["erst","🎲","Erste Partie","Spiele eine Partie zu Ende."],
+ ["sieg","👑","Rottenberg-Baron","Gewinne eine Partie."],
+ ["cpu3","🤖","Maschinenstürmer","Gewinne gegen alle 3 Computergegner."],
+ ["schwer","🔥","Unbesiegbar","Gewinne gegen den Computer auf Schwer."],
+ ["roll","🎲","Rollmisch!","Würfle eine Doppel-Eins."],
+ ["gruppe","🧩","Komplett","Besitze eine ganze Farbgruppe."],
+ ["hotel","🏨","Hotelier","Baue ein Hotel."],
+ ["hai","🦈","Miethai","Kassiere 1.000 € Miete auf einen Schlag."],
+ ["kasse","🍻","Kassenknacker","Räume mindestens 300 € im Biergarten ab."],
+ ["duell5","⚔️","Duellkönig","Gewinne 5 Duelle in einer Partie."],
+ ["bunker3","🚬","Stammgast bei Big A","Sitz 3-mal in einer Partie im Bunker."],
+ ["reich","💰","Rottenberger Geldadel","Erreiche ein Vermögen von 10.000 €."],
+ ["knapp","😅","Mit dem letzten Euro","Gewinne mit weniger als 100 € Bargeld."],
+ ["alle8","🎮","Allrounder","Spiele alle 8 Minispiele."],
+ ["sau25","🐗","Wildsau-Schreck","Hol 25 Punkte bei der Wildsau-Jagd."],
+ ["glocke","🔔","Glöckner vom Rottenberg","Schaffe 10 Runden Klosterglocken."],
+ ["stopp","⏱️","Atomuhr","Stoppe höchstens 0,02 Sekunden neben 5,00."],
+ ["serie","🔥","Im Flow","Schaffe eine 15er-Serie beim Rechnen oder Farb-Chaos."]
+];
+function unlock(k){const a=store.get("rbm-ach")||{};if(a[k])return;a[k]=Date.now();store.set("rbm-ach",a);const d=ACH.find(x=>x[0]===k);if(!d)return;
+  const el=document.createElement("div");el.className="achtoast";el.innerHTML=`<span>${d[1]}</span><div><small>Erfolg freigeschaltet</small><b>${esc(d[2])}</b></div>`;document.body.appendChild(el);setTimeout(()=>el.classList.add("out"),3200);setTimeout(()=>el.remove(),3800);sfx("ach");}
+function meIds(S){return S.players.filter(p=>app.mode==="online"?p.uid===app.uid:!p.cpu).map(p=>p.id);}
+function achCheck(S){
+  if(!S||!S.players||!S.st&&S.status!=="over")return;const me=meIds(S);if(!me.length)return;
+  for(const id of me){const p=S.players[id],a=(S.st&&S.st[id])||{};
+    if(a.rm)unlock("roll");if((a.potMax||0)>=300)unlock("kasse");if((a.rgMax||0)>=1000)unlock("hai");if((a.dw||0)>=5)unlock("duell5");if((a.jail||0)>=3)unlock("bunker3");
+    if(!p.bankrupt){if(Object.values(S.props).some(o=>o.owner===id&&o.h===MAXH))unlock("hotel");if(Object.keys(GROUPS).some(g=>ownsGroup(S,id,g)))unlock("gruppe");if(worth(S,p)>=10000)unlock("reich");}}
+  if(S.status==="over"&&!S.unranked&&S.ranking&&S.ranking[0].id!=null){unlock("erst");const w=S.ranking[0];
+    if(me.includes(w.id)){unlock("sieg");if(S.vsCpu&&S.players.length===4)unlock("cpu3");if(S.vsCpu&&S.cpuLvl===3)unlock("schwer");if(S.players[w.id].money<100)unlock("knapp");}}
+}
+function achMini(k,v){
+  const pl=store.get("rbm-played")||[];if(!pl.includes(k)){pl.push(k);store.set("rbm-played",pl);}
+  if(OFFER.every(x=>pl.includes(x)))unlock("alle8");
+  if(k==="whack"&&v>=25)unlock("sau25");if(k==="glocken"&&v>=10)unlock("glocke");if(k==="stopp"&&Math.abs(v-5000)<=20)unlock("stopp");
+}
+function achHTML(){
+  const a=store.get("rbm-ach")||{},n=ACH.filter(x=>a[x[0]]).length;
+  return `<details class="panel achp"><summary><h2>🏅 Erfolge <span class="achn">${n}/${ACH.length}</span></h2></summary><div class="achgrid">${ACH.map(([k,ic,t,d])=>`<div class="achi ${a[k]?"on":""}"><span>${a[k]?ic:"🔒"}</span><b>${esc(t)}</b><small>${esc(d)}</small></div>`).join("")}</div><p class="note">Erfolge werden auf diesem Handy gespeichert.</p></details>`;
+}
+
+/* ---------- Sound (komplett im Handy erzeugt, keine Dateien) ---------- */
+const SND={on:store.get("rbm-snd")!==false,ctx:null};
+function au(){if(!SND.on)return null;try{if(!SND.ctx)SND.ctx=new (window.AudioContext||window.webkitAudioContext)();if(SND.ctx.state==="suspended")SND.ctx.resume();return SND.ctx;}catch(e){return null;}}
+function tone(f,d,type,vol,when,slide){const c=au();if(!c)return;const t=c.currentTime+(when||0),o=c.createOscillator(),g=c.createGain();o.type=type||"sine";o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+d);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol||.12,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+d+.03);}
+function noise(d,vol,when,freq){const c=au();if(!c)return;const t=c.currentTime+(when||0),len=Math.max(1,Math.floor(c.sampleRate*d)),buf=c.createBuffer(1,len,c.sampleRate),ch=buf.getChannelData(0);for(let i=0;i<len;i++)ch[i]=(Math.random()*2-1)*(1-i/len);
+  const s=c.createBufferSource(),bp=c.createBiquadFilter(),g=c.createGain();s.buffer=buf;bp.type="bandpass";bp.frequency.value=freq||1800;g.gain.value=vol||.3;s.connect(bp);bp.connect(g);g.connect(c.destination);s.start(t);}
+const SFX={
+  dice:()=>{for(let i=0;i<7;i++)noise(.045,.5,i*.055,1200+Math.random()*1400);},
+  coin:()=>{tone(988,.09,"square",.06);tone(1319,.28,"square",.06,.08);},
+  build:()=>{noise(.06,.5,0,500);noise(.06,.5,.12,500);tone(660,.15,"triangle",.1,.2);},
+  pay:()=>{tone(523,.14,"triangle",.14);tone(392,.24,"triangle",.14,.11);},
+  jail:()=>{tone(300,.45,"sawtooth",.06,0,90);noise(.15,.4,.35,300);},
+  duel:()=>{tone(392,.14,"sawtooth",.07);tone(523,.14,"sawtooth",.07,.14);tone(659,.4,"sawtooth",.07,.28);},
+  win:()=>[523,659,784,1047,784,1047].forEach((f,i)=>tone(f,i>4?.6:.22,"triangle",.14,i*.15)),
+  lose:()=>[392,349,311,262].forEach((f,i)=>tone(f,.4,"triangle",.12,i*.22)),
+  ev:()=>[392,523,659,523,784].forEach((f,i)=>tone(f,.16,"square",.05,i*.11)),
+  fanfare:()=>[659,659,784,1047].forEach((f,i)=>tone(f,.2,"square",.06,i*.12)),
+  hit:()=>tone(880+Math.random()*200,.07,"square",.05),
+  miss:()=>tone(150,.2,"sawtooth",.08),
+  tick:()=>tone(660,.09,"sine",.15),go:()=>tone(1175,.25,"sine",.15),
+  turn:()=>{tone(784,.1,"sine",.12);tone(1175,.18,"sine",.12,.1);},
+  ach:()=>[784,988,1175,1568].forEach((f,i)=>tone(f,.2,"square",.05,i*.08)),
+  bell:i=>{const f=[523,659,784,1047][i]||660;tone(f,.6,"sine",.18);tone(f*2.01,.4,"sine",.05);}
+};
+function sfx(k,a){if(!SND.on)return;try{SFX[k]&&SFX[k](a);}catch(e){}}
+const SOUNDMAP=[[/Spielende/,"win"],[/pleite/,"lose"],[/ROLLMISCH/,"fanfare"],[/Dorf-Ereignis/,"ev"],[/heraus: /,"duel"],[/sitzt im Bunker/,"jail"],[/baut (ein|eine)/,"build"],[/gewinnt \d|schafft die Challenge|TOOOR|räumt die Kasse|auf Los|über Los|kauft/,"coin"],[/Miete an|verpasst|Gehalten|zahlt/,"pay"]];
+function playLog(lines){const t=lines.join("\n");let d=0;if(/ würfelt \d/.test(t)){sfx("dice");d=420;}const h=SOUNDMAP.find(([re])=>re.test(t));if(h)setTimeout(()=>sfx(h[1]),d);}
+document.addEventListener("pointerdown",()=>{if(SND.on)au();},{passive:true});
+
+/* ---------- Sprüche der Computergegner ---------- */
+const BOT_SAY={
+ "Freddy":{buy:["Des kaaf ich, des is jetzt Freddy-Land!","Zack, meins. Prost!","Für des Grundstück hab ich schon immer geschwärmt."],
+  rentIn:["Danke, des geht direkt ins Marry.","Schön zahle, Kumpel!","Davon geb ich heut Abend einen aus. Vielleicht."],
+  rentOut:["Aua, des tut weh im Geldbeutel.","Na gut, aber nur weil du's bist.","Dafür hätt ich drei Runden im Marry bekommen."],
+  duelWin:["Gelernt is gelernt!","Die Dorflegende hat's noch drauf!","Revanche gibt's im Marry."],
+  duelLose:["Des war Glück, nix weiter.","Ich war abgelenkt, die Musik war zu laut.","Nächstes Mal mach ich dich nass."],
+  jail:["Big A, mach schon mal Platz auf der Bank.","Bunker? Da kenn ich mich aus.","Und keiner bringt mir a Bier."],
+  build:["Peck, mach hinne, hier wird gebaut!","Freddy baut, die Miete steigt.","Bald steht hier a Hotel mit Zapfanlage."],
+  offer:["Ich mach dir a Angebot, des kannst nicht ablehnen.","Gib mir die Straße, ich leg was drauf.","Komm, sei kein Frosch, tausch mit mir."]},
+ "Big A":{buy:["Kommt alles in den Bunker-Fonds.","Big A kauft, Big A behält.","Gute Lage, schöner Blick auf den Bunker."],
+  rentIn:["Danke fürs Bezahlen, Bunker-Gebühr inklusive.","Bei Big A wird pünktlich gezahlt.","Des Geld kenn ich, des war mal meins."],
+  rentOut:["Des schreib ich mir auf.","Okay, aber im Bunker sehen wir uns wieder.","Teuer hier. Im Bunker wär's billiger."],
+  duelWin:["Big A gewinnt immer, frag rum.","Ab in den Bunker mit dir!","Zu einfach."],
+  duelLose:["Glückstreffer.","Des hat keiner gesehen, oder?","Bei mir im Bunker hättest du keine Chance."],
+  jail:["Endlich daheim.","Mein Bunker, meine Regeln.","Ich mach's mir gemütlich."],
+  build:["Noch a Stockwerk drauf!","Big A Immobilien, bitte sehr.","Bauen wie die Großen."],
+  offer:["Ich hab da an Deal für dich.","Die Straße passt perfekt zu meinen.","Nimm des Geld, bevor ich's mir anders überleg."]},
+ "Kilian":{buy:["Ordnungsgemäß erworben, Stempel drauf.","Für das Gemeinwohl gekauft. Und für mich.","Das wird im Gemeinderat gut ankommen."],
+  rentIn:["Danke, das geht in die Gemeindekasse. Also in meine.","Ordnungsgemäß bezahlt, sehr schön.","Die Quittung kommt per Post."],
+  rentOut:["Das wird im nächsten Haushalt berücksichtigt.","Das ist doch Wucher, ich prüf das.","Na gut, für den Dorffrieden."],
+  duelWin:["Bürgermeister ist Bürgermeister.","Das war demokratisch eindeutig.","So regiert man ein Dorf."],
+  duelLose:["Ich fordere eine Nachzählung!","Das kommt ins Protokoll.","Ich war mit Akten beschäftigt."],
+  jail:["Das ist ein Verwaltungsfehler!","Dann halt Bürgersprechstunde im Bunker.","Big A, ich bin's, der Bürgermeister!"],
+  build:["Baugenehmigung erteilt. Von mir. An mich.","Rottenberg wächst, dank Kilian.","Neues Bauland ausgewiesen."],
+  offer:["Ich hätte da einen Vorschlag zur Flurbereinigung.","Ein Tausch im Sinne der Gemeinde.","Unterschreib hier, das ist ganz offiziell."]}
+};
+function botTalk(S,lines){
+  if(!S.vsCpu||Date.now()-(app.lastSay||0)<2200)return;
+  for(const line of lines)for(const b of S.players){
+    if(!b.cpu||b.bankrupt||!BOT_SAY[b.name])continue;const n=b.name;let k=null;
+    if(line.startsWith(n+" schlägt"))k="offer";
+    else if(line.startsWith(n+" kauft "))k="buy";
+    else if(line.startsWith(n+" baut "))k="build";
+    else if(line.startsWith(n+" sitzt im Bunker"))k="jail";
+    else if(line.includes(" Miete an "+n+"."))k="rentIn";
+    else if(line.startsWith(n+" zahlt ")&&line.includes(" Miete an "))k="rentOut";
+    else if(/: .* gewinnt \d+ €/.test(line)&&line.includes(n))k=line.includes(": "+n+" gewinnt")?"duelWin":"duelLose";
+    if(!k||(k!=="offer"&&Math.random()<.35))continue;
+    app.lastSay=Date.now();bubble(b.id,pick(BOT_SAY[n][k]));return;
+  }
+}
+function bubble(pid,txt){
+  const el=document.getElementById("pl"+pid);if(!el)return;const r=el.getBoundingClientRect(),b=document.createElement("div");
+  b.className="bubble";b.textContent=txt;b.style.left=Math.min(window.innerWidth-118,Math.max(118,r.left+r.width/2))+"px";b.style.top=(r.bottom+window.scrollY-6)+"px";
+  document.body.appendChild(b);setTimeout(()=>b.classList.add("out"),3000);setTimeout(()=>b.remove(),3500);
+}
+
 /* ---------- Bildschirme ---------- */
 function header(){return `<header class="row" style="gap:14px;flex-wrap:nowrap"><div class="crest hd">${WAPPEN}</div><div class="stack" style="gap:6px;min-width:0"><div class="eyebrow">Rollmisch-Edition · Spessart · 408 m ü. NN</div><h1>Rotten<span>berg</span>-Monopoly</h1></div></header>`;}
 function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary><ul>
 <li>Tippe auf ein Feld für Preise, Mieten und zum Bauen. ★ heißt Challenge, ! heißt Ereignis.</li><li>2 bis 4 Spieler, jeder startet mit 1.500 €. Über Los gibt es 200, wer genau auf Los landet, bekommt 400.</li>
 <li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Rottenberg-Aufschlag: Alle Mieten sind etwa doppelt so hoch wie im Original, die billigste Miete sind 10 €.</li>
+<li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Kerwa (Mieten +50 %), Sommerloch (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
+<li><b>📜 Spielbericht und 🏅 Erfolge:</b> Am Ende gibt es Auszeichnungen wie Miethai oder Duellkönig und den Verlauf aller Vermögen. Auf jedem Handy sammelst du 18 Erfolge.</li>
 <li>Pasch heißt nochmal würfeln. Drei Pasche hintereinander: ab in den Bunker bei Big A, dort wird erstmal gemeinsam einer geraucht. Raus kommst du mit Pasch, 50 € oder Freikarte.</li>
 <li><b>Rollmisch!</b> Wer eine Doppel-Eins würfelt, kassiert 50 von jedem Mitspieler.</li>
 <li><b>Biergarten</b> ist Frei Parken: Wer dort landet, räumt die Kasse ab, in der alle Strafen landen.</li><li><b>Tadan!</b> Wer im Gasthaus zum Löwen („Marry“) landet, gibt Freddy, der Dorflegende, einen aus und zahlt 10 € in die Kasse im Biergarten.</li>
 <li>🐗 Wildsau-Wahnsinn ist das Minigame-Feld: Nur wer dort landet, darf einen Mitspieler zu einem Handy-Minigame um Geld herausfordern.</li><li>Dorfklatsch-Karten (inklusive aller Wahnsinn-Karten): Pecks Baustelle, Kilians Steuerprüfung, Gisberts Frosch, Hermann Pfeufers Kralle, Elfmeter, Derby gegen Feldkahl, Wildschwein-Alarm, Schneewittchens Zwerge, Teleport-Bus, Grundstücks-Roulette, Robin Hood vom Gräfenberg und mehr.</li>
-<li><b>★ Challenge-Felder</b> (Zum Grünen Tal, Schwimmbad) und die Karte „Challenge-Zeit!“: Du spielst ein Handy-Minigame mit Ziel, zum Beispiel mindestens 8 Wildsäue treffen oder genau bei 5 Sekunden stoppen. Geschafft gibt Geld, verpasst kostet.</li>
+<li><b>★ Challenge-Felder</b> (Zum Grünen Tal, Schwimmbad) und die Karte „Challenge-Zeit!“: Du spielst ein Handy-Minigame mit Ziel, zum Beispiel mindestens 12 Punkte bei der Wildsau-Jagd oder genau bei 5 Sekunden stoppen. Geschafft gibt Geld, verpasst kostet.</li>
 <li><b>! Ereignis-Felder</b>: Tadan im Marry (10 € für Freddy), Brezel in der Bäckerei Rosel, Wurstprobe in der Metzgerei, Feuerwehrfest, Matschpfütze am Wiesenweg, abfahrende Busse, Klosterglocken (alle frei aus dem Bunker), Gipfelglück am Hofberg und mehr.</li>
 <li><b>🏛️ Tauschen bei Kilian:</b> In deinem Zug kannst du anderen Grundstücke und Geld zum Tausch anbieten. Bürgermeister Kilian beglaubigt und nimmt 10 € Gebühr. Tippe auf ein Feld, um zu sehen, was dort passiert.</li>
 <li><b>⚔ Herausfordern:</b> Einmal pro Zug darfst du einen Mitspieler zu einem Minigame um 20 bis 200 € herausfordern: Wildsau-Jagd, Stopp bei 5 Sekunden, Kopfrechen-Sprint, Farb-Chaos, Wildsau-Reflex, Äppler-Pumpen, Schätzen, Bembel-Hütchenspiel, Schnick-Schnack-Schnuck, Würfel-Duell oder Zufall. Alle Minigames laufen am Handy. Wer kneift, zahlt 10 €.</li>
@@ -871,7 +1092,14 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  return header()+`<p class="lead">Kaufe die Feldkahler Straße, das Marry und den Bambuspark, überlebe den Bunker bei Big A, Wildschwein-Alarm und Dorfklatsch, gib Freddy im Marry einen aus und werde Rottenberg-Baron.</p>
+  const news=store.get("rbm-news")!==8?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>🔊 Sound für Würfel, Geld, Duelle und Minispiele (oben im Spiel abschaltbar)</li>
+   <li>🎪 Dorf-Ereignisse jede dritte Runde und eine 🏁 Schlussrunde, in der alles doppelt zählt</li>
+   <li>📜 Spielbericht mit Auszeichnungen und Vermögenskurve, zum Teilen</li>
+   <li>🏅 18 Erfolge zum Sammeln und 🔁 Revanche mit einem Tipp</li>
+   <li>🤖 Freddy, Big A und Kilian reden jetzt mit und machen dir Kaufangebote</li></ul>
+   <button class="ghost small" data-a="news-ok">Alles klar</button></section>`:"";
+  return header()+news+`<p class="lead">Kaufe die Feldkahler Straße, das Marry und den Bambuspark, überlebe den Bunker bei Big A, Wildschwein-Alarm und Dorfklatsch, gib Freddy im Marry einen aus und werde Rottenberg-Baron.</p>
   <section class="panel"><h2>Neues Spiel</h2><div class="big-choice">
    ${resume&&resume.status==="playing"&&resume.board===BOARD_V?`<button class="gold" data-a="resume-local">${resume.vsCpu?"Spiel gegen Computer":"Reihum-Spiel"} fortsetzen<small>${esc(resume.players.map(p=>p.name).join(", "))} · Runde ${resume.round}</small></button>`:""}
    ${onl?`<button class="gold" data-a="resume-online" data-code="${esc(onl)}">Zurück zu Online-Spiel ${esc(onl)}<small>Dein letztes Online-Spiel auf diesem Gerät</small></button>`:""}
@@ -880,7 +1108,7 @@ function renderHome(){
    <button data-a="go-create" ${app.db&&app.uid?"":"disabled"}>Online-Spiel eröffnen<small>Jeder spielt am eigenen Handy, du bekommst einen Code</small></button>
    <button data-a="go-join" ${app.db&&app.uid?"":"disabled"}>Online-Spiel beitreten<small>Mit dem Code deiner Mitspieler</small></button>
   </div>${app.db&&app.uid?"":`<p class="note">Online-Spiele brauchen eine Anmeldung bei Claude mit Bearbeitungsrecht für diese Seite. Reihum am Handy geht immer.</p>`}</section>
-  <section class="panel"><h2>Rangliste</h2>${lbHTML()}</section>${rulesHTML()}`;
+  <section class="panel"><h2>Rangliste</h2>${lbHTML()}</section>${achHTML()}${rulesHTML()}`;
 }
 function roundsSelect(){return `<label>Spieldauer<select id="rounds"><option value="15">Kurz (15 Runden)</option><option value="25" selected>Normal (25 Runden)</option><option value="40">Lang (40 Runden)</option><option value="0">Bis zur Pleite</option></select></label>`;}
 function tokPicker(cur,used,act,i){return `<div class="toks" role="group" aria-label="Spielfigur wählen">${TOKENS.map((t,k)=>`<button type="button" class="${k===cur?"on":""}" data-a="${act}" data-i="${i}" data-k="${k}" title="${t.n}" aria-label="${t.n}" ${used.includes(k)?"disabled":""}>${tokSvg(k)}</button>`).join("")}</div><div class="tokname">Figur: ${cur!=null&&TOKENS[cur]?TOKENS[cur].n:"–"}</div>`;}
@@ -938,7 +1166,7 @@ function fieldSheet(i){
 function centerHTML(){
   const S=app.S,p=cur(S),act=canAct();
   if(S.status==="over"){
-    return `<div class="mark">Spielende</div><div class="msg">${S.unranked?"Spiel abgebrochen, zählt nicht.":esc(S.ranking[0].name)+" ist Rottenberg-Baron!"}</div><div class="acts"><button class="gold" data-a="home">Zur Startseite</button></div>`;
+    return `<div class="mark">Spielende</div><div class="msg">${S.unranked?"Spiel abgebrochen, zählt nicht.":esc(S.ranking[0].name)+" ist Rottenberg-Baron!"}</div><div class="acts">${app.mode==="local"?`<button class="gold" data-a="rematch">🔁 Revanche!</button>`:""}<button class="${app.mode==="local"?"ghost":"gold"}" data-a="home">Zur Startseite</button></div>`;
   }
   let acts="";
   if(act){
@@ -960,7 +1188,7 @@ function centerHTML(){
     else if(d.state==="play")acts=miniHTML(d);
     else acts=mayAct([d.from,d.to])?`<button class="gold" data-a="duel-win" data-w="${A.id}">${esc(A.name)}</button><button class="gold" data-a="duel-win" data-w="${B.id}">${esc(B.name)}</button><button class="ghost" data-a="duel-win" data-w="">Unentschieden</button>`:`<div class="note">${esc(A.name)} und ${esc(B.name)} duellieren sich …</div>`;
   }else{
-    acts=`<div class="note waitturn"><span class="avatar" style="background:${p.color}">${tokSvg(tokOf(p))}</span>${p.cpu?"🤖 "+esc(p.name)+" "+pick(["überlegt","rechnet","grübelt","zählt sein Geld"]):esc(p.name)+" ist dran"} …</div>`;
+    acts=`<div class="note waitturn"><span class="avatar" style="background:${p.color}">${tokSvg(tokOf(p))}</span>${p.cpu?"🤖 "+esc(p.name)+" "+["überlegt","rechnet","grübelt","zählt sein Geld"][(S.lc||0)%4]:esc(p.name)+" ist dran"} …</div>`;
   }
   const q=S.card?"":quipFor(S),card=S.card?`<div class="card ${S.card.deck}"><b>${esc(S.card.t)}</b>${esc(S.card.x)}</div>`:`<div class="msg">${esc(S.log[0]||"")}</div>${q?`<div class="quip">„${esc(q)}“</div>`:""}`;
   return `<div class="wm" aria-hidden="true">${WAPPEN}</div><div class="crest">${WAPPEN}</div><div class="mark">Rottenberg<small>Runde ${S.round}${S.maxRounds?" von "+S.maxRounds:""} · Kasse ${fmt(S.pot)} €</small></div>
@@ -980,7 +1208,7 @@ function mathQ(){const t=Math.floor(Math.random()*3);let a,b,r,txt;
 function newInk(m){m.word=Math.floor(Math.random()*4);m.ink=Math.random()<.75?(m.word+1+Math.floor(Math.random()*3))%4:m.word;}
 function nextBoar(m){m.hole=newHole(m.hole);const r=Math.random();m.ht=r<.14?"gold":r<.3?"freddy":"boar";m.next=performance.now()+(m.ht==="gold"?520:Math.max(480,850-m.count*25));}
 /* Richtig +1, falsch −1, jede 5er-Serie gibt einen Bonuspunkt. */
-function scoreAns(m,ok,b){if(ok){m.score++;m.streak++;if(m.streak%5===0){m.score++;floatTxt(b,"🔥 +2");buzz([20,30,20]);}else{floatTxt(b,"+1");buzz(12);}}else{m.score--;m.streak=0;floatTxt(b,"−1",true);buzz([60,40,60]);}}
+function scoreAns(m,ok,b){if(ok){m.score++;m.streak++;if(m.streak>=15)unlock("serie");if(m.streak%5===0){m.score++;floatTxt(b,"🔥 +2");buzz([20,30,20]);}else{floatTxt(b,"+1");buzz(12);}}else{m.score--;m.streak=0;floatTxt(b,"−1",true);buzz([60,40,60]);}}
 function floatTxt(b,t,bad){const r=b.getBoundingClientRect(),el=document.createElement("div");el.className="mgfloat"+(bad?" bad":"");el.textContent=t;el.style.left=(r.left+r.width/2)+"px";el.style.top=(r.top)+"px";document.body.appendChild(el);setTimeout(()=>el.remove(),700);}
 function newHole(h){let x;do{x=Math.floor(Math.random()*9)}while(x===h);return x;}
 const leftS=m=>Math.max(0,Math.ceil((m.end-performance.now())/1000))+" s";
@@ -992,7 +1220,7 @@ function mgBegin(ctx,pid,kind,q){
   m.stage="count";m.cd=3;render();buzz(20);
   m.to=setInterval(()=>{if(mg!==m){clearInterval(m.to);return;}m.cd--;if(m.cd>0){mgRefresh();buzz(20);}else{clearInterval(m.to);m.to=null;buzz(60);mgInit(m);mgRefresh();}},650);
 }
-function buzz(p){try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}}
+function buzz(p){try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}sfx(Array.isArray(p)?(p[0]>=60?"miss":"ach"):p===20?"tick":p>=60?"go":"hit");}
 function mgInit(m){
   const kind=m.kind,q=m.q,now=performance.now();m.stage="ready";
   if(kind==="reflex"){m.stage="wait";m.to=setTimeout(()=>{if(mg===m){m.stage="go";m.t0=performance.now();mgRefresh();}},1500+Math.random()*3000);}
@@ -1027,7 +1255,7 @@ function startBells(m){
   m.to=setTimeout(step,650);
 }
 const BELLS=[["#e0453a","Rot"],["#3fae5a","Grün"],["#4a8bf0","Blau"],["#f0c419","Gelb"]];
-function flashBell(i){const el=document.querySelector(`[data-a="mg-bell"][data-v="${i}"]`);if(!el)return;el.classList.remove("ring");void el.offsetWidth;el.classList.add("ring");try{navigator.vibrate&&navigator.vibrate(25);}catch(e){}}
+function flashBell(i){const el=document.querySelector(`[data-a="mg-bell"][data-v="${i}"]`);if(!el)return;el.classList.remove("ring");void el.offsetWidth;el.classList.add("ring");try{navigator.vibrate&&navigator.vibrate(25);}catch(e){}sfx("bell",i);}
 function mgRefresh(){const el=document.getElementById("mg-area");if(el&&mg)el.innerHTML=mgBody();}
 function mgBody(){
   const m=mg,k=m.kind;
@@ -1068,7 +1296,7 @@ function bestText(k){const v=bestOf(k);return v==null?"noch keiner":valText(k,v,
 function noteBest(k,v){if(k==="schaetz"||typeof v!=="number")return false;const b=store.get("rbm-best")||{},cur=b[k];
   const sc=k==="stopp"?-Math.abs(v-5000):v,old=cur==null?null:(k==="stopp"?-Math.abs(cur-5000):cur);
   if(old==null||sc>old){b[k]=v;store.set("rbm-best",b);return old!=null;}return false;}
-function miniSubmit(val){const m=mg;if(!m)return;if(m.stage==="go"||m.stage==="input"||m.stage==="done"||m.stage==="ready"){if(noteBest(m.kind,val))setTimeout(()=>toast("🏆 Neuer Rekord: "+valText(m.kind,val,{q:0})),400);}clearInterval(m.iv);clearTimeout(m.to);mg=null;app.deferRender=false;
+function miniSubmit(val){const m=mg;if(!m)return;if(m.stage==="go"||m.stage==="input"||m.stage==="done"||m.stage==="ready"){if(noteBest(m.kind,val))setTimeout(()=>toast("🏆 Neuer Rekord: "+valText(m.kind,val,{q:0})),400);}if(m.kind!=="glocken"||m.stage!=="show")achMini(m.kind,Number(val));clearInterval(m.iv);clearTimeout(m.to);mg=null;app.deferRender=false;
   if(m.ctx==="solo")commit(S=>actChallenge(S,val));else commitLeased(S=>actDuelInput(S,m.pid,val),[m.pid]);}
 async function commitLeased(fn,ids){
   if(!mayAct(ids))return;
@@ -1106,7 +1334,7 @@ function floater(pid,diff){
   ["pl"+pid,app.barPid===pid?"mybar":null].forEach(id=>{const el=id&&document.getElementById(id);if(!el)return;
     const f=document.createElement("span");f.className="float "+(diff>0?"plus":"minus");f.textContent=(diff>0?"+":"−")+fmt(Math.abs(diff))+" €";el.appendChild(f);setTimeout(()=>f.remove(),1600);});
 }
-const BANNERS=[[/Spielende/,"👑 BARON!"],[/ROLLMISCH/,"🎲 ROLLMISCH!"],[/pleite/,"💸 PLEITE!"],[/TOOOR/,"⚽ TOOOR!"],[/Tadan/,"🦁 TADAN!"],[/räumt die Kasse/,"🍻 JACKPOT!"],[/Kilian beglaubigt/,"🏛️ GETAUSCHT!"],[/Peck liefert/,"🏗️ PECK LIEFERT!"],[/Blitzer am Schwimmbad/,"📸 GEBLITZT!"],[/eiserner Kralle fest/,"🦾 DIE KRALLE!"],[/sitzt im Bunker/,"🚬 BUNKER!"],[/gewinnt .*€/,"⚔ SIEG!"],[/\(Pasch\)/,"🎲 PASCH!"]];
+const BANNERS=[[/Spielende/,"👑 BARON!"],[/ROLLMISCH/,"🎲 ROLLMISCH!"],[/Schlussrunde/,"🏁 SCHLUSSRUNDE!"],[/Dorf-Ereignis/,"🎪 DORF-EREIGNIS!"],[/pleite/,"💸 PLEITE!"],[/TOOOR/,"⚽ TOOOR!"],[/Tadan/,"🦁 TADAN!"],[/räumt die Kasse/,"🍻 JACKPOT!"],[/Kilian beglaubigt/,"🏛️ GETAUSCHT!"],[/Peck liefert/,"🏗️ PECK LIEFERT!"],[/Blitzer am Schwimmbad/,"📸 GEBLITZT!"],[/eiserner Kralle fest/,"🦾 DIE KRALLE!"],[/sitzt im Bunker/,"🚬 BUNKER!"],[/gewinnt .*€/,"⚔ SIEG!"],[/\(Pasch\)/,"🎲 PASCH!"]];
 function showBanner(lines){
   if(RM)return;const txt=lines.join("\n");const hit=BANNERS.find(([re])=>re.test(txt));if(!hit)return;
   const b=document.getElementById("banner");b.innerHTML=`<span>${esc(hit[1])}</span>`;b.hidden=false;clearTimeout(showBanner.t);showBanner.t=setTimeout(()=>b.hidden=true,1500);
@@ -1145,7 +1373,7 @@ function turnAlert(){
   const p=cur(S),mine=p.uid===app.uid,key=S.turn+"-"+S.round;
   if(mine&&app.turnKey!==key&&app.turnKey!==undefined){
     const b=document.getElementById("banner");b.innerHTML=`<span>🎲 Du bist dran, ${esc(p.name)}!</span>`;b.hidden=false;clearTimeout(showBanner.t);showBanner.t=setTimeout(()=>b.hidden=true,1600);
-    try{navigator.vibrate&&navigator.vibrate([120,60,120]);}catch(e){}
+    try{navigator.vibrate&&navigator.vibrate([120,60,120]);}catch(e){}sfx("turn");
   }
   app.turnKey=mine?key:null;
 }
@@ -1159,7 +1387,8 @@ function postGame(){
   if(S.rollId&&S.rollId!==app.seenRoll){if(app.seenRoll!=null)animDice(S.dice);app.seenRoll=S.rollId;}
   renderBar();
   S.players.forEach(p=>{const pr=app.prevMoney[p.id];if(pr!=null&&pr!==p.money)floater(p.id,p.money-pr);app.prevMoney[p.id]=p.money;});
-  const lc=S.lc||0;if(app.seenLc!=null&&lc>app.seenLc)showBanner(S.log.slice(0,Math.min(lc-app.seenLc,S.log.length)));app.seenLc=lc;
+  const lc=S.lc||0;if(app.seenLc!=null&&lc>app.seenLc){const nl=S.log.slice(0,Math.min(lc-app.seenLc,S.log.length));showBanner(nl);playLog(nl);botTalk(S,nl);}app.seenLc=lc;
+  achCheck(S);
   const key=S.card?S.card.t+S.card.x:"";if(key&&key!==app.cardKey){const el=document.querySelector(".center .card");if(el)el.classList.add("flip");}app.cardKey=key;
   if(S.status==="over"&&!app.confetti){app.confetti=true;if(!S.unranked&&!(S.vsCpu&&S.ranking[0].cpu))confetti();}
   cpuKick();
@@ -1209,8 +1438,8 @@ function renderGame(){
     <div class="money">${p.left?"raus":p.bankrupt?"pleite":fmt(p.money)}</div><div class="where">${p.bankrupt?"ausgeschieden":esc(BOARD[p.pos].n)}${p.jail?" (sitzt)":""}${p.jailCards?" · Freikarte":""}${p.bonus?" · Kerwa-Zuschlag":""}${p.skip?(p.skipWhy==="glaab"?" · setzt aus":" · Kralle ("+p.skip+")"):""}${p.sleep?" · pennt ("+p.sleep+")":""}</div>
     <div class="chips">${props.map(i=>`<i data-a="sel" data-i="${i}" title="${esc(BOARD[i].n)}" style="background:${BOARD[i].g?GROUPS[BOARD[i].g].c:"var(--paper-2)"}"></i>`).join("")}</div></div>`;
   }).join("");
-  const over=S.status==="over"?`<section class="panel"><h2>Endstand</h2><div class="podium">${S.ranking.map(r=>`<div><span class="pl-place">${r.place}.</span><span class="dot" style="background:${r.color}"></span><b>${esc(r.name)}</b><span class="w">${r.left?"ausgestiegen":r.bankrupt?"pleite":fmt(r.worth)+" €"}</span></div>`).join("")}</div><p class="note">${S.unranked?"Das Spiel wurde abgebrochen und zählt nicht für die Rangliste.":"Das Ergebnis steht jetzt in der Rangliste."}</p><h2>Rangliste</h2>${lbHTML()}</section>`:"";
-  const top=`<div class="gtop"><div class="eyebrow">${app.mode==="online"?esc(app.code)+" · ":""}Runde ${S.round}${S.maxRounds?"/"+S.maxRounds:""}</div><div class="gbtns">${app.mode==="online"?`<button class="ghost small" data-a="tochat" aria-label="Chat">💬</button>`:""}<button class="ghost small" data-a="zoom" aria-label="${app.zoom?"Brett verkleinern":"Brett vergrößern"}">${app.zoom?"🔍−":"🔍+"}</button>${S.status==="playing"?`<button class="ghost small" data-a="quit-open">⏻ Beenden</button>`:""}<button class="ghost small" data-a="home" aria-label="Menü">☰</button></div></div>`;
+  const over=S.status==="over"?`<section class="panel"><h2>Endstand</h2><div class="podium">${S.ranking.map(r=>`<div><span class="pl-place">${r.place}.</span><span class="dot" style="background:${r.color}"></span><b>${esc(r.name)}</b><span class="w">${r.left?"ausgestiegen":r.bankrupt?"pleite":fmt(r.worth)+" €"}</span></div>`).join("")}</div>${reportHTML(S)}<p class="note">${S.unranked?"Das Spiel wurde abgebrochen und zählt nicht für die Rangliste.":"Das Ergebnis steht jetzt in der Rangliste."}</p><h2>Rangliste</h2>${lbHTML()}</section>`:"";
+  const top=`<div class="gtop"><div class="eyebrow">${app.mode==="online"?esc(app.code)+" · ":""}Runde ${S.round}${S.maxRounds?"/"+S.maxRounds:""}</div><div class="gbtns">${app.mode==="online"?`<button class="ghost small" data-a="tochat" aria-label="Chat">💬</button>`:""}<button class="ghost small" data-a="snd" aria-label="${SND.on?"Ton aus":"Ton an"}">${SND.on?"🔊":"🔇"}</button><button class="ghost small" data-a="zoom" aria-label="${app.zoom?"Brett verkleinern":"Brett vergrößern"}">${app.zoom?"🔍−":"🔍+"}</button>${S.status==="playing"?`<button class="ghost small" data-a="quit-open">⏻ Beenden</button>`:""}<button class="ghost small" data-a="home" aria-label="Menü">☰</button></div></div>${evNow(S)&&S.status==="playing"?`<div class="evbar">${evNow(S).ic} <b>${evNow(S).n}</b> · ${esc(evNow(S).x)}</div>`:""}`;
   const abortNote=S.status==="playing"&&S.abort&&Object.keys(S.abort).length&&!app.quitOpen?`<button class="ghost small abortnote" data-a="quit-open">⏻ ${Object.keys(S.abort).length} von ${alive(S).length} wollen aufhören. Tippen zum Abstimmen</button>`:"";
   const center=centerHTML(),below=`${quitPanel()}${abortNote}${app.sel!=null?fieldSheet(app.sel):""}${duelPanel()}${tradePanel()}${over}<div class="players">${players}</div>${rulesHTML()}`;
   app.gp={top,cells:cellArr,center,below,zoom:!!app.zoom};
@@ -1294,9 +1523,9 @@ function mgFast(a,b){
     case "mg-foot":if(mg&&mg.kind==="rennen"&&mg.stage==="go"){const v=b.dataset.v;if(v!==mg.last){mg.count++;mg.last=v;}else{mg.count=Math.max(0,mg.count-1);}
       const r=document.querySelector(".track .runner"),pct=Math.min(100,mg.count*1.6);if(r)r.style.left=`calc(${pct}% - ${pct*.28}px)`;
       document.querySelectorAll('[data-a="mg-foot"]').forEach(x=>x.classList.toggle("used",x.dataset.v===mg.last));const sc=document.getElementById("mg-score");if(sc)sc.textContent=mg.count;}break;
-    case "mg-apple":if(mg&&mg.kind==="faengt"){mg.count++;b.classList.add("caught");b.dataset.a="";b.textContent="✨";setTimeout(()=>b.remove(),250);const sc=document.getElementById("mg-score");if(sc)sc.textContent=mg.count;try{navigator.vibrate&&navigator.vibrate(15);}catch(e){}}break;
+    case "mg-apple":if(mg&&mg.kind==="faengt"){mg.count++;b.classList.add("caught");b.dataset.a="";b.textContent="✨";setTimeout(()=>b.remove(),250);const sc=document.getElementById("mg-score");if(sc)sc.textContent=mg.count;buzz(15);}break;
     case "mg-bell":if(mg&&mg.kind==="glocken"&&mg.stage==="input"){const v=+b.dataset.v;flashBell(v);
-      if(v!==mg.seq[mg.pos]){const m=mg;m.stage="done";b.classList.add("wrong");setTimeout(()=>{if(mg===m)miniSubmit(m.round);},500);break;}
+      if(v!==mg.seq[mg.pos]){const m=mg;m.stage="done";sfx("miss");b.classList.add("wrong");setTimeout(()=>{if(mg===m)miniSubmit(m.round);},500);break;}
       mg.pos++;if(mg.pos>=mg.seq.length){mg.round++;mg.seq.push(mg.rng());const m=mg;m.stage="show";setTimeout(()=>{if(mg===m)startBells(m);},350);mgRefresh();}}break;
     case "mg-whack":if(mg&&mg.kind==="whack"&&mg.stage==="go"&&+b.dataset.h===mg.hole){const t=mg.ht;mg.count=Math.max(0,mg.count+(t==="gold"?3:t==="freddy"?-2:1));buzz(t==="freddy"?[60,40,60]:15);floatTxt(b,t==="gold"?"+3":t==="freddy"?"−2":"+1",t==="freddy");nextBoar(mg);mgRefresh();}break;
     case "mg-stop":if(mg&&mg.kind==="stopp"&&mg.stage==="go")miniSubmit(Math.round(performance.now()-mg.t0));break;
@@ -1317,7 +1546,10 @@ document.addEventListener("click",async ev=>{
     case "go-local":go("local");break;
     case "go-cpu":go("cpu");break;
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
+    case "news-ok":store.set("rbm-news",8);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
+    case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
+    case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
     case "start-cpu":{
       const name=document.getElementById("cname").value.trim(),n=+document.getElementById("cnum").value,l=+document.getElementById("clvl").value;
       if(!name){app.err="Bitte gib deinen Namen ein.";render();break;}
@@ -1335,6 +1567,8 @@ document.addEventListener("click",async ev=>{
     case "reload-open":loadOpen();break;
     case "resume-local":resetFx();app.mode="local";app.S=store.get("rbm-local");app.sel=null;go("game");break;
     case "resume-online":watchGame(b.dataset.code);break;
+    case "rematch":{const o=app.S;resetFx();app.S=newState(o.players.map(p=>({name:p.name,tok:p.tok,cpu:p.cpu})),o.maxRounds,o.vsCpu?{vsCpu:true,cpuLvl:o.cpuLvl}:undefined);
+      app.S.log=["Revanche! "+o.ranking[0].name+" will den Titel verteidigen."];app.sel=null;app.savedResult=null;app.confetti=false;store.set("rbm-local",app.S);go("game");break;}
     case "start-local":{
       const names=[0,1,2,3].map(k=>document.getElementById("n"+k).value.trim());store.set("rbm-names",names);
       const list=names.filter(Boolean);if(list.length<2){app.err="Mindestens 2 Namen eintragen.";render();break;}
