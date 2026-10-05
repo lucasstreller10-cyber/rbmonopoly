@@ -463,7 +463,7 @@ const others=(S,p)=>alive(S).filter(o=>o.id!==p.id);
 
 const CHALLENGES=[
  {t:"Rollmisch-Zungenbrecher",x:"Sag fünfmal schnell „Rottenberger Rollmisch rollt runter“ ohne Versprecher.",w:60,l:30},
- {t:"Freddy-Imitation",x:"Mach Freddy, die Dorflegende, am Tresen im Marry nach. Die Mitspieler entscheiden.",w:80,l:40},
+ {t:"Freddy-Imitation",x:"Mach Freddy, die Dorflegende, am Tresen bei der Marry nach. Die Mitspieler entscheiden.",w:80,l:40},
  {t:"Waldfest-Fitness",x:"10 Liegestütze oder 20 Kniebeugen, jetzt sofort.",w:70,l:30},
  {t:"Orts-Quiz",x:"Nenne in 15 Sekunden fünf Straßen oder Orte aus Rottenberg.",w:60,l:30},
  {t:"Stadionsprecher",x:"Kommentiere 20 Sekunden lang das letzte Tor vom Fußballverein wie im Fernsehen.",w:60,l:20},
@@ -505,7 +505,7 @@ function fieldEvent(S,p,f,depth){
     case "metzger":p.money+=20;log(S,"Wurstprobe in der Metzgerei: Fleischwurst und 20 € für "+p.name+".");break;
     case "gisbert":p.money+=20;log(S,"Gisbert zeigt "+p.name+" seinen seltenen Frosch: 20 € Zuhörgeld.");break;
     case "baecker":p.money+=20;log(S,"Bäcker Rosel steckt "+p.name+" eine Brezel und 20 € zu.");break;
-    case "loewe":log(S,"Tadan! "+p.name+" gibt Freddy, der Dorflegende, im Marry einen aus: 10 € in die Kasse.");pay(S,p,null,10);break;
+    case "loewe":log(S,"Tadan! "+p.name+" gibt Freddy, der Dorflegende, bei der Marry einen aus: 10 € in die Kasse.");pay(S,p,null,10);break;
     case "feuer":p.money+=20;log(S,"Feuerwehrfest: Bratwurst und 20 € für "+p.name+".");break;
     case "kerze":pay(S,p,null,5);if(!p.bankrupt&&Math.random()<.35){p.jailCards++;log(S,p.name+" findet unter der Kirchenbank eine Bunker-Freikarte!");}else log(S,p.name+" zündet eine Kerze an (5 €).");break;
     case "glocke":{const fr=S.players.filter(o=>o.jail&&!o.bankrupt);fr.forEach(o=>{o.jail=false;o.jailTurns=0;o.sleep=0;});log(S,fr.length?"Die Glocken läuten: "+fr.map(o=>o.name).join(", ")+" kommt aus dem Bunker frei!":"Die Glocken läuten. Gerade sitzt niemand im Bunker.");break;}
@@ -1644,9 +1644,9 @@ function kilianThumb(){
 /* ---------- Sprüche der Computergegner ---------- */
 const BOT_SAY={
  "Freddy":{buy:["Des kaaf ich, des is jetzt Freddy-Land!","Zack, meins. Prost!","Für des Grundstück hab ich schon immer geschwärmt.","Tadan! Des is jetzt meins.","Wird Zeit, dass des in gute Hände kommt.","Gekauft, und auf den Deckel geschrieben."],
-  rentIn:["Danke, des geht direkt ins Marry.","Schön zahle, Kumpel!","Davon geb ich heut Abend einen aus. Vielleicht.","Des reicht für drei Äppler.","Zahl's mit Freude, des is fürs Waldfest.","Merci, mein Lieber!"],
-  rentOut:["Aua, des tut weh im Geldbeutel.","Na gut, aber nur weil du's bist.","Dafür hätt ich drei Runden im Marry bekommen.","Freddy zahlt, aber Freddy vergisst nicht.","Schreib's beim Wirt an.","Ich zahl, aber nur weil heut Sonntag is."],
-  duelWin:["Gelernt is gelernt!","Die Dorflegende hat's noch drauf!","Revanche gibt's im Marry.","Ich bin halt die Legende.","Hast gedacht, der alte Freddy kann's nimmer?","Tadan! Gewonnen."],
+  rentIn:["Danke, des geht direkt zur Marry.","Schön zahle, Kumpel!","Davon geb ich heut Abend einen aus. Vielleicht.","Des reicht für drei Äppler.","Zahl's mit Freude, des is fürs Waldfest.","Merci, mein Lieber!"],
+  rentOut:["Aua, des tut weh im Geldbeutel.","Na gut, aber nur weil du's bist.","Dafür hätt ich drei Runden bei der Marry bekommen.","Freddy zahlt, aber Freddy vergisst nicht.","Schreib's beim Wirt an.","Ich zahl, aber nur weil heut Sonntag is."],
+  duelWin:["Gelernt is gelernt!","Die Dorflegende hat's noch drauf!","Revanche gibt's bei der Marry.","Ich bin halt die Legende.","Hast gedacht, der alte Freddy kann's nimmer?","Tadan! Gewonnen."],
   duelLose:["Des war Glück, nix weiter.","Ich war abgelenkt, die Musik war zu laut.","Nächstes Mal mach ich dich nass.","Die Sonne hat geblendet.","Ich lass dich gewinnen, damit's spannend bleibt.","Des war Absicht. Pädagogisch."],
   jail:["Big A, mach schon mal Platz auf der Bank.","Bunker? Da kenn ich mich aus.","Und keiner bringt mir a Bier.","Wenigstens ruhig hier.","Big A, hast du Karten dabei?","Ich bin nur zu Besuch. Ehrlich."],
   build:["Peck, mach hinne, hier wird gebaut!","Freddy baut, die Miete steigt.","Bald steht hier a Hotel mit Zapfanlage.","Noch ein Haus für die Sammlung.","Hier wird gebaut wie am Waldfest-Zelt.","Freddy-Siedlung, Bauabschnitt zwei."],
@@ -1713,7 +1713,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>Biergarten</b> ist Frei Parken: Wer dort landet, räumt die Kasse ab, in der alle Strafen landen.</li><li><b>🍺 Bierbrunnen:</b> Manchmal sprudelt im Biergarten Freibier. Wer dort landet, hält 8 Sekunden lang eine randvolle Maß: Handy ganz ruhig und gerade halten (ohne Bewegungssensor mit dem Finger dem wankenden Krug folgen). Mindestens 65 % im Krug bringt 50 €, sonst gehen 60 € in die Kasse.</li><li><b>Tadan!</b> Wer im Gasthaus zum Löwen („Marry“) landet, gibt Freddy, der Dorflegende, einen aus und zahlt 10 € in die Kasse im Biergarten.</li>
 <li>🐗 Wildsau-Wahnsinn ist das Minigame-Feld: Nur wer dort landet, darf einen Mitspieler zu einem Handy-Minigame um Geld herausfordern.</li><li>Dorfklatsch-Karten (inklusive aller Wahnsinn-Karten): Pecks Baustelle, Kilians Steuerprüfung, Gisberts Frosch, Hermann Pfeufers Kralle, Elfmeter, Derby gegen Feldkahl, Wildschwein-Alarm, Schneewittchens Zwerge, Teleport-Bus, Grundstücks-Roulette, Robin Hood vom Gräfenberg und mehr.</li>
 <li><b>★ Challenge-Felder</b> (Zum Grünen Tal, Schwimmbad) und die Karte „Challenge-Zeit!“: Du spielst ein Handy-Minigame mit Ziel, zum Beispiel mindestens 12 Punkte bei der Wildsau-Jagd oder genau bei 5 Sekunden stoppen. Geschafft gibt Geld, verpasst kostet.</li>
-<li><b>! Ereignis-Felder</b>: Tadan im Marry (10 € für Freddy), Brezel in der Bäckerei Rosel, Wurstprobe in der Metzgerei, Feuerwehrfest, Matschpfütze am Wiesenweg, abfahrende Busse, Klosterglocken (alle frei aus dem Bunker), Gipfelglück am Hofberg und mehr.</li>
+<li><b>! Ereignis-Felder</b>: Tadan bei der Marry (10 € für Freddy), Brezel in der Bäckerei Rosel, Wurstprobe in der Metzgerei, Feuerwehrfest, Matschpfütze am Wiesenweg, abfahrende Busse, Klosterglocken (alle frei aus dem Bunker), Gipfelglück am Hofberg und mehr.</li>
 <li><b>🏛️ Tauschen bei Kilian:</b> In deinem Zug kannst du anderen Grundstücke und Geld zum Tausch anbieten. Du kannst auch Mietfreiheit anbieten oder verlangen (bis zu 5 mietfreie Besuche auf allen Straßen des anderen). Bürgermeister Kilian beglaubigt und nimmt 10 € Gebühr. Tippe auf ein Feld, um zu sehen, was dort passiert.</li>
 <li><b>⚔ Herausfordern:</b> Einmal pro Zug darfst du einen Mitspieler zu einem Minigame um 20 bis 200 € herausfordern: Wildsau-Jagd, Wildsau-Rennen, Äppler-Fangen, Klosterglocken, Stopp bei 5 Sekunden, Kopfrechen-Sprint, Farb-Chaos, Schätzen, Tic-Tac-Toe gegen die Wildsau oder Zufall. Alle Minigames laufen am Handy. Wer kneift, zahlt die Hälfte des Einsatzes an den Herausforderer.</li>
 <li><b>Dorfchat</b> im Online-Spiel: Nachrichten, Sticker wie Tadan!, Wildsau! oder Rollmisch! und Zufallssprüche.</li>
@@ -1740,7 +1740,7 @@ function renderHome(){
    <li>⚡ Schnellerer Spielerwechsel im Online-Spiel</li>
    <li>👀 Zuschauen, 🏅 37 Erfolge, 🌲 Waldfest, 🔊 Sound und redende Computergegner</li></ul>
    <button class="ghost small" data-a="news-ok">Alles klar</button></section>`:"";
-  return header()+news+`<p class="lead">Kaufe die Feldkahler Straße, das Marry und den Bambuspark, überlebe den Bunker bei Big A, Wildschwein-Alarm und Dorfklatsch, gib Freddy im Marry einen aus und werde Rottenberg-Baron.</p>
+  return header()+news+`<p class="lead">Kaufe die Feldkahler Straße, die Marry und den Bambuspark, überlebe den Bunker bei Big A, Wildschwein-Alarm und Dorfklatsch, gib Freddy bei der Marry einen aus und werde Rottenberg-Baron.</p>
   <section class="panel"><h2>Neues Spiel</h2><div class="big-choice">
    ${resume&&resume.status==="playing"&&resume.board===BOARD_V?`<button class="gold" data-a="resume-local">${resume.vsCpu?"Spiel gegen Computer":"Reihum-Spiel"} fortsetzen<small>${esc(resume.players.map(p=>p.name).join(", "))} · Runde ${resume.round}</small></button>`:""}
    ${onl?`<button class="gold" data-a="resume-online" data-code="${esc(onl)}">Zurück zu Online-Spiel ${esc(onl)}<small>Dein letztes Online-Spiel auf diesem Gerät</small></button>`:""}
@@ -2356,7 +2356,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v47";
+const BUILD="rbm-v48";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -2588,7 +2588,7 @@ document.addEventListener("click",async ev=>{
 const STICKERS={tadan:["🦁","Tadan!"],kilian:["🏛️","Kilian, schreib des auf!"],schnapper:["🫣","Glück gehabt"],aeppler:["🍏","Äppler her!"],gisbert:["🐸","Gisberts Frosch"],peck:["🏗️","Peck baut des"],rollmisch:["🎲","Rollmisch!"],wildsau:["🐗","Wildsau!"],bunker:["🚬","Ab in den Bunker!"],tor:["⚽","Tooor!"],prost:["🍎","Prost, Freddy!"],pleite:["💸","Pleitegeier"],baron:["👑","Baron von Rottenberg"],heul:["😭","Heul doch"],glocke:["🔔","Halleluja!"]};
 const SPRUECHE=[
  "Des is fei net fair!","Freddy hätt des anders gemacht.","Ab in den Bunker mit dir, Big A wartet schon!","Rollmisch for life!",
- "Mei Oma würfelt besser, und die is 93.","Heut geht die Runde im Marry auf mich. Also, im Spiel.","So schnell rennt nicht mal die Wildsau vom Gräfenberg.",
+ "Mei Oma würfelt besser, und die is 93.","Heut geht die Runde bei der Marry auf mich. Also, im Spiel.","So schnell rennt nicht mal die Wildsau vom Gräfenberg.",
  "Mir gehört bald ganz Rottenberg, ihr dürft mieten.","Glück is, wenn der Bus nach Hösbach wartet.","Kilian, schreib des auf!",
  "Bei mir zahlst du Miete, bei Freddy zahlst du Runde.","Ich hab mehr Häuser als der Hofberg Bäume.","Des war kein Pech, des war Taktik.",
  "Wer im Bunker sitzt, soll nicht mit Bembeln werfen.","Ich würfel nur, wenn Rosel mir ne Brezel gibt.","Hermann Pfeufer hätte des mit einer Hand gewonnen.",
@@ -2621,7 +2621,7 @@ const QUIPS=[
  [/Dorfbank/,["Die Dorfbank hat heut ihre Spendierhosen an.","Lies das Kleingedruckte!","Ein Angebot, so selten wie ein Pasch im Bunker."]],
  [/Hypothek/,["Die Bank freut sich.","Hypothek drauf, Sorgen weg. Für ne Weile.","Das Haus steht noch. Gehört halt der Bank."]],
  [/Waldfest-Tombola/,["Lose kaufen ist Ehrensache.","Der Hauptgewinn geht wie jedes Jahr an den Falschen.","Glück gehabt, Herzlichen Glückwunsch vom Festausschuss!"]],
- [/⚽ Abpfiff/,["Rottenberg, Rottenberg, olé!","Der Schiri war bestochen, ganz klar.","Das Ergebnis wird noch lange im Marry diskutiert."]],
+ [/⚽ Abpfiff/,["Rottenberg, Rottenberg, olé!","Der Schiri war bestochen, ganz klar.","Das Ergebnis wird noch lange bei der Marry diskutiert."]],
  [/⚽ /,["Wetten, dass?","Die Elf gibt alles. Zumindest bis zur Halbzeit.","Tipp abgegeben, Daumen drücken."]],
  [/Einarmiger Bandit/,["Ratter, ratter, nix.","Der Automat frisst wieder Geld.","Noch einmal ziehen, dann hör ich auf. Ehrlich."]],
  [/Blackjack/,["Charly mischt schon wieder.","Bei 16 ziehen oder beten?","Die Bank gewinnt. Meistens."]],
