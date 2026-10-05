@@ -1144,10 +1144,12 @@ function endDuel(S){
   const d=S.duel;S.duel=null;liveSettle(S,d);if(S.status!=="playing")return S;
   S.phase=cur(S).bankrupt?"end":d.prev;return S;
 }
+/* Kneifen (Lucas, 05.10.): kostet die Hälfte des Einsatzes, geht an den Herausforderer. */
+const kneifCost=d=>Math.max(5,Math.round((d.stake||0)*.5/5)*5);
 function actDuelAnswer(S,yes){
   const d=S.duel;if(!d||S.phase!=="duel"||d.state!=="ask")return S;
   const A=S.players[d.from],B=S.players[d.to];
-  if(!yes){log(S,B.name+" kneift und zahlt 10 € Feiglingsgebühr an "+A.name+".");S.card={deck:"duel",t:"Gekniffen!",x:B.name+" traut sich nicht und zahlt "+A.name+" 10 €."};st(S,B.id).kn++;pay(S,B,A,10);return endDuel(S);}
+  if(!yes){const k=kneifCost(d);log(S,B.name+" kneift und zahlt "+k+" € Feiglingsgebühr an "+A.name+".");S.card={deck:"duel",t:"Gekniffen!",x:B.name+" traut sich nicht und zahlt "+A.name+" "+k+" €, die Hälfte vom Einsatz."};st(S,B.id).kn++;pay(S,B,A,k);return endDuel(S);}
   if(d.kind==="wuerfel"){
     let ra,rb;do{ra=d6()+d6();rb=d6()+d6();}while(ra===rb);
     const W=ra>rb?A:B,L=W===A?B:A;
@@ -1713,7 +1715,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>★ Challenge-Felder</b> (Zum Grünen Tal, Schwimmbad) und die Karte „Challenge-Zeit!“: Du spielst ein Handy-Minigame mit Ziel, zum Beispiel mindestens 12 Punkte bei der Wildsau-Jagd oder genau bei 5 Sekunden stoppen. Geschafft gibt Geld, verpasst kostet.</li>
 <li><b>! Ereignis-Felder</b>: Tadan im Marry (10 € für Freddy), Brezel in der Bäckerei Rosel, Wurstprobe in der Metzgerei, Feuerwehrfest, Matschpfütze am Wiesenweg, abfahrende Busse, Klosterglocken (alle frei aus dem Bunker), Gipfelglück am Hofberg und mehr.</li>
 <li><b>🏛️ Tauschen bei Kilian:</b> In deinem Zug kannst du anderen Grundstücke und Geld zum Tausch anbieten. Du kannst auch Mietfreiheit anbieten oder verlangen (bis zu 5 mietfreie Besuche auf allen Straßen des anderen). Bürgermeister Kilian beglaubigt und nimmt 10 € Gebühr. Tippe auf ein Feld, um zu sehen, was dort passiert.</li>
-<li><b>⚔ Herausfordern:</b> Einmal pro Zug darfst du einen Mitspieler zu einem Minigame um 20 bis 200 € herausfordern: Wildsau-Jagd, Wildsau-Rennen, Äppler-Fangen, Klosterglocken, Stopp bei 5 Sekunden, Kopfrechen-Sprint, Farb-Chaos, Schätzen, Tic-Tac-Toe gegen die Wildsau oder Zufall. Alle Minigames laufen am Handy. Wer kneift, zahlt 10 €.</li>
+<li><b>⚔ Herausfordern:</b> Einmal pro Zug darfst du einen Mitspieler zu einem Minigame um 20 bis 200 € herausfordern: Wildsau-Jagd, Wildsau-Rennen, Äppler-Fangen, Klosterglocken, Stopp bei 5 Sekunden, Kopfrechen-Sprint, Farb-Chaos, Schätzen, Tic-Tac-Toe gegen die Wildsau oder Zufall. Alle Minigames laufen am Handy. Wer kneift, zahlt die Hälfte des Einsatzes an den Herausforderer.</li>
 <li><b>Dorfchat</b> im Online-Spiel: Nachrichten, Sticker wie Tadan!, Wildsau! oder Rollmisch! und Zufallssprüche.</li>
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
@@ -1839,7 +1841,7 @@ function centerHTML(){
     acts=mayAct([B.id])&&!(app.mode==="local"&&B.cpu)?`<button class="gold" data-a="trade-yes">${esc(B.name)}: Annehmen</button>${(S.trade.n||0)<TRADE_MAX?`<button class="ghost" data-a="trade-counter-open">🔁 Gegenangebot</button>`:""}<button class="ghost" data-a="trade-no">Ablehnen</button>`:`<div class="note">Warte auf ${esc(B.name)} …</div>`;
   }else if(S.phase==="duel"&&S.duel){
     const d=S.duel,A=S.players[d.from],B=S.players[d.to];
-    if(d.state==="ask")acts=mayAct([d.to])?`<button class="gold" data-a="duel-yes">${esc(B.name)}: Annehmen</button><button class="ghost" data-a="duel-no">Kneifen (10 €)</button>`:`<div class="note">Warte auf ${esc(B.name)} …</div>`;
+    if(d.state==="ask")acts=mayAct([d.to])?`<button class="gold" data-a="duel-yes">${esc(B.name)}: Annehmen</button><button class="ghost" data-a="duel-no">Kneifen (${kneifCost(d)} €)</button>`:`<div class="note">Warte auf ${esc(B.name)} …</div>`;
     else if(d.state==="play")acts=miniHTML(d)+liveBetHTML(S,d);
     else acts=mayAct([d.from,d.to])?`<button class="gold" data-a="duel-win" data-w="${A.id}">${esc(A.name)}</button><button class="gold" data-a="duel-win" data-w="${B.id}">${esc(B.name)}</button><button class="ghost" data-a="duel-win" data-w="">Unentschieden</button>`:`<div class="note">${esc(A.name)} und ${esc(B.name)} duellieren sich …</div>`;
   }else{
@@ -2241,7 +2243,7 @@ function quitPanel(){
 function duelPanel(){
   const S=app.S;if(!app.duelOpen||!canAct()||!canDuel(S))return "";
   const p=cur(S),os=others(S,p);
-  return `<section class="panel"><h2>⚔ Herausforderung</h2><p class="note">Du stehst auf dem Minigame-Feld und darfst jemanden herausfordern. Wer kneift, zahlt dir 10 €.</p>
+  return `<section class="panel"><h2>⚔ Herausforderung</h2><p class="note">Du stehst auf dem Minigame-Feld und darfst jemanden herausfordern. Wer kneift, zahlt dir die Hälfte des Einsatzes.</p>
   <div class="row"><label>Gegner<select id="d-to">${os.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join("")}</select></label>
   <label>Minigame<select id="d-kind">${["zufall",...OFFER].map(k=>`<option value="${k}">${DUELS[k]}</option>`).join("")}</select></label>
   <label>Einsatz<select id="d-stake"><option>20</option><option selected>50</option><option>100</option><option>200</option></select></label></div>
@@ -2354,7 +2356,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v46";
+const BUILD="rbm-v47";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
