@@ -216,6 +216,7 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .news{border:2px solid var(--gold)}.news ul{margin:6px 0 10px;padding-left:4px;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px}
 .stakes{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%;font-size:13px;color:var(--muted)}.chip{padding:6px 11px;border-radius:999px;border:1px solid var(--gold);background:transparent;color:var(--paper);font-weight:700}.chip.on{background:var(--gold);color:#1b2a1f}.chip:disabled{opacity:.35}
 .bierbox{position:relative;width:min(100%,260px);height:190px;margin:0 auto;border-radius:12px;background:radial-gradient(circle at 50% 40%,#3b2a14,#1d140a);touch-action:none;user-select:none;overflow:hidden}.bierbox.finger{cursor:grab}.krug{position:absolute;width:58px;height:78px;transform:translate(-50%,-50%);border:3px solid #e9eef2;border-top:none;border-radius:4px 4px 10px 10px;background:rgba(255,255,255,.12);pointer-events:none}.krug .bier{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(#ffd25a,#e59a12);border-radius:0 0 7px 7px;box-shadow:0 -7px 0 #fffbea}.krug .henkel{position:absolute;right:-19px;top:14px;width:15px;height:36px;border:3px solid #e9eef2;border-left:none;border-radius:0 12px 12px 0}
+.recs{display:flex;flex-direction:column;gap:6px}.rec{background:rgba(255,255,255,.05);border-radius:10px;padding:8px 10px}.rec summary{display:flex;justify-content:space-between;gap:8px;cursor:pointer;list-style:none;font-size:14px}.rec summary::-webkit-details-marker{display:none}.rec summary b{color:var(--gold);text-align:right;font-size:13px}.rec ol{list-style:none;margin:6px 0 0;padding:0;font-size:14px}.rec li{display:flex;gap:6px;padding:3px 0;border-top:1px solid rgba(255,255,255,.06)}.rec li b{margin-left:auto}.rec li span{width:24px}
 .twall{position:relative;width:min(100%,190px);aspect-ratio:3/2;margin:0 auto;background:linear-gradient(#2a8a4a,#1f6e3a);border:5px solid #f4f4f4;border-radius:4px;overflow:visible;box-shadow:inset 0 0 0 2px #0d4a24}
 .thole{position:absolute;width:18%;aspect-ratio:1;border-radius:50%;background:radial-gradient(#071a0e,#0b2a16 70%);border:3px solid #f4f4f4;transform:translate(-50%,-50%)}.thole.l{left:22%;top:74%}.thole.h{left:78%;top:28%}.thole.aim{box-shadow:0 0 0 3px #f2d27a,0 0 14px #f2d27a}
 .tball{position:absolute;left:50%;top:125%;font-size:22px;transform:translate(-50%,-50%);opacity:0;pointer-events:none;z-index:2}
@@ -1283,10 +1284,38 @@ function monthHTML(tabs){
   if(!rows.length)return tabs+`<p class="note">Im ${MONATE[mo]} wurde noch keine Partie zu Ende gespielt. Die erste beendete Mehrspieler-Partie zählt schon für den Dorfkönig des Monats.</p>`+prevTxt;
   return tabs+`<div class="king">👑 <b>${esc(rows[0].name)}</b> ist Dorfkönig im ${MONATE[mo]}<small>noch ${left} Tag${left===1?"":"e"} bis zur Krönung</small></div><div class="lb-wrap"><table class="lb"><thead><tr><th>#</th><th>Name</th><th>Punkte</th><th>Siege</th><th>Spiele</th></tr></thead><tbody>${rows.slice(0,20).map((r,i)=>`<tr><td class="rank">${i===0?"👑":i+1}</td><td>${esc(r.name)}</td><td><b>${r.pts}</b></td><td>${r.wins}</td><td>${r.games}</td></tr>`).join("")}</tbody></table></div>${prevTxt}<p class="note">Zählt alle beendeten Mehrspieler-Partien in diesem Monat. Am 1. geht es wieder bei null los.</p>`;
 }
+/* Minispiel-Rekordliste (Lucas, 05.10.): Bestwert pro Name und Minispiel, Top 10 für alle in einem Dokument. */
+const REC_KINDS=["torwand","ttt","whack","rennen","faengt","glocken","stopp","rechnen","farben","bier"];
+const recScore=(k,v)=>k==="stopp"?-Math.abs(v-5000):v;
+function recMerge(d,kind,name,val){
+  d=Object.assign({},d||{});const r=Object.assign({},d.r||{}),L=(r[kind]||[]).slice(),key=name.trim().toLowerCase(),i=L.findIndex(x=>String(x.n).trim().toLowerCase()===key);
+  if(i>=0){if(recScore(kind,val)<=recScore(kind,L[i].v))return null;L.splice(i,1);}
+  L.push({n:name.trim().slice(0,24),v:val,at:Date.now()});L.sort((a,b)=>recScore(kind,b.v)-recScore(kind,a.v)||a.at-b.at);
+  const top=L.slice(0,10),place=top.findIndex(x=>x.n===name.trim().slice(0,24)&&x.v===val)+1;if(!place)return null;
+  r[kind]=top;d.r=r;d.place=place;return d;
+}
+async function recSubmit(kind,val,name){
+  if(!REC_KINDS.includes(kind)||!app.db||!name||typeof val!=="number"||!isFinite(val))return;
+  if(kind==="glocken"&&val<1)return;
+  try{const ref=app.db.doc("games/REKORDE");let out=null;
+    if(typeof ref.txn==="function")out=await ref.txn(c=>{const d=recMerge(c.exists?c.data():null,kind,name,val);return d||undefined;});
+    else{const c=await ref.get();out=recMerge(c.exists?c.data():null,kind,name,val);if(out)await ref.set(out);}
+    if(out){app.recs=out.r;const pl=out.place;setTimeout(()=>toast(pl===1?"🥇 Neuer Dorfrekord bei "+KIND_N(kind)+"!":"🏅 Platz "+pl+" in der Rekordliste "+KIND_N(kind)),1600);}
+  }catch(e){}
+}
+async function recLoad(){if(!app.db||app.recLoading)return;app.recLoading=true;try{const c=await app.db.doc("games/REKORDE").get();app.recs=(c.exists&&c.data()&&c.data().r)||{};}catch(e){app.recs=app.recs||{};}app.recLoading=false;app.recAt=Date.now();render();}
+function recHTML(tabs){
+  if(!app.recs||Date.now()-(app.recAt||0)>60000)recLoad();
+  if(!app.recs)return tabs+`<p class="note">Rekorde werden geladen …</p>`;
+  const med=["🥇","🥈","🥉"];
+  return tabs+`<div class="recs">${REC_KINDS.map(k=>{const L=app.recs[k]||[],mine=bestOf(k);
+    return `<details class="rec"><summary><span>${esc(DUELS[k])}</span><b>${L.length?esc(L[0].n)+" · "+esc(valText(k,L[0].v,{q:0})):"noch frei"}</b></summary>${L.length?`<ol>${L.map((x,i)=>`<li><span>${med[i]||i+1+"."}</span> ${esc(x.n)} <b>${esc(valText(k,x.v,{q:0}))}</b></li>`).join("")}</ol>`:`<p class="note">Noch kein Rekord. Spiel ${esc(KIND_N(k))} als Duell, Challenge oder Dorfmeisterschaft und du stehst hier.</p>`}${mine!=null?`<p class="note">Dein Rekord auf diesem Handy: ${esc(valText(k,mine,{q:0}))}</p>`:""}</details>`;}).join("")}</div><p class="note">Jedes gespielte Minispiel zählt, egal ob Duell, Challenge oder Dorfmeisterschaft. Pro Name steht nur der beste Wert in der Liste.</p>`;
+}
 function lbHTML(){
   const tab=app.lbTab||"month",cpu=tab==="cpu",month=tab==="month",rows=leaderboard(cpu);
-  const tabs=`<div class="tabs" role="tablist"><button role="tab" class="${month?"on":""}" data-a="lb-tab" data-v="month" aria-selected="${month}">👑 Monat</button><button role="tab" class="${cpu||month?"":"on"}" data-a="lb-tab" data-v="multi" aria-selected="${!cpu&&!month}">👥 Ewig</button><button role="tab" class="${cpu?"on":""}" data-a="lb-tab" data-v="cpu" aria-selected="${cpu}">🤖 Computer</button></div>`;
+  const tabs=`<div class="tabs" role="tablist"><button role="tab" class="${month?"on":""}" data-a="lb-tab" data-v="month" aria-selected="${month}">👑 Monat</button><button role="tab" class="${tab==="multi"?"on":""}" data-a="lb-tab" data-v="multi" aria-selected="${tab==="multi"}">👥 Ewig</button><button role="tab" class="${cpu?"on":""}" data-a="lb-tab" data-v="cpu" aria-selected="${cpu}">🤖 Computer</button><button role="tab" class="${tab==="rec"?"on":""}" data-a="lb-tab" data-v="rec" aria-selected="${tab==="rec"}">🏅 Rekorde</button></div>`;
   if(month)return monthHTML(tabs);
+  if(tab==="rec")return recHTML(tabs);
   if(!rows.length)return tabs+`<p class="note">${cpu?"Noch keine fertige Partie gegen den Computer. Schlag Freddy, Big A und Kilian und du stehst hier ganz oben.":"Noch keine fertige Partie. Das erste beendete Spiel landet hier, egal ob online oder reihum am Handy."}</p>`;
   return tabs+`<div class="lb-wrap"><table class="lb"><thead><tr><th>#</th><th>Name</th><th>Punkte</th><th>Siege</th><th>Spiele</th><th>Rekord</th></tr></thead><tbody>${rows.slice(0,20).map((r,i)=>`<tr><td class="rank">${i+1}</td><td>${esc(r.name)}</td><td><b>${r.pts}</b></td><td>${r.wins}</td><td>${r.games}</td><td>${fmt(r.best)}</td></tr>`).join("")}</tbody></table></div><p class="note">Punkte pro Partie: 1. Platz 3, 2. Platz 2, 3. Platz 1, Letzter 0. Rekord ist das höchste Endvermögen in Euro.${cpu?" Die Computergegner zählen beim Platz mit, stehen aber nicht in der Liste.":""}</p>`;
 }
@@ -1987,7 +2016,7 @@ function bestText(k){const v=bestOf(k);return v==null?"noch keiner":valText(k,v,
 function noteBest(k,v){if(k==="schaetz"||typeof v!=="number")return false;const b=store.get("rbm-best")||{},cur=b[k];
   const sc=k==="stopp"?-Math.abs(v-5000):v,old=cur==null?null:(k==="stopp"?-Math.abs(cur-5000):cur);
   if(old==null||sc>old){b[k]=v;store.set("rbm-best",b);return old!=null;}return false;}
-function miniSubmit(val){const m=mg;if(!m)return;if(m.stage==="go"||m.stage==="input"||m.stage==="done"||m.stage==="ready"){if(noteBest(m.kind,val))setTimeout(()=>toast("🏆 Neuer Rekord: "+valText(m.kind,val,{q:0})),400);}if(m.kind!=="glocken"||m.stage!=="show")achMini(m.kind,Number(val));clearInterval(m.iv);clearTimeout(m.to);mg=null;app.deferRender=false;
+function miniSubmit(val){const m=mg;if(!m)return;if(m.stage==="go"||m.stage==="input"||m.stage==="done"||m.stage==="ready"){{const pl=app.S&&app.S.players[m.pid],nm=pl&&!pl.cpu?pl.name:null;if(nm)recSubmit(m.kind,Number(val),nm);}if(noteBest(m.kind,val))setTimeout(()=>toast("🏆 Neuer Rekord: "+valText(m.kind,val,{q:0})),400);}if(m.kind!=="glocken"||m.stage!=="show")achMini(m.kind,Number(val));clearInterval(m.iv);clearTimeout(m.to);mg=null;app.deferRender=false;
   if(m.ctx==="solo")commit(S=>actChallenge(S,val));else if(m.ctx==="tour")commitLeased(S=>actTourInput(S,m.pid,val),[m.pid]);else commitLeased(S=>actDuelInput(S,m.pid,val),[m.pid]);}
 async function commitLeased(fn,ids){
   if(!mayAct(ids))return;
@@ -2246,7 +2275,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v41";
+const BUILD="rbm-v42";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
