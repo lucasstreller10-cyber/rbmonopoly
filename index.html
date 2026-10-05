@@ -516,6 +516,7 @@ const CARDS={
  klatsch:[
   {t:"Kuchen-Königin",x:"Dein Zwetschgenkuchen gewinnt den Wettbewerb beim Dorffest. +100",f:(S,p)=>{p.money+=100}},
   {t:"Feuerwehrübung",x:"Die Feuerwehr spritzt dich nass, du rennst bis auf Los. Ziehe auf Los.",f:(S,p,d)=>moveTo(S,p,0,d)},
+  {t:"Im Graben aufgewacht",x:"Uf de Felgeler Kerb ist es spät geworden: Du wirst betrunken im Graben aufgefunden und dein ganzes Geld ist weg. Zahle 300 €, wer weiß, wo es landet. Vielleicht in der Kasse im Biergarten.",f:(S,p)=>pay(S,p,null,300)},
   {t:"Sonntags-Rasenmäher",x:"Der Nachbar hat dich am Sonntag beim Mähen erwischt. Zahle 60 in die Kasse im Biergarten.",f:(S,p)=>pay(S,p,null,60)},
   {t:"Erwischt!",x:"Jemand hat dich beim Kirschenklauen gesehen. Ab in den Bunker bei Big A, ohne über Los zu gehen.",f:(S,p)=>sendJail(S,p)},
   {t:"Freikarte",x:"Big A schuldet dir einen Gefallen. Behalte diese Karte, sie holt dich aus dem Bunker.",f:(S,p)=>{p.jailCards++}},
@@ -605,7 +606,7 @@ function tombola(S){const ps=alive(S).filter(p=>p.money>=TOMB_LOS);if(ps.length<
 const DORF_EV=[
  {k:"kerwa",ic:"🌲",n:"Waldfest",t:"Waldfest in Rottenberg!",x:"Das ganze Dorf feiert im Wald. Diese Runde sind alle Mieten 50 % höher.",rent:1.5,f:S=>tombola(S)},
  {k:"tombola",ic:"🎟️",n:"Tombola",t:"Waldfest-Tombola",x:"Der Waldfestverein verlost seinen Gabentisch.",f:S=>tombola(S)},
- {k:"loch",ic:"🏖️",n:"Sommerloch",t:"Sommerloch",x:"Halb Rottenberg ist am Gardasee. Diese Runde gibt es nur die halbe Miete.",rent:.5},
+ {k:"loch",ic:"🎪",n:"Leeres Dorf",t:"Leeres Dorf",x:"Halb Rottenberg ist uf de Felgeler Kerb oder auf der Feier vom Sportverein. Diese Runde gibt es nur die halbe Miete.",rent:.5},
  {k:"steuer",ic:"🏛️",n:"Grundsteuer",t:"Kilian kassiert Grundsteuer",x:"Jeder zahlt 15 € pro Grundstück in die Kasse im Biergarten.",f:S=>alive(S).forEach(p=>{const n=Object.values(S.props).filter(o=>o.owner===p.id).length;if(n)pay(S,p,null,15*n);})},
  {k:"spende",ic:"🎁",n:"Dorffest",t:"Dorffest-Überschuss",x:"Der Feuerwehrverein verteilt den Gewinn vom Dorffest: Jeder bekommt 50 €.",f:S=>alive(S).forEach(p=>p.money+=50)},
  {k:"jackpot",ic:"🍻",n:"Freibier",t:"Freibier-Jackpot",x:"Die Brauerei legt 200 € in die Kasse im Biergarten. Wer landet zuerst dort?",f:S=>{S.pot+=200;}},
@@ -1658,7 +1659,7 @@ function header(){return `<header class="row" style="gap:14px;flex-wrap:nowrap">
 function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary><ul>
 <li>Tippe auf ein Feld für Preise, Mieten und zum Bauen. ★ heißt Challenge, ! heißt Ereignis.</li><li>2 bis 4 Spieler, jeder startet mit 1.500 €. Über Los gibt es 200, wer genau auf Los landet, bekommt 400.</li>
 <li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Die Mieten sind wie im Original, mit 4 Häusern und Hotel etwas günstiger. Die billigste Miete sind 10 €.</li>
-<li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Waldfest (Mieten +50 %), Sommerloch (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
+<li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Waldfest (Mieten +50 %), Leeres Dorf, weil alle uf de Felgeler Kerb sind (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
 <li><b>📜 Spielbericht und 🏅 Erfolge:</b> Am Ende gibt es Auszeichnungen wie Miethai oder Duellkönig und den Verlauf aller Vermögen. Auf jedem Handy sammelst du 37 Erfolge.</li>
 <li><b>🎟️ Waldfest-Tombola:</b> Beim Waldfest und ab und zu als eigenes Dorf-Ereignis kauft jeder ein Los für 20 €. Der Waldfestverein legt 150 € drauf, einer gewinnt den ganzen Topf, ein anderer eine Bunker-Freikarte.</li>
 <li><b>⚽ Torwandschießen:</b> Neues Minispiel: 6 Schüsse auf die Torwand, dreimal unten links, dreimal oben rechts. Wisch den Ball Richtung Loch.</li>
@@ -2275,7 +2276,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v42";
+const BUILD="rbm-v43";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
