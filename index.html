@@ -126,6 +126,7 @@ body.has-bar .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .card.flip{animation:flipIn .55s cubic-bezier(.2,.8,.3,1.2)}
 @keyframes flipIn{0%{transform:perspective(600px) rotateY(90deg) scale(.8);opacity:0}100%{transform:perspective(600px) rotateY(0) scale(1);opacity:1}}
 .card.trade{border-top-color:var(--g-li)}
+.card.hai{border-top-color:#5b8bd6}
 .cell.corner{background:var(--paper-2)}
 .cell.owned{background:color-mix(in srgb,var(--own) 30%,var(--paper))}
 .cell.owned::after{content:"";position:absolute;inset:0;border:2px solid var(--own);border-radius:3px;opacity:.55;pointer-events:none}
@@ -619,6 +620,21 @@ function loanRate(S,p){
   log(S,"🏦 "+p.name+" zahlt "+p.loan.rate+" € Kreditrate"+(p.loan.left?" (noch "+p.loan.left+")":", Kredit abbezahlt")+".");
   if(!p.loan.left)p.loan=null;if(p.money<0)settle(S,p,null);
 }
+/* Kredithai: Haifisch-Harry leiht sofort Geld, ohne Fragen. Nach 3 Runden kommt er und will das Anderthalbfache zurück. */
+const HAI=[200,400,600],HAI_X=1.5,HAI_N=3;
+function canHai(S){const p=cur(S);return S.status==="playing"&&(S.phase==="roll"||S.phase==="end")&&!!p&&!p.bankrupt&&!p.hai;}
+function actHai(S,amt){amt=+amt;if(!canHai(S)||!HAI.includes(amt))return S;const p=cur(S);
+  p.hai={amt,owe:r5(amt*HAI_X),due:S.round+HAI_N};p.money+=amt;st(S,p.id).hai=(st(S,p.id).hai||0)+1;
+  log(S,"🦈 "+p.name+" leiht sich "+amt+" € beim Kredithai. Haifisch-Harry will in "+HAI_N+" Runden "+p.hai.owe+" € sehen.");
+  S.card={deck:"hai",t:"🦈 Haifisch-Harry",x:"„Kein Problem, Kumpel. "+amt+" € bar auf die Kralle. In "+HAI_N+" Runden komm ich vorbei und krieg "+p.hai.owe+" €. Und ich komm immer vorbei.“"};return S;}
+function actHaiPay(S){const p=cur(S);if(S.status!=="playing"||!p||!p.hai||p.money<p.hai.owe||!(S.phase==="roll"||S.phase==="end"))return S;
+  const o=p.hai.owe;p.money-=o;p.hai=null;log(S,"🦈 "+p.name+" zahlt dem Kredithai freiwillig "+o+" € zurück. Harry nickt anerkennend.");return S;}
+/* Fälligkeit am Rundenwechsel: Harry nimmt, was da ist. Reicht das Geld nicht, werden Hypotheken aufgenommen, notfalls ist man pleite. */
+function haiDue(S,p){if(!p.hai||p.bankrupt)return;const h=p.hai;
+  if(S.round<h.due){if(h.due-S.round===1)log(S,"🦈 Haifisch-Harry lässt "+p.name+" grüßen: Nächste Runde will er "+h.owe+" €.");return;}
+  p.hai=null;const cash=p.money>=h.owe;p.money-=h.owe;
+  log(S,"🦈 Der Kredithai kommt kassieren! "+p.name+" muss "+h.owe+" € zahlen"+(cash?".":", und das Geld reicht nicht."));
+  if(p.money<0){settle(S,p,null);if(!p.bankrupt)log(S,"🦈 Harry hat sich das Fehlende über die Dorfbank geholt.");}}
 function pay(S,from,to,amt){
   if(from.bankrupt||amt<=0)return;
   from.money-=amt; if(to)to.money+=amt; else S.pot+=amt;
@@ -806,7 +822,7 @@ function actEnd(S){
     if(q.sleep>0){q.sleep--;if(q.sleep){log(S,q.name+" pennt im Bunker weiter (noch "+q.sleep+").");continue;}q.jail=false;q.jailTurns=0;log(S,q.name+" wacht im Bunker auf, reibt sich die Augen und darf raus.");continue;}
     if(q.skip>0){q.skip--;log(S,q.name+(q.skipWhy==="glaab"?" muss bei Bernd Glaab nachsitzen und setzt aus":" hängt in Hermann Pfeufers eiserner Kralle und setzt aus")+(q.skip?" (noch "+q.skip+")":" (jetzt frei)")+".");continue;}break;}
   S.turn=t;
-  if(S.round!==r0&&!(S.maxRounds&&S.round>S.maxRounds)){alive(S).forEach(q=>{bausparRate(S,q);loanRate(S,q);});S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));if(S.round%3===0||(S.maxRounds&&S.round===S.maxRounds))roundEvent(S);}
+  if(S.round!==r0&&!(S.maxRounds&&S.round>S.maxRounds)){alive(S).forEach(q=>{bausparRate(S,q);loanRate(S,q);haiDue(S,q);});S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));if(S.round%3===0||(S.maxRounds&&S.round===S.maxRounds))roundEvent(S);}
   if(S.maxRounds&&S.round>S.maxRounds){S.round=S.maxRounds;finish(S);return S;}
   S.phase="roll";if(S.round!==r0&&S.round%10===0&&alive(S).length>1)tourStart(S);else bankOffer(S);return S;
 }
@@ -945,14 +961,14 @@ function actTradeAnswer(S,yes){
   S.card={deck:"trade",t:"🏛️ Getauscht!",x:"Kilian stempelt ab. "+A.name+" zahlt 10 € Gebühr."};
   pay(S,A,null,10);if(S.status==="playing"&&cur(S).bankrupt)S.phase="end";return S;
 }
-function worth(S,p){if(p.bankrupt)return 0;let w=p.money+(p.bs?p.bs.paid:0)-(p.loan?p.loan.left*p.loan.rate:0);Object.keys(S.props).forEach(i=>{const o=S.props[i];if(o.owner===p.id)w+=(o.m?BOARD[i].p-mortVal(BOARD[i]):BOARD[i].p)+o.h*houseCost(BOARD[i]);});return w;}
+function worth(S,p){if(p.bankrupt)return 0;let w=p.money+(p.bs?p.bs.paid:0)-(p.loan?p.loan.left*p.loan.rate:0)-(p.hai?p.hai.owe:0);Object.keys(S.props).forEach(i=>{const o=S.props[i];if(o.owner===p.id)w+=(o.m?BOARD[i].p-mortVal(BOARD[i]):BOARD[i].p)+o.h*houseCost(BOARD[i]);});return w;}
 /* Aussteigen: Straßen des Spielers werden frei (Häuser weg), er scheidet aus. */
 function actQuit(S,pid){
   const p=S.players[pid];if(S.status!=="playing"||!p||p.bankrupt)return S;
   if(S.duel&&(S.duel.from===pid||S.duel.to===pid)){const d=S.duel;S.duel=null;S.phase=d.prev;}
   if(S.trade&&(S.trade.from===pid||S.trade.to===pid)){const t=S.trade;S.trade=null;S.phase=t.prev;}
   Object.keys(S.props).forEach(i=>{if(S.props[i].owner===pid)delete S.props[i];});
-  p.bankrupt=true;p.left=true;p.bankruptAt=++S.seq;p.money=0;p.bs=null;p.loan=null;p.jail=false;p.skip=0;p.sleep=0;
+  p.bankrupt=true;p.left=true;p.bankruptAt=++S.seq;p.money=0;p.bs=null;p.loan=null;p.hai=null;p.jail=false;p.skip=0;p.sleep=0;
   if(S.abort)delete S.abort[pid];
   log(S,p.name+" steigt aus. Seine Straßen sind wieder frei.");
   const rest=alive(S);
@@ -1105,6 +1121,8 @@ function cpuMove(S,id){
   if(id!==S.turn)return S;
   if(S.phase==="roll"){
     if(canRevenge(S))return actRevenge(S);
+    if(canHai(S)&&me.money<80&&(!S.maxRounds||S.round+HAI_N<S.maxRounds)&&Math.random()<.5)actHai(S,me.money<0?400:200);
+    if(me.hai&&me.money-me.hai.owe>reserve+150)actHaiPay(S);
     if(cpuOffer(S,me,lvl,reserve))return S;
     cpuBuild(S,me,reserve);
     if(canDuel(S)&&cpuDuel(S,me,lvl))return S;
@@ -1379,6 +1397,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Die Mieten sind wie im Original, mit 4 Häusern und Hotel etwas günstiger. Die billigste Miete sind 10 €.</li>
 <li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Waldfest (Mieten +50 %), Sommerloch (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
 <li><b>📜 Spielbericht und 🏅 Erfolge:</b> Am Ende gibt es Auszeichnungen wie Miethai oder Duellkönig und den Verlauf aller Vermögen. Auf jedem Handy sammelst du 37 Erfolge.</li>
+<li><b>🦈 Kredithai:</b> In deinem Zug leiht dir Haifisch-Harry sofort 200, 400 oder 600 €, ohne Fragen. Nach 3 Runden kommt er kassieren und will das Anderthalbfache zurück. Reicht dein Geld nicht, holt er es sich über Hypotheken, notfalls bist du pleite. Du kannst ihn auch vorher auszahlen. Immer nur ein Hai-Kredit gleichzeitig.</li>
 <li><b>🤫 Geheimauftrag:</b> Zu Beginn bekommt jeder ein geheimes Ziel, zum Beispiel 3 Bushaltestellen besitzen oder zweimal im Bunker sitzen. Unten im Konto unter „🤫 Auftrag“ siehst du deins und wie weit du bist. Wer es schafft, bekommt sofort 200 bis 450 € Bonus. Am Spielende werden alle Aufträge aufgedeckt.</li>
 <li><b>🔥 Rache-Duell:</b> Wer mindestens 150 € Miete zahlen muss, schwört manchmal Rache (etwa jedes dritte Mal, höchstens zweimal pro Partie) und darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern. Zufälliges Minispiel, kneifen gilt nicht. Gewinnst du, zahlt er dir die halbe Miete zurück. Verlierst du, kostet es nichts.</li>
 <li><b>🏦 Hypothek:</b> Tippe auf ein eigenes unbebautes Grundstück und nimm eine Hypothek auf: du bekommst den halben Kaufpreis, dafür gibt es dort keine Miete und in der Gruppe wird nicht gebaut. Ablösen kostet 10 % mehr. Wer pleite zu gehen droht, beleiht automatisch, bevor er aufgeben muss.</li>
@@ -1398,7 +1417,8 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==16?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+  const news=store.get("rbm-news")!==17?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>🦈 Kredithai: schnelles Geld mit Wucherzins</li>
    <li>🤫 Geheimauftrag für jeden Spieler</li>
    <li>🎟️ Beim Tauschen auch Mietfreiheit anbieten</li>
    <li>🔥 Rache-Duell nach fetter Miete</li>
@@ -1504,6 +1524,8 @@ function centerHTML(){
     if(canDuel(S))acts+=`<button class="gold" data-a="duel-open">⚔ Herausfordern</button>`;
     if(canRevenge(S))acts+=`<button class="gold" data-a="revenge">🔥 Rache an ${esc(S.players[p.rache.to].name)}</button>`;
     if((S.phase==="roll"||S.phase==="end")&&others(S,p).length)acts+=`<button class="ghost" data-a="trade-open">🏛️ Tauschen</button>`;
+    if(canHai(S))acts+=app.haiOpen?`<div class="stakes">🦈 Leihen: ${HAI.map(v=>`<button class="chip" data-a="hai" data-v="${v}">${v} €</button>`).join("")}<button class="chip" data-a="hai-close">✕</button></div><p class="note">Zurück in ${HAI_N} Runden: das Anderthalbfache.</p>`:`<button class="ghost" data-a="hai-open">🦈 Kredithai</button>`;
+    else if(p.hai&&(S.phase==="roll"||S.phase==="end"))acts+=`<button class="ghost" data-a="hai-pay" ${p.money<p.hai.owe?"disabled":""}>🦈 Harry auszahlen (${fmt(p.hai.owe)} €)</button>`;
   }else if(S.phase==="trade"&&S.trade){
     const B=S.players[S.trade.to];
     acts=mayAct([B.id])?`<button class="gold" data-a="trade-yes">${esc(B.name)}: Annehmen</button><button class="ghost" data-a="trade-no">Ablehnen</button>`:`<div class="note">Warte auf ${esc(B.name)} …</div>`;
@@ -1724,7 +1746,7 @@ function floater(pid,diff){
   ["pl"+pid,app.barPid===pid?"mybar":null].forEach(id=>{const el=id&&document.getElementById(id);if(!el)return;
     const f=document.createElement("span");f.className="float "+(diff>0?"plus":"minus");f.textContent=(diff>0?"+":"−")+fmt(Math.abs(diff))+" €";el.appendChild(f);setTimeout(()=>f.remove(),1600);});
 }
-const BANNERS=[[/Geheimauftrag erfüllt/,"🤫 AUFTRAG ERFÜLLT!"],[/Spielende/,"👑 BARON!"],[/ROLLMISCH/,"🎲 ROLLMISCH!"],[/Schlussrunde/,"🏁 SCHLUSSRUNDE!"],[/Dorfmeisterschaft!/,"🏆 DORFMEISTERSCHAFT!"],[/Glücksrad: .*(Straße|Kasse: \+|\+200)/,"🎰 JACKPOT!"],[/Dorf-Ereignis/,"🎪 DORF-EREIGNIS!"],[/pleite/,"💸 PLEITE!"],[/TOOOR/,"⚽ TOOOR!"],[/Tadan/,"🦁 TADAN!"],[/räumt die Kasse/,"🍻 JACKPOT!"],[/Kilian beglaubigt/,"🏛️ GETAUSCHT!"],[/Peck liefert/,"🏗️ PECK LIEFERT!"],[/Blitzer am Schwimmbad/,"📸 GEBLITZT!"],[/eiserner Kralle fest/,"🦾 DIE KRALLE!"],[/sitzt im Bunker/,"🚬 BUNKER!"],[/gewinnt .*€/,"⚔ SIEG!"],[/\(Pasch\)/,"🎲 PASCH!"]];
+const BANNERS=[[/Kredithai kommt kassieren/,"🦈 HARRY KASSIERT!"],[/Geheimauftrag erfüllt/,"🤫 AUFTRAG ERFÜLLT!"],[/Spielende/,"👑 BARON!"],[/ROLLMISCH/,"🎲 ROLLMISCH!"],[/Schlussrunde/,"🏁 SCHLUSSRUNDE!"],[/Dorfmeisterschaft!/,"🏆 DORFMEISTERSCHAFT!"],[/Glücksrad: .*(Straße|Kasse: \+|\+200)/,"🎰 JACKPOT!"],[/Dorf-Ereignis/,"🎪 DORF-EREIGNIS!"],[/pleite/,"💸 PLEITE!"],[/TOOOR/,"⚽ TOOOR!"],[/Tadan/,"🦁 TADAN!"],[/räumt die Kasse/,"🍻 JACKPOT!"],[/Kilian beglaubigt/,"🏛️ GETAUSCHT!"],[/Peck liefert/,"🏗️ PECK LIEFERT!"],[/Blitzer am Schwimmbad/,"📸 GEBLITZT!"],[/eiserner Kralle fest/,"🦾 DIE KRALLE!"],[/sitzt im Bunker/,"🚬 BUNKER!"],[/gewinnt .*€/,"⚔ SIEG!"],[/\(Pasch\)/,"🎲 PASCH!"]];
 function showBanner(lines){
   if(RM)return;const txt=lines.join("\n");const hit=BANNERS.find(([re])=>re.test(txt));if(!hit)return;
   const b=document.getElementById("banner");b.innerHTML=`<span>${esc(hit[1])}</span>`;b.hidden=false;clearTimeout(showBanner.t);showBanner.t=setTimeout(()=>b.hidden=true,2000);
@@ -1741,13 +1763,13 @@ function renderBar(){
   if(!p){bar.hidden=true;document.body.classList.remove("has-bar");app.barPid=null;return;}
   app.barPid=p.id;const n=Object.values(S.props).filter(o=>o.owner===p.id).length;
   const place=1+S.players.filter(q=>!q.bankrupt&&worth(S,q)>worth(S,p)).length;
-  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.bs?` · 🏦 ${p.bs.paid/BS_RATE}/${BS_N}`:""}${p.loan?` · Kredit noch ${p.loan.left}×${p.loan.rate} €`:""}${Object.entries(p.free||{}).filter(([o,n])=>n&&S.players[o]&&!S.players[o].bankrupt).map(([o,n])=>` · 🎟️ ${n}× mietfrei bei ${esc(S.players[o].name)}`).join("")}${p.rache&&S.players[p.rache.to]&&!S.players[p.rache.to].bankrupt?` · 🔥 Rache an ${esc(S.players[p.rache.to].name)}`:""}${p.id===S.turn?" · du bist dran":""}</span>${p.quest&&QUESTS[p.quest.k]?`<button class="ghost small qbtn" data-a="quest">${p.quest.done?"✅":"🤫"} Auftrag</button>`:""}</div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
+  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.bs?` · 🏦 ${p.bs.paid/BS_RATE}/${BS_N}`:""}${p.loan?` · Kredit noch ${p.loan.left}×${p.loan.rate} €`:""}${p.hai?` · 🦈 ${fmt(p.hai.owe)} € fällig Runde ${p.hai.due}`:""}${Object.entries(p.free||{}).filter(([o,n])=>n&&S.players[o]&&!S.players[o].bankrupt).map(([o,n])=>` · 🎟️ ${n}× mietfrei bei ${esc(S.players[o].name)}`).join("")}${p.rache&&S.players[p.rache.to]&&!S.players[p.rache.to].bankrupt?` · 🔥 Rache an ${esc(S.players[p.rache.to].name)}`:""}${p.id===S.turn?" · du bist dran":""}</span>${p.quest&&QUESTS[p.quest.k]?`<button class="ghost small qbtn" data-a="quest">${p.quest.done?"✅":"🤫"} Auftrag</button>`:""}</div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
 }
 /* Flüssiger Spielerwechsel: ist im Zug nichts mehr zu entscheiden, geht es nach kurzer Pause automatisch weiter. */
 const AUTO_MS=2600;
 function autoEndOk(){
   const S=app.S;if(!S||S.status!=="playing"||S.phase!=="end"||!canAct())return false;
-  if(canDuel(S)||app.sel!=null||app.tradeOpen||app.duelOpen||app.autoOff===S.rev)return false;
+  if(canDuel(S)||app.sel!=null||app.tradeOpen||app.duelOpen||app.haiOpen||app.autoOff===S.rev)return false;
   return true;
 }
 function armAutoEnd(){
@@ -1921,7 +1943,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v28";
+const BUILD="rbm-v29";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -1988,7 +2010,7 @@ document.addEventListener("click",async ev=>{
     case "go-local":go("local");break;
     case "go-cpu":go("cpu");break;
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",16);render();break;
+    case "news-ok":store.set("rbm-news",17);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
@@ -2078,6 +2100,10 @@ document.addEventListener("click",async ev=>{
     case "abort-all":app.quitOpen=false;commit(S=>actAbortAll(S),app.S.players.map(p=>p.id));break;
     case "trade-open":stopAutoEnd();app.tradeOpen=true;app.duelOpen=false;render();setTimeout(()=>{const el=document.getElementById("t-to");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});},50);break;
     case "trade-close":app.tradeOpen=false;render();break;
+    case "hai-open":stopAutoEnd();app.haiOpen=true;render();break;
+    case "hai-close":app.haiOpen=false;render();break;
+    case "hai":{const v=+b.dataset.v;app.haiOpen=false;commitLeased(S=>actHai(S,v));break;}
+    case "hai-pay":commitLeased(actHaiPay);break;
     case "quest":app.questOpen=!app.questOpen;render();if(app.questOpen)setTimeout(()=>{const el=document.querySelector(".panel.quest");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});},50);break;
     case "trade-go":{const to=+document.getElementById("t-to").value;const ids=pre=>[...document.querySelectorAll(`input[id^="${pre}"]:checked`)].map(el=>+el.id.slice(2));
       const give={props:ids("tg"),money:+document.getElementById("t-gm").value||0,free:+document.getElementById("t-gf").value||0},get={props:ids("tt"),money:+document.getElementById("t-tm").value||0,free:+document.getElementById("t-tf").value||0};
