@@ -215,6 +215,12 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 @keyframes achin2{from{opacity:0;transform:translate(-50%,10px)}}
 .news{border:2px solid var(--gold)}.news ul{margin:6px 0 10px;padding-left:4px;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px}
 .stakes{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%;font-size:13px;color:var(--muted)}.chip{padding:6px 11px;border-radius:999px;border:1px solid var(--gold);background:transparent;color:var(--paper);font-weight:700}.chip.on{background:var(--gold);color:#1b2a1f}.chip:disabled{opacity:.35}
+.twall{position:relative;width:min(100%,190px);aspect-ratio:3/2;margin:0 auto;background:linear-gradient(#2a8a4a,#1f6e3a);border:5px solid #f4f4f4;border-radius:4px;overflow:visible;box-shadow:inset 0 0 0 2px #0d4a24}
+.thole{position:absolute;width:18%;aspect-ratio:1;border-radius:50%;background:radial-gradient(#071a0e,#0b2a16 70%);border:3px solid #f4f4f4;transform:translate(-50%,-50%)}.thole.l{left:22%;top:74%}.thole.h{left:78%;top:28%}.thole.aim{box-shadow:0 0 0 3px #f2d27a,0 0 14px #f2d27a}
+.tball{position:absolute;left:50%;top:125%;font-size:22px;transform:translate(-50%,-50%);opacity:0;pointer-events:none;z-index:2}
+.twmsg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:900 26px/1 var(--f-display,sans-serif);color:#fff;text-shadow:0 2px 6px #000;animation:twpop .7s ease-out both}.twmsg.no{color:#ffb4a8}@keyframes twpop{from{transform:translate(-50%,-50%) scale(.4);opacity:0}30%{transform:translate(-50%,-50%) scale(1.15);opacity:1}to{opacity:.0}}
+.tpitch{touch-action:none;user-select:none;margin:14px auto 0;width:min(100%,250px);height:66px;border-radius:10px;background:repeating-linear-gradient(90deg,#2f7a43 0 22px,#2a6f3d 22px 44px);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#eaf6e6;cursor:grab}.tspot{font-size:24px}.tpitch small{font-size:11px;opacity:.85}
+.lwbox{margin-top:6px;padding:6px;border:1px dashed var(--gold);border-radius:10px}.lwbox .note{margin:0 0 4px}
 .betbox{width:100%}.chip.odd{line-height:1.15;padding:3px 9px;font-size:13px}.chip.odd b{color:var(--gold)}
 .slotm{background:linear-gradient(#b8322a,#7a1b16)!important;color:#fff3d6!important;border:3px solid #e6b43d!important;text-align:center;position:relative;padding:6px 26px 6px 8px!important}.slotm.won{animation:slotglow .5s ease-in-out 4 alternate}
 @keyframes slotglow{to{box-shadow:0 0 22px 6px #ffd76a}}
@@ -468,10 +474,10 @@ const CHALLENGES=[
  {t:"Dorfhymne",x:"Sing 15 Sekunden lang ein Lied über Rottenberg, Text frei erfunden.",w:60,l:20}
 ];
 /* Die 9 Minispiele, die angeboten werden (alles Geschick, Tempo, Köpfchen oder Wissen, kein reines Glück). */
-const OFFER=["whack","rennen","faengt","glocken","stopp","rechnen","farben","schaetz","ttt"];
-const SOLO_ALL={ttt:{g:"Hol mindestens 5 Punkte gegen die Wildsau.",ok:v=>v>=5},rennen:{g:"Schaffe mindestens 40 Schritte.",ok:v=>v>=40},faengt:{g:"Fange mindestens 12 Äppler.",ok:v=>v>=12},glocken:{g:"Schaffe mindestens 5 Runden.",ok:v=>v>=5},whack:{g:"Schaffe mindestens 12 Punkte.",ok:v=>v>=12},stopp:{g:"Stoppe zwischen 4,75 und 5,25 Sekunden.",ok:v=>Math.abs(v-5000)<=250},rechnen:{g:"Schaffe mindestens 7 Punkte.",ok:v=>v>=7},farben:{g:"Schaffe mindestens 8 Punkte.",ok:v=>v>=8},reflex:{g:"Reagiere schneller als 0,40 Sekunden.",ok:v=>v<400},tap:{g:"Pumpe mindestens 35-mal in 5 Sekunden.",ok:v=>v>=35},schaetz:{g:"Liege höchstens 10 % daneben.",ok:(v,c)=>Math.abs(v-SCHAETZ[c.q].a)<=Math.max(1,SCHAETZ[c.q].a*.1)},huetchen:{g:"Finde den Taler unter einem von drei Bembeln.",ok:()=>Math.random()<1/3,w:150,l:30}};
+const OFFER=["whack","rennen","faengt","glocken","stopp","rechnen","farben","schaetz","ttt","torwand"];
+const SOLO_ALL={torwand:{g:"Triff mindestens 2 von 6 Schüssen.",ok:v=>v>=2},ttt:{g:"Hol mindestens 5 Punkte gegen die Wildsau.",ok:v=>v>=5},rennen:{g:"Schaffe mindestens 40 Schritte.",ok:v=>v>=40},faengt:{g:"Fange mindestens 12 Äppler.",ok:v=>v>=12},glocken:{g:"Schaffe mindestens 5 Runden.",ok:v=>v>=5},whack:{g:"Schaffe mindestens 12 Punkte.",ok:v=>v>=12},stopp:{g:"Stoppe zwischen 4,75 und 5,25 Sekunden.",ok:v=>Math.abs(v-5000)<=250},rechnen:{g:"Schaffe mindestens 7 Punkte.",ok:v=>v>=7},farben:{g:"Schaffe mindestens 8 Punkte.",ok:v=>v>=8},reflex:{g:"Reagiere schneller als 0,40 Sekunden.",ok:v=>v<400},tap:{g:"Pumpe mindestens 35-mal in 5 Sekunden.",ok:v=>v>=35},schaetz:{g:"Liege höchstens 10 % daneben.",ok:(v,c)=>Math.abs(v-SCHAETZ[c.q].a)<=Math.max(1,SCHAETZ[c.q].a*.1)},huetchen:{g:"Finde den Taler unter einem von drei Bembeln.",ok:()=>Math.random()<1/3,w:150,l:30}};
 const SOLO=Object.fromEntries(OFFER.map(k=>[k,SOLO_ALL[k]]));
-function valText(k,v,c){if(k==="reflex")return v>=5000?"zu früh getippt":(v/1000).toFixed(2).replace(".",",")+" s";if(k==="stopp")return (v/1000).toFixed(2).replace(".",",")+" s";if(k==="tap")return v+"× gepumpt";if(k==="rennen")return v+" Schritte";if(k==="faengt")return v+" Äppler";if(k==="glocken")return v+" Runden";if(k==="whack")return v+" Punkte";if(k==="rechnen"||k==="farben"||k==="ttt")return v+" Punkte";if(k==="schaetz")return Number(v).toLocaleString("de-DE")+" getippt, richtig: "+SCHAETZ[c.q].a.toLocaleString("de-DE");return "Bembel "+v;}
+function valText(k,v,c){if(k==="reflex")return v>=5000?"zu früh getippt":(v/1000).toFixed(2).replace(".",",")+" s";if(k==="stopp")return (v/1000).toFixed(2).replace(".",",")+" s";if(k==="tap")return v+"× gepumpt";if(k==="rennen")return v+" Schritte";if(k==="faengt")return v+" Äppler";if(k==="glocken")return v+" Runden";if(k==="whack")return v+" Punkte";if(k==="rechnen"||k==="farben"||k==="ttt")return v+" Punkte";if(k==="torwand")return v+" von 6 Treffern";if(k==="schaetz")return Number(v).toLocaleString("de-DE")+" getippt, richtig: "+SCHAETZ[c.q].a.toLocaleString("de-DE");return "Bembel "+v;}
 function startChallenge(S){
   const kind=pick(Object.keys(SOLO)),x2=evOn(S,"pay")||1,c={kind,w:(SOLO[kind].w||80)*x2,l:(SOLO[kind].l||40)*x2};if(kind==="schaetz")c.q=Math.floor(Math.random()*SCHAETZ.length);
   S.challenge=c;S.phase="challenge";
@@ -951,9 +957,9 @@ function actMortgage(S,pid,i){const p=S.players[pid];if(!p||S.status!=="playing"
 function actUnmortgage(S,pid,i){const p=S.players[pid],o=S.props[i];if(!p||!o||o.owner!==p.id||!o.m||p.money<unmortCost(BOARD[i]))return S;p.money-=unmortCost(BOARD[i]);delete o.m;log(S,"🏦 "+p.name+" löst die Hypothek auf "+BOARD[i].n+" ab ("+unmortCost(BOARD[i])+" €).");return S;}
 function actBuild(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||f.t!=="prop"||o.h>=MAXH||!ownsGroup(S,p.id,f.g)||grpMort(S,f.g)||p.money<houseCost(f)||S.phase==="buy")return S;p.money-=houseCost(f);o.h++;st(S,p.id).hs++;log(S,p.name+" baut "+(o.h===MAXH?"ein Hotel":"ein Haus")+" auf "+f.n+".");return S;}
 function actSell(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||o.h<1)return S;o.h--;p.money+=houseCost(f)/2;log(S,p.name+" verkauft ein Haus auf "+f.n+".");return S;}
-const DUELS={zufall:"🎲 Zufalls-Minigame",ttt:"⭕ Tic-Tac-Toe",rennen:"🏁 Wildsau-Rennen",faengt:"🍏 Äppler-Fangen",glocken:"🔔 Klosterglocken",whack:"🐗 Wildsau-Jagd",stopp:"⏱️ Stopp bei 5 Sekunden",rechnen:"🧮 Kopfrechen-Sprint",farben:"🎨 Farb-Chaos",reflex:"⚡ Wildsau-Reflex",tap:"🍎 Äppler-Pumpen",schaetz:"🤔 Schätzen",huetchen:"🍺 Bembel-Hütchenspiel",ssp:"✊ Schnick-Schnack-Schnuck",wuerfel:"🎲 Würfel-Duell"};
+const DUELS={zufall:"🎲 Zufalls-Minigame",torwand:"⚽ Torwandschießen",ttt:"⭕ Tic-Tac-Toe",rennen:"🏁 Wildsau-Rennen",faengt:"🍏 Äppler-Fangen",glocken:"🔔 Klosterglocken",whack:"🐗 Wildsau-Jagd",stopp:"⏱️ Stopp bei 5 Sekunden",rechnen:"🧮 Kopfrechen-Sprint",farben:"🎨 Farb-Chaos",reflex:"⚡ Wildsau-Reflex",tap:"🍎 Äppler-Pumpen",schaetz:"🤔 Schätzen",huetchen:"🍺 Bembel-Hütchenspiel",ssp:"✊ Schnick-Schnack-Schnuck",wuerfel:"🎲 Würfel-Duell"};
 const KIND_N=k=>DUELS[k].replace(/^\S+\s/,"");
-const MINI={ttt:"Drei schnelle Partien Tic-Tac-Toe gegen die Wildsau. Du bist ❌ und fängst an. Sieg 3 Punkte, Unentschieden 1 Punkt. Die Sau ist schlau, aber nicht unschlagbar.",rennen:"Tippe abwechselnd LINKS und RECHTS, so schnell du kannst. Jeder richtige Schritt bringt deine Wildsau weiter. 7 Sekunden.",faengt:"Äppler fallen vom Baum. Tipp sie an, bevor sie auf den Boden klatschen. 12 Sekunden.",glocken:"Die Klosterglocken spielen eine Melodie. Tippe sie nach. Jede Runde wird sie länger. Ein Fehler, und es ist vorbei.",whack:"12 Sekunden Wildsau-Jagd: Wildsau +1, goldene Sau +3, aber Finger weg von Freddy, das kostet 2 Punkte.",stopp:"Die Uhr läuft los und verschwindet nach 1,5 Sekunden. Stoppe so nah wie möglich an 5,00 Sekunden.",rechnen:"20 Sekunden Kopfrechnen. Richtig +1, falsch −1.",farben:"15 Sekunden: Tippe die Farbe, in der das Wort geschrieben ist, nicht das Wort. Richtig +1, falsch −1.",huetchen:"Unter einem von drei Bembeln liegt ein Taler. Tippt geheim auf einen Bembel. Wer ihn allein findet, gewinnt.",ssp:"Wählt geheim Schere, Stein oder Papier.",reflex:"Tippe so schnell wie möglich, sobald die Wildsau auftaucht. Wer zu früh tippt, kassiert 5 Sekunden Strafe.",tap:"Pumpe 5 Sekunden lang so oft wie möglich auf den Äppler-Knopf.",schaetz:"Schätzfrage: Wer näher dran ist, gewinnt."};
+const MINI={torwand:"Torwandschießen wie im Sportstudio: 6 Schüsse, dreimal unten links, dreimal oben rechts. Wisch den Ball in Richtung Loch, je länger der Wisch, desto höher fliegt er.",ttt:"Drei schnelle Partien Tic-Tac-Toe gegen die Wildsau. Du bist ❌ und fängst an. Sieg 3 Punkte, Unentschieden 1 Punkt. Die Sau ist schlau, aber nicht unschlagbar.",rennen:"Tippe abwechselnd LINKS und RECHTS, so schnell du kannst. Jeder richtige Schritt bringt deine Wildsau weiter. 7 Sekunden.",faengt:"Äppler fallen vom Baum. Tipp sie an, bevor sie auf den Boden klatschen. 12 Sekunden.",glocken:"Die Klosterglocken spielen eine Melodie. Tippe sie nach. Jede Runde wird sie länger. Ein Fehler, und es ist vorbei.",whack:"12 Sekunden Wildsau-Jagd: Wildsau +1, goldene Sau +3, aber Finger weg von Freddy, das kostet 2 Punkte.",stopp:"Die Uhr läuft los und verschwindet nach 1,5 Sekunden. Stoppe so nah wie möglich an 5,00 Sekunden.",rechnen:"20 Sekunden Kopfrechnen. Richtig +1, falsch −1.",farben:"15 Sekunden: Tippe die Farbe, in der das Wort geschrieben ist, nicht das Wort. Richtig +1, falsch −1.",huetchen:"Unter einem von drei Bembeln liegt ein Taler. Tippt geheim auf einen Bembel. Wer ihn allein findet, gewinnt.",ssp:"Wählt geheim Schere, Stein oder Papier.",reflex:"Tippe so schnell wie möglich, sobald die Wildsau auftaucht. Wer zu früh tippt, kassiert 5 Sekunden Strafe.",tap:"Pumpe 5 Sekunden lang so oft wie möglich auf den Äppler-Knopf.",schaetz:"Schätzfrage: Wer näher dran ist, gewinnt."};
 const SCHAETZ=[
  {q:"Wie hoch ist der Rottenberg in Metern?",a:408},{q:"In welchem Jahr wurde die Rottenberger Pestkapelle gebaut?",a:1632},{q:"In welchem Jahr kam Rottenberg zu Hösbach?",a:1978},
  {q:"In welchem Jahr wurde die alte Rottenberger Schule gebaut?",a:1818},{q:"Wie hoch ist der Gräfenberg in Metern?",a:364},{q:"Wie hoch ist der Klosterberg in Metern?",a:383},
@@ -1007,10 +1013,11 @@ function actDuelInput(S,pid,val,internal){
   else if(d.kind==="reflex"){detail=A.name+": "+(a>=5000?"zu früh!":a+" ms")+", "+B.name+": "+(b>=5000?"zu früh!":b+" ms")+".";if(a!==b)W=a<b?A:B;}
   else if(d.kind==="stopp"){const sec=v=>(v/1000).toFixed(2).replace(".",",")+" s";detail=A.name+": "+sec(a)+", "+B.name+": "+sec(b)+".";const da=Math.abs(a-5000),db=Math.abs(b-5000);if(da!==db)W=da<db?A:B;}
   else if(d.tb){detail=d.tdet;if(a!==b)W=a>b?A:B;}
-  else if(["whack","rechnen","farben","rennen","faengt","glocken","ttt"].includes(d.kind)){const u={whack:" Punkte",rennen:" Schritte",faengt:" Äppler",glocken:" Runden"}[d.kind]||" Punkte";detail=A.name+": "+a+u+", "+B.name+": "+b+u+".";if(a!==b)W=a>b?A:B;}
+  else if(["whack","rechnen","farben","rennen","faengt","glocken","ttt","torwand"].includes(d.kind)){const u={whack:" Punkte",rennen:" Schritte",faengt:" Äppler",glocken:" Runden",torwand:" Treffer"}[d.kind]||" Punkte";detail=A.name+": "+a+u+", "+B.name+": "+b+u+".";if(a!==b)W=a>b?A:B;}
   else if(d.kind==="huetchen"){const ball=1+Math.floor(Math.random()*3);detail="Der Taler lag unter Bembel "+ball+". "+A.name+" tippte "+a+", "+B.name+" tippte "+b+".";if((a===ball)!==(b===ball))W=a===ball?A:B;}
   else if(d.kind==="tap"){detail=A.name+": "+a+"×, "+B.name+": "+b+"× gepumpt.";if(a!==b)W=a>b?A:B;}
   else{const q=SCHAETZ[d.q],da=Math.abs(a-q.a),db=Math.abs(b-q.a);detail="Richtig: "+fmt(q.a)+". "+A.name+": "+fmt(a)+", "+B.name+": "+fmt(b)+".";if(da!==db)W=da<db?A:B;}
+  if(W)d.win=W.id;
   if(!W){log(S,KIND_N(d.kind)+": Unentschieden. "+detail);S.card={deck:"duel",t:"Unentschieden!",x:detail+" Niemand zahlt."};return endDuel(S);}
   const L=W===A?B:A;
   if(d.revenge&&W===B){log(S,"🔥 Rache misslungen: "+B.name+" gewinnt. "+detail);S.card={deck:"duel",t:"🔥 Rache misslungen!",x:detail+" "+B.name+" bleibt vorne, "+A.name+" zahlt aber nichts."};duelStat(S,W,L);return endDuel(S);}
@@ -1026,7 +1033,7 @@ function canRevenge(S){const p=cur(S),r=p&&p.rache,o=r&&S.players[r.to];return S
 function actRevenge(S){
   if(!canRevenge(S))return S;const p=cur(S),o=S.players[p.rache.to],amt=p.rache.amt;p.rache=null;
   const kind=pick(OFFER),stake=Math.min(r5(amt/2),o.money);if(stake<=0)return S;
-  const d={from:p.id,to:o.id,stake,kind,state:"play",in:{},prev:"roll",revenge:true};tttInit(d);
+  const d={from:p.id,to:o.id,stake,kind,state:"play",in:{},prev:"roll",revenge:true};tttInit(d);S.duel=d;cpuLiveBets(S);
   if(kind==="schaetz")d.q=Math.floor(Math.random()*SCHAETZ.length);if(kind==="glocken")d.q=1+Math.floor(Math.random()*1e6);
   S.duel=d;S.phase="duel";
   S.card={deck:"duel",t:"🔥 Rache-Duell: "+KIND_N(kind),x:p.name+" rächt sich an "+o.name+". Gewinnt "+p.name+", zahlt "+o.name+" "+stake+" € zurück. Verliert "+p.name+", kostet es nichts. "+(kind==="schaetz"?SCHAETZ[d.q].q:kind==="ttt"?TTT_PVP:MINI[kind])};
@@ -1047,8 +1054,18 @@ function actDuelStart(S,to,stake,kind){
   log(S,p.name+" fordert "+o.name+" heraus: "+KIND_N(kind)+" um "+stake+" €.");
   return S;
 }
+/* Livewette: Wer beim Duell nur zuschaut, darf vor dem ersten Ergebnis 50 € auf einen der beiden setzen. Richtig getippt zahlt 1,9-fach, bei Unentschieden gibt es den Einsatz zurück. */
+const LW_ST=50,LW_Q=1.9;
+function canLiveBet(S,pid){const d=S.duel,q=S.players[pid];if(!d||S.phase!=="duel"||d.state!=="play"||!q||q.bankrupt||pid===d.from||pid===d.to||q.money<LW_ST||(d.lw&&d.lw[pid]))return false;
+  if(d.in&&Object.keys(d.in).length)return false;if(d.tb&&(d.tn||d.tb.some(Boolean)))return false;return true;}
+function actLiveBet(S,pid,on){on=+on;const d=S.duel;if(!canLiveBet(S,pid)||(on!==d.from&&on!==d.to))return S;const q=S.players[pid];q.money-=LW_ST;d.lw=d.lw||{};d.lw[pid]={on,st:LW_ST};
+  log(S,"🎲 Livewette: "+q.name+" setzt "+LW_ST+" € auf "+S.players[on].name+".");return S;}
+function cpuLiveBets(S){const d=S.duel;if(!d)return;S.players.forEach(q=>{if(q.cpu&&canLiveBet(S,q.id)&&q.money>400&&Math.random()<.5)actLiveBet(S,q.id,Math.random()<.5?d.from:d.to);});}
+function liveSettle(S,d){if(!d||!d.lw)return;const out=[];Object.keys(d.lw).forEach(id=>{const b=d.lw[id],q=S.players[id];if(!q||q.bankrupt)return;
+  if(d.win==null){q.money+=b.st;out.push(q.name+" kriegt den Einsatz zurück");}else if(b.on===d.win){const w=Math.round(b.st*LW_Q);q.money+=w;st(S,q.id).lwin=(st(S,q.id).lwin||0)+w-b.st;out.push(q.name+" +"+w+" €");}else out.push(q.name+" verliert "+b.st+" €");});
+  if(out.length)log(S,"🎲 Livewette: "+out.join(", ")+".");}
 function endDuel(S){
-  const d=S.duel;S.duel=null;if(S.status!=="playing")return S;
+  const d=S.duel;S.duel=null;liveSettle(S,d);if(S.status!=="playing")return S;
   S.phase=cur(S).bankrupt?"end":d.prev;return S;
 }
 function actDuelAnswer(S,yes){
@@ -1062,7 +1079,7 @@ function actDuelAnswer(S,yes){
     S.card={deck:"duel",t:"⚔ "+W.name+" gewinnt!",x:A.name+" würfelt "+ra+", "+B.name+" würfelt "+rb+". "+L.name+" zahlt "+d.stake+" €."};
     duelStat(S,W,L);pay(S,L,W,d.stake);return endDuel(S);
   }
-  if(MINI[d.kind]){d.state="play";d.in={};tttInit(d);S.card={deck:"duel",t:"⚔ "+KIND_N(d.kind),x:(d.kind==="schaetz"?SCHAETZ[d.q].q+" ":d.kind==="ttt"?TTT_PVP+" ":MINI[d.kind]+" ")+"Einsatz "+d.stake+" €."};log(S,B.name+" nimmt an: "+KIND_N(d.kind)+".");return S;}
+  if(MINI[d.kind]){d.state="play";d.in={};tttInit(d);cpuLiveBets(S);S.card={deck:"duel",t:"⚔ "+KIND_N(d.kind),x:(d.kind==="schaetz"?SCHAETZ[d.q].q+" ":d.kind==="ttt"?TTT_PVP+" ":MINI[d.kind]+" ")+"Einsatz "+d.stake+" €."};log(S,B.name+" nimmt an: "+KIND_N(d.kind)+".");return S;}
   d.state="judge";
   S.card={deck:"duel",t:"⚔ "+d.ct,x:A.name+" gegen "+B.name+": "+d.cx+" Wer war besser? Einsatz "+d.stake+" €."};
   log(S,B.name+" nimmt die Herausforderung an: "+d.ct+".");
@@ -1244,6 +1261,7 @@ function cpuScore(kind,lvl,q){
   if(kind==="faengt")return n(7,11,2.5);
   if(kind==="glocken")return Math.max(1,n(2,7,1.3));
   if(kind==="ttt")return Math.min(9,n(2,5,1.6));
+  if(kind==="torwand")return Math.min(6,n(1,3,1.1));
   if(kind==="rechnen")return Math.round(4+10*s+3*g());
   if(kind==="farben")return Math.round(5+11*s+3*g());
   if(kind==="stopp")return Math.max(1500,Math.round(5000+(900-800*s)*g()));
@@ -1552,6 +1570,8 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Waldfest (Mieten +50 %), Sommerloch (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
 <li><b>📜 Spielbericht und 🏅 Erfolge:</b> Am Ende gibt es Auszeichnungen wie Miethai oder Duellkönig und den Verlauf aller Vermögen. Auf jedem Handy sammelst du 37 Erfolge.</li>
 <li><b>🎟️ Waldfest-Tombola:</b> Beim Waldfest und ab und zu als eigenes Dorf-Ereignis kauft jeder ein Los für 20 €. Der Waldfestverein legt 150 € drauf, einer gewinnt den ganzen Topf, ein anderer eine Bunker-Freikarte.</li>
+<li><b>⚽ Torwandschießen:</b> Neues Minispiel: 6 Schüsse auf die Torwand, dreimal unten links, dreimal oben rechts. Wisch den Ball Richtung Loch.</li>
+<li><b>🎲 Livewette:</b> Läuft ein Duell, dürfen alle, die nicht mitspielen, vor dem ersten Ergebnis 50 € auf einen der beiden setzen. Richtig getippt zahlt das 1,9-fache.</li>
 <li><b>⚽ Sportwette:</b> Alle paar Runden spielt die Rottenberger Elf gegen ein Nachbardorf. Bis zum Anpfiff kann jeder in seinem Zug einmal 20, 50 oder 100 € auf Sieg, Unentschieden oder Niederlage setzen. Die Quoten stehen auf den Knöpfen, am Spieltag wird ausgezahlt.</li>
 <li><b>🦈 Kredithai:</b> In deinem Zug leiht dir Haifisch-Harry sofort 200, 400 oder 600 €, ohne Fragen. Nach 3 Runden kommt er kassieren und will das Anderthalbfache zurück. Reicht dein Geld nicht, holt er es sich über Hypotheken, notfalls bist du pleite. Du kannst ihn auch vorher auszahlen. Immer nur ein Hai-Kredit gleichzeitig.</li>
 <li><b>🤫 Geheimauftrag:</b> Zu Beginn bekommt jeder ein geheimes Ziel, zum Beispiel 3 Bushaltestellen besitzen oder zweimal im Bunker sitzen. Unten im Konto unter „🤫 Auftrag“ siehst du deins und wie weit du bist. Wer es schafft, bekommt sofort 200 bis 450 € Bonus. Am Spielende werden alle Aufträge aufgedeckt.</li>
@@ -1573,7 +1593,8 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==21?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+  const news=store.get("rbm-news")!==22?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>⚽ Minispiel Torwandschießen und 🎲 Livewette bei Duellen</li>
    <li>⚽ Sportwette auf die Rottenberger Elf</li>
    <li>🎰 Einarmiger Bandit und ⬆⬇ Höher oder Tiefer im Casino</li>
    <li>🃏 Blackjack mit Croupier Charly: Verdoppeln, Teilen, Aufgeben</li>
@@ -1694,7 +1715,7 @@ function centerHTML(){
   }else if(S.phase==="duel"&&S.duel){
     const d=S.duel,A=S.players[d.from],B=S.players[d.to];
     if(d.state==="ask")acts=mayAct([d.to])?`<button class="gold" data-a="duel-yes">${esc(B.name)}: Annehmen</button><button class="ghost" data-a="duel-no">Kneifen (10 €)</button>`:`<div class="note">Warte auf ${esc(B.name)} …</div>`;
-    else if(d.state==="play")acts=miniHTML(d);
+    else if(d.state==="play")acts=miniHTML(d)+liveBetHTML(S,d);
     else acts=mayAct([d.from,d.to])?`<button class="gold" data-a="duel-win" data-w="${A.id}">${esc(A.name)}</button><button class="gold" data-a="duel-win" data-w="${B.id}">${esc(B.name)}</button><button class="ghost" data-a="duel-win" data-w="">Unentschieden</button>`:`<div class="note">${esc(A.name)} und ${esc(B.name)} duellieren sich …</div>`;
   }else{
     acts=`<div class="note waitturn"><span class="avatar" style="background:${p.color}">${tokSvg(tokOf(p))}</span>${p.cpu?"🤖 "+esc(p.name)+" "+["überlegt","rechnet","grübelt","zählt sein Geld"][(S.lc||0)%4]:esc(p.name)+" ist dran"} …</div>`;
@@ -1743,6 +1764,7 @@ function mgInit(m){
   if(kind==="stopp"){m.stage="go";m.t0=now;}
   if(kind==="rechnen"){m.stage="go";m.end=now+20000;m.pq=mathQ();}
   if(kind==="farben"){m.stage="go";m.end=now+15000;newInk(m);}
+  if(kind==="torwand"){m.stage="go";m.shot=0;m.score=0;m.fly=false;m.res=[];}
   if(kind==="ttt"){m.stage="go";m.b=Array(9).fill("");m.game=0;m.score=0;m.res=[];m.lock=false;m.msg="";}
   if(kind==="rennen"){m.stage="go";m.end=now+7000;m.last=null;}
   if(kind==="faengt"){m.stage="go";m.end=now+12000;m.nextA=now+300;m.aid=0;}
@@ -1797,9 +1819,16 @@ function mgBody(){
   if(k==="whack")return `<div class="whack">${[...Array(9)].map((_,h)=>`<button data-a="mg-whack" data-h="${h}" class="${h===m.hole?"boar "+m.ht:""}" aria-label="Loch ${h+1}">${h===m.hole?(m.ht==="freddy"?"🧔":"🐗"):""}</button>`).join("")}</div><div class="note">🐗 +1 · goldene 🐗 +3 · 🧔 Freddy −2 · <b>${m.count}</b> Pkt · <span id="mg-left">${leftS(m)}</span></div>`;
   if(k==="stopp")return `<div class="bigq" id="mg-clock">0,00</div><button class="primary" data-a="mg-stop" style="font-size:20px;padding:12px 26px">⏱️ Stopp!</button>`;
   if(k==="rechnen")return `<div class="bigq">${m.pq.t} = ?</div><div class="acts">${m.pq.opts.map(v=>`<button class="gold" data-a="mg-ans" data-v="${v}" style="min-width:64px;font-size:18px">${v}</button>`).join("")}</div><div class="note">Punkte: <b>${m.score}</b>${m.streak>=2?` · 🔥 ${m.streak}er-Serie`:""} · noch <span id="mg-left">${leftS(m)}</span></div>`;
+  if(k==="torwand"){const low=m.shot<3;return `<div class="twall" id="tw-wall"><span class="thole l ${low?"aim":""}"></span><span class="thole h ${low?"":"aim"}"></span><span class="tball" id="tw-ball">⚽</span></div><div class="tpitch" id="tw-pitch"><span class="tspot">⚽</span><small>Wisch nach ${low?"unten links":"oben rechts"}</small></div><div class="note">Schuss ${Math.min(m.shot+1,6)}/6 · Treffer: <b>${m.score}</b> · ${m.res.map(r=>r?"✅":"❌").join("")}</div>`;}
   if(k==="ttt")return `<div class="ttt">${m.b.map((c,h)=>`<button data-a="mg-ttt" data-h="${h}" class="${c} ${m.win&&m.win.includes(h)?"win":""}" ${c||m.lock?"disabled":""}>${c==="x"?"❌":c==="o"?"🐗":""}</button>`).join("")}</div><div class="note">Partie ${m.msg?m.game:Math.min(m.game+1,3)}/3 · Punkte: <b>${m.score}</b>${m.res.length?" · "+m.res.join(" "):""}${m.msg?"<br>"+esc(m.msg):""}</div>`;
   if(k==="farben")return `<div class="bigq" style="color:${INK[m.ink][1]}">${INK[m.word][0]}</div><div class="acts">${INK.map((c,i)=>`<button class="ghost" data-a="mg-ink" data-v="${i}">${c[0]}</button>`).join("")}</div><div class="note">Punkte: <b>${m.score}</b>${m.streak>=2?` · 🔥 ${m.streak}er-Serie`:""} · noch <span id="mg-left">${leftS(m)}</span></div>`;
   return "";
+}
+function liveBetHTML(S,d){
+  const ids=S.players.filter(q=>canLiveBet(S,q.id)&&(app.mode==="local"?!q.cpu:q.uid===app.uid)).map(q=>q.id);
+  const placed=S.players.filter(q=>d.lw&&d.lw[q.id]).map(q=>`${esc(q.name)} → ${esc(S.players[d.lw[q.id].on].name)}`);
+  if(!ids.length&&!placed.length)return "";
+  return `<div class="lwbox"><div class="note">🎲 Livewette: Wer gewinnt? ${LW_ST} €, Quote 1,9</div>${ids.map(id=>`<div class="stakes">${S.players.length>3||app.mode==="local"?`<small>${esc(S.players[id].name)}:</small>`:""}${[d.from,d.to].map(on=>`<button class="chip" data-a="lw" data-p="${id}" data-o="${on}">${esc(S.players[on].name)}</button>`).join("")}</div>`).join("")}${placed.length?`<div class="note">${placed.join(" · ")}</div>`:""}</div>`;
 }
 function tttPvpHTML(d){
   const S=app.S,X=S.players[d.tx],O=S.players[d.tx===d.from?d.to:d.from],T=S.players[d.tt],my=!d.tdone&&mayAct([d.tt])&&!(app.mode==="local"&&T.cpu);
@@ -2121,7 +2150,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v33";
+const BUILD="rbm-v34";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -2179,6 +2208,21 @@ function mgFast(a,b){
   }
 }
 document.addEventListener("pointerdown",ev=>{const b=ev.target.closest("[data-a]");if(!b||b.disabled||!FAST.has(b.dataset.a))return;if(ev.pointerType==="mouse"&&ev.button!==0)return;ev.preventDefault();mgFast(b.dataset.a,b);},{passive:false});
+/* Torwandschießen: Wisch vom Ball weg. Seitwärts steuert links/rechts, die Länge des Wischs die Höhe. Kleine Streuung wie beim echten Schuss. */
+let twS=null;
+document.addEventListener("pointerdown",ev=>{const pt=ev.target.closest&&ev.target.closest("#tw-pitch");if(!pt||!mg||mg.kind!=="torwand"||mg.stage!=="go"||mg.fly)return;ev.preventDefault();twS={x:ev.clientX,y:ev.clientY,t:performance.now(),w:pt.getBoundingClientRect().width};},{passive:false});
+document.addEventListener("pointerup",ev=>{if(!twS)return;const s0=twS;twS=null;const m=mg;if(!m||m.kind!=="torwand"||m.stage!=="go"||m.fly)return;
+  const dx=(ev.clientX-s0.x)/s0.w,dy=(s0.y-ev.clientY)/s0.w;if(dy<.08){toast("Nach oben wischen!");return;}
+  const sp=Math.min(1.6,(Math.hypot(dx,dy)*1000)/Math.max(60,performance.now()-s0.t));
+  const sc=()=>(Math.random()-.5)*(7+sp*4);
+  const x=Math.max(-5,Math.min(105,50+dx*95+sc())),y=Math.max(-10,Math.min(105,108-dy*120+sc()));
+  const hole=m.shot<3?{x:22,y:74}:{x:78,y:28},hit=Math.hypot((x-hole.x)*1.5,y-hole.y)<9;
+  m.fly=true;const ball=document.getElementById("tw-ball");if(ball){ball.style.transition="none";ball.style.left="50%";ball.style.top="125%";ball.style.transform="translate(-50%,-50%) scale(1.4)";ball.style.opacity="1";
+    void ball.offsetWidth;ball.style.transition="left .42s ease-out,top .42s cubic-bezier(.2,.7,.4,1),transform .42s";ball.style.left=x+"%";ball.style.top=y+"%";ball.style.transform="translate(-50%,-50%) scale(.75)";}
+  setTimeout(()=>{if(mg!==m)return;m.res.push(hit);if(hit){m.score++;buzz([20,30,20]);if(ball){ball.style.transform="translate(-50%,-50%) scale(.3)";ball.style.opacity="0";}}else buzz([60,40,60]);
+    const w=document.getElementById("tw-wall");if(w){const f=document.createElement("div");f.className="twmsg "+(hit?"ok":"no");f.textContent=hit?"TOR!":"Daneben";w.appendChild(f);}
+    setTimeout(()=>{if(mg!==m)return;m.shot++;m.fly=false;if(m.shot>=6){m.stage="done";miniSubmit(m.score);}else mgRefresh();},750);},450);
+});
 document.addEventListener("click",async ev=>{
   const b=ev.target.closest("[data-a]");if(!b||b.disabled)return;
   const a=b.dataset.a,i=b.dataset.i!=null?+b.dataset.i:null;
@@ -2188,7 +2232,7 @@ document.addEventListener("click",async ev=>{
     case "go-local":go("local");break;
     case "go-cpu":go("cpu");break;
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",21);render();break;
+    case "news-ok":store.set("rbm-news",22);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
@@ -2279,6 +2323,7 @@ document.addEventListener("click",async ev=>{
     case "trade-open":stopAutoEnd();app.tradeOpen=true;app.duelOpen=false;render();setTimeout(()=>{const el=document.getElementById("t-to");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});},50);break;
     case "trade-close":app.tradeOpen=false;render();break;
     case "ttt-pvp":{const d=app.S.duel;if(!d||!d.tb)break;const t=d.tt,h=+b.dataset.h;commitLeased(S=>actTttPvp(S,t,h),[t]);break;}
+    case "lw":{const pid=+b.dataset.p,on=+b.dataset.o;commitLeased(S=>actLiveBet(S,pid,on),[pid]);break;}
     case "bet-open":stopAutoEnd();app.betOpen=true;render();break;
     case "bet-close":app.betOpen=false;render();break;
     case "bet-stake":app.betStake=+b.dataset.v;render();break;
