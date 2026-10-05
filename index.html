@@ -115,6 +115,9 @@ label{font-size:13px;color:var(--dim-on-forest);display:flex;flex-direction:colu
 #mybar .who{display:flex;flex-direction:column;min-width:0;flex:1}
 #mybar .who b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #mybar .who span{font-size:12px;color:var(--dim-on-forest)}
+.qbtn{margin-top:4px;padding:3px 10px!important;font-size:12px!important;width:auto!important;display:inline-block!important}
+.qcard{display:flex;gap:12px;align-items:flex-start;background:rgba(0,0,0,.22);border:1px solid rgba(230,180,61,.4);border-radius:12px;padding:12px;margin:8px 0}.qcard .qic{font-size:32px}.qcard b{display:block}.qcard span{display:block}.qcard .qb{color:var(--gold);margin-top:4px;font-weight:600}
+.qbar{height:10px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}.qbar i{display:block;height:100%;background:var(--gold)}
 #mybar .bal{font-family:var(--f-display);font-size:clamp(20px,6.5vw,28px);color:var(--gold);font-variant-numeric:tabular-nums}
 body.has-bar .wrap{padding-bottom:96px}
 body.has-bar .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
@@ -525,10 +528,28 @@ function duelStat(S,W,L){st(S,W.id).dw++;st(S,L.id).dl++;}
 function log(S,t){S.lc=(S.lc||0)+1;S.log.unshift(t);if(S.log.length>40)S.log.length=40;}
 const cur=S=>S.players[S.turn];
 function newState(list,maxRounds,extra){
-  return Object.assign({status:"playing",players:list.map((p,i)=>({id:i,uid:p.uid||null,cpu:!!p.cpu,name:p.name,tok:p.tok??i,color:COLORS[i],pos:0,money:1500,jail:false,jailTurns:0,jailCards:0,bankrupt:false,bankruptAt:0,bonus:false})),
+  return dealQuests(Object.assign({status:"playing",players:list.map((p,i)=>({id:i,uid:p.uid||null,cpu:!!p.cpu,name:p.name,tok:p.tok??i,color:COLORS[i],pos:0,money:1500,jail:false,jailTurns:0,jailCards:0,bankrupt:false,bankruptAt:0,bonus:false})),
     board:BOARD_V,props:{},turn:0,phase:"roll",dice:[0,0],doubles:0,again:false,pot:100,round:1,maxRounds:maxRounds,log:["Das Spiel beginnt. "+list[0].name+" würfelt zuerst."],card:null,
-    decks:{klatsch:shuffle(CARDS.klatsch.map((_,i)=>i)),ch:shuffle(CHALLENGES.map((_,i)=>i))},wantBuy:false,challenge:null,seq:0,started:Date.now()},extra||{});
+    decks:{klatsch:shuffle(CARDS.klatsch.map((_,i)=>i)),ch:shuffle(CHALLENGES.map((_,i)=>i))},wantBuy:false,challenge:null,seq:0,started:Date.now()},extra||{}));
 }
+/* Geheimauftrag: Jeder bekommt zu Beginn ein geheimes Ziel. Wer es erfüllt, kassiert sofort den Bonus. */
+const QGROUPS=["br","hb","rt","ge","or","li"];
+const myProps=(S,pid)=>Object.keys(S.props).filter(i=>S.props[i].owner===pid);
+const QUESTS={
+  bus:{ic:"🚏",t:"Busunternehmer",x:()=>"Besitze 3 der 4 Bushaltestellen.",b:350,v:(S,p)=>[myProps(S,p.id).filter(i=>BOARD[i].t==="bus").length,3]},
+  werk:{ic:"🏭",t:"Industriebaron",x:()=>"Besitze das Schwimmbad und das Kalkwerk.",b:350,v:(S,p)=>[myProps(S,p.id).filter(i=>BOARD[i].t==="werk").length,2]},
+  grp:{ic:"🎨",t:"Straßenkönig",x:q=>"Besitze die ganze Farbgruppe "+GROUPS[q.g].n+" ("+BOARD.filter(f=>f.g===q.g).map(f=>f.n).join(", ")+").",b:450,v:(S,p,q)=>[myProps(S,p.id).filter(i=>BOARD[i].g===q.g).length,BOARD.filter(f=>f.g===q.g).length]},
+  haus:{ic:"🏗️",t:"Peck sein bester Kunde",x:()=>"Hab 6 Häuser gleichzeitig stehen (ein Hotel zählt als 5).",b:350,v:(S,p)=>[myProps(S,p.id).reduce((a,i)=>a+S.props[i].h,0),6]},
+  miete:{ic:"💰",t:"Miethai",x:()=>"Kassiere insgesamt 800 € Miete.",b:300,v:(S,p)=>[st(S,p.id).rg,800]},
+  duell:{ic:"⚔",t:"Wildsau-Bezwinger",x:()=>"Gewinne 3 Duelle oder Challenges.",b:300,v:(S,p)=>[st(S,p.id).dw+st(S,p.id).cw,3]},
+  bunker:{ic:"🚬",t:"Stammgast bei Big A",x:()=>"Sitz zweimal im Bunker bei Big A.",b:250,v:(S,p)=>[st(S,p.id).jail,2]},
+  geld:{ic:"🤑",t:"Dagobert vom Dorfplatz",x:()=>"Hab einmal 2.200 € Bargeld auf dem Konto.",b:300,v:(S,p)=>[p.money,2200]},
+  land:{ic:"🗺️",t:"Großgrundbesitzer",x:()=>"Besitze 9 Grundstücke gleichzeitig.",b:300,v:(S,p)=>[myProps(S,p.id).length,9]},
+  los:{ic:"🏁",t:"Rollmisch-Pendler",x:()=>"Komm 7-mal über Los.",b:200,v:(S,p)=>[st(S,p.id).go,7]}
+};
+function dealQuests(S){const ks=shuffle(Object.keys(QUESTS)),gs=shuffle(QGROUPS.slice());S.players.forEach((p,i)=>{const k=ks[i%ks.length];p.quest={k,done:false};if(k==="grp")p.quest.g=gs[i%gs.length];});return S;}
+function questProg(S,p){const q=p.quest,Q=q&&QUESTS[q.k];if(!Q)return null;const [a,b]=Q.v(S,p,q);return {a:Math.min(a,b),b,ok:a>=b};}
+function questCheck(S){S.players.forEach(p=>{const q=p.quest;if(!q||q.done||p.bankrupt)return;const pr=questProg(S,p);if(!pr||!pr.ok)return;const Q=QUESTS[q.k];q.done=true;p.money+=Q.b;log(S,"🤫 Geheimauftrag erfüllt! "+p.name+" war "+Q.t+": "+Q.x(q)+" +"+Q.b+" €.");});}
 function ownsGroup(S,pid,g){return BOARD.every((f,i)=>f.g!==g||(S.props[i]&&S.props[i].owner===pid));}
 /* Dorf-Ereignisse: jede dritte Runde passiert im ganzen Dorf etwas, das für genau diese Runde gilt. */
 const DORF_EV=[
@@ -779,7 +800,7 @@ function actJailPay(S){const p=cur(S);if(!p.jail||S.phase!=="roll"||p.money<50)r
 function actJailCard(S){const p=cur(S);if(!p.jail||S.phase!=="roll"||p.jailCards<1)return S;p.jailCards--;p.jail=false;p.jailTurns=0;log(S,p.name+" nutzt die Freikarte.");return S;}
 function actEnd(S){
   if(S.phase!=="end"||S.status!=="playing")return S;
-  S.doubles=0;S.again=false;S.card=null;S.duelUsed=false;S.miniHere=false;const n=S.players.length,r0=S.round;
+  questCheck(S);S.doubles=0;S.again=false;S.card=null;S.duelUsed=false;S.miniHere=false;const n=S.players.length,r0=S.round;
   let t=S.turn;
   for(let g=0;g<200;g++){const j=(t+1)%n;if(j===0)S.round++;t=j;const q=S.players[j];if(q.bankrupt)continue;
     if(q.sleep>0){q.sleep--;if(q.sleep){log(S,q.name+" pennt im Bunker weiter (noch "+q.sleep+").");continue;}q.jail=false;q.jailTurns=0;log(S,q.name+" wacht im Bunker auf, reibt sich die Augen und darf raus.");continue;}
@@ -950,6 +971,7 @@ function actAbortVote(S,pid,yes){
 }
 function actAbortAll(S){if(S.status!=="playing")return S;S.abort={};alive(S).forEach(p=>S.abort[p.id]=true);abortReady(S);return S;}
 function finish(S){
+  questCheck(S);
   S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));
   S.status="over";S.phase="over";S.finishedAt=Date.now();
   const r=S.players.map(p=>({id:p.id,name:p.name,cpu:!!p.cpu,color:p.color,worth:worth(S,p),bankrupt:p.bankrupt,left:!!p.left,ba:p.bankruptAt}));
@@ -1162,6 +1184,7 @@ function reportHTML(S){
   const aw=awards(S);
   return `<h2>📜 Spielbericht</h2><p class="note">${S.round} Runden Rottenberg. Vermögen im Spielverlauf:</p>${chartSVG(S)}
   ${aw.length?`<div class="awards">${aw.map(a=>`<div class="aw"><span class="ai">${a.ic}</span><div><b>${esc(a.t)}</b><span><span class="dot" style="background:${a.who.color}"></span>${esc(a.who.name)} ${esc(a.txt)}</span></div></div>`).join("")}</div>`:""}
+  ${S.players.some(p=>p.quest&&QUESTS[p.quest.k])?`<h3>🤫 Geheimaufträge</h3><ul class="qlist">${S.players.filter(p=>p.quest&&QUESTS[p.quest.k]).map(p=>{const Q=QUESTS[p.quest.k];return `<li><span class="dot" style="background:${p.color}"></span><b>${esc(p.name)}</b>: ${Q.ic} ${esc(Q.t)} (${esc(Q.x(p.quest))}) ${p.quest.done?"✅ +"+fmt(Q.b)+" €":"❌"}</li>`;}).join("")}</ul>`:""}
   <button class="ghost small" data-a="share-report">📤 Bericht teilen</button>`;
 }
 function reportText(S){
@@ -1356,6 +1379,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Die Mieten sind wie im Original, mit 4 Häusern und Hotel etwas günstiger. Die billigste Miete sind 10 €.</li>
 <li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Waldfest (Mieten +50 %), Sommerloch (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
 <li><b>📜 Spielbericht und 🏅 Erfolge:</b> Am Ende gibt es Auszeichnungen wie Miethai oder Duellkönig und den Verlauf aller Vermögen. Auf jedem Handy sammelst du 37 Erfolge.</li>
+<li><b>🤫 Geheimauftrag:</b> Zu Beginn bekommt jeder ein geheimes Ziel, zum Beispiel 3 Bushaltestellen besitzen oder zweimal im Bunker sitzen. Unten im Konto unter „🤫 Auftrag“ siehst du deins und wie weit du bist. Wer es schafft, bekommt sofort 200 bis 450 € Bonus. Am Spielende werden alle Aufträge aufgedeckt.</li>
 <li><b>🔥 Rache-Duell:</b> Wer mindestens 150 € Miete zahlen muss, schwört manchmal Rache (etwa jedes dritte Mal, höchstens zweimal pro Partie) und darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern. Zufälliges Minispiel, kneifen gilt nicht. Gewinnst du, zahlt er dir die halbe Miete zurück. Verlierst du, kostet es nichts.</li>
 <li><b>🏦 Hypothek:</b> Tippe auf ein eigenes unbebautes Grundstück und nimm eine Hypothek auf: du bekommst den halben Kaufpreis, dafür gibt es dort keine Miete und in der Gruppe wird nicht gebaut. Ablösen kostet 10 % mehr. Wer pleite zu gehen droht, beleiht automatisch, bevor er aufgeben muss.</li>
 <li><b>🏦 Dorfbank:</b> Ab und zu macht die Dorfbank vor dem Würfeln ein verlockendes Angebot: ein schneller Kredit (in 5 Runden mit Zinsen zurück), ein Ankauf eines deiner Grundstücke weit über Wert oder eine freie Straße zum Sonderpreis. Annehmen oder ablehnen.</li>
@@ -1374,7 +1398,8 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==15?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+  const news=store.get("rbm-news")!==16?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>🤫 Geheimauftrag für jeden Spieler</li>
    <li>🎟️ Beim Tauschen auch Mietfreiheit anbieten</li>
    <li>🔥 Rache-Duell nach fetter Miete</li>
    <li>👑 Dorfkönig des Monats in der Rangliste</li>
@@ -1657,6 +1682,14 @@ async function commitLeased(fn,ids){
   catch(e){toast("Das hat nicht geklappt, bitte nochmal tippen.");render();}};
   app.saveQ=(app.saveQ||Promise.resolve()).then(job);return app.saveQ;
 }
+function questPanel(){
+  const S=app.S;if(!app.questOpen||app.barPid==null||!S||S.status!=="playing")return "";
+  const p=S.players[app.barPid],q=p&&p.quest,Q=q&&QUESTS[q.k];if(!Q)return "";const pr=questProg(S,p);
+  return `<section class="panel quest"><h2>🤫 Dein Geheimauftrag</h2><p class="note">Nur für dich. Die anderen sehen ihn erst am Spielende.</p>
+  <div class="qcard"><span class="qic">${Q.ic}</span><div><b>${esc(Q.t)}</b><span>${esc(Q.x(q))}</span><span class="qb">Bonus: ${fmt(Q.b)} €</span></div></div>
+  ${q.done?`<p><b>✅ Erfüllt!</b> Der Bonus ist schon auf deinem Konto.</p>`:`<div class="qbar"><i style="width:${Math.round(100*pr.a/pr.b)}%"></i></div><p class="note">Stand: ${fmt(pr.a)} von ${fmt(pr.b)}</p>`}
+  <button class="ghost small" data-a="quest">Zuklappen</button></section>`;
+}
 function tradePanel(){
   const S=app.S;if(!app.tradeOpen||!canAct()||!(S.phase==="roll"||S.phase==="end"))return "";
   const p=cur(S),os=others(S,p);if(!os.length)return "";
@@ -1691,7 +1724,7 @@ function floater(pid,diff){
   ["pl"+pid,app.barPid===pid?"mybar":null].forEach(id=>{const el=id&&document.getElementById(id);if(!el)return;
     const f=document.createElement("span");f.className="float "+(diff>0?"plus":"minus");f.textContent=(diff>0?"+":"−")+fmt(Math.abs(diff))+" €";el.appendChild(f);setTimeout(()=>f.remove(),1600);});
 }
-const BANNERS=[[/Spielende/,"👑 BARON!"],[/ROLLMISCH/,"🎲 ROLLMISCH!"],[/Schlussrunde/,"🏁 SCHLUSSRUNDE!"],[/Dorfmeisterschaft!/,"🏆 DORFMEISTERSCHAFT!"],[/Glücksrad: .*(Straße|Kasse: \+|\+200)/,"🎰 JACKPOT!"],[/Dorf-Ereignis/,"🎪 DORF-EREIGNIS!"],[/pleite/,"💸 PLEITE!"],[/TOOOR/,"⚽ TOOOR!"],[/Tadan/,"🦁 TADAN!"],[/räumt die Kasse/,"🍻 JACKPOT!"],[/Kilian beglaubigt/,"🏛️ GETAUSCHT!"],[/Peck liefert/,"🏗️ PECK LIEFERT!"],[/Blitzer am Schwimmbad/,"📸 GEBLITZT!"],[/eiserner Kralle fest/,"🦾 DIE KRALLE!"],[/sitzt im Bunker/,"🚬 BUNKER!"],[/gewinnt .*€/,"⚔ SIEG!"],[/\(Pasch\)/,"🎲 PASCH!"]];
+const BANNERS=[[/Geheimauftrag erfüllt/,"🤫 AUFTRAG ERFÜLLT!"],[/Spielende/,"👑 BARON!"],[/ROLLMISCH/,"🎲 ROLLMISCH!"],[/Schlussrunde/,"🏁 SCHLUSSRUNDE!"],[/Dorfmeisterschaft!/,"🏆 DORFMEISTERSCHAFT!"],[/Glücksrad: .*(Straße|Kasse: \+|\+200)/,"🎰 JACKPOT!"],[/Dorf-Ereignis/,"🎪 DORF-EREIGNIS!"],[/pleite/,"💸 PLEITE!"],[/TOOOR/,"⚽ TOOOR!"],[/Tadan/,"🦁 TADAN!"],[/räumt die Kasse/,"🍻 JACKPOT!"],[/Kilian beglaubigt/,"🏛️ GETAUSCHT!"],[/Peck liefert/,"🏗️ PECK LIEFERT!"],[/Blitzer am Schwimmbad/,"📸 GEBLITZT!"],[/eiserner Kralle fest/,"🦾 DIE KRALLE!"],[/sitzt im Bunker/,"🚬 BUNKER!"],[/gewinnt .*€/,"⚔ SIEG!"],[/\(Pasch\)/,"🎲 PASCH!"]];
 function showBanner(lines){
   if(RM)return;const txt=lines.join("\n");const hit=BANNERS.find(([re])=>re.test(txt));if(!hit)return;
   const b=document.getElementById("banner");b.innerHTML=`<span>${esc(hit[1])}</span>`;b.hidden=false;clearTimeout(showBanner.t);showBanner.t=setTimeout(()=>b.hidden=true,2000);
@@ -1708,7 +1741,7 @@ function renderBar(){
   if(!p){bar.hidden=true;document.body.classList.remove("has-bar");app.barPid=null;return;}
   app.barPid=p.id;const n=Object.values(S.props).filter(o=>o.owner===p.id).length;
   const place=1+S.players.filter(q=>!q.bankrupt&&worth(S,q)>worth(S,p)).length;
-  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.bs?` · 🏦 ${p.bs.paid/BS_RATE}/${BS_N}`:""}${p.loan?` · Kredit noch ${p.loan.left}×${p.loan.rate} €`:""}${Object.entries(p.free||{}).filter(([o,n])=>n&&S.players[o]&&!S.players[o].bankrupt).map(([o,n])=>` · 🎟️ ${n}× mietfrei bei ${esc(S.players[o].name)}`).join("")}${p.rache&&S.players[p.rache.to]&&!S.players[p.rache.to].bankrupt?` · 🔥 Rache an ${esc(S.players[p.rache.to].name)}`:""}${p.id===S.turn?" · du bist dran":""}</span></div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
+  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.bs?` · 🏦 ${p.bs.paid/BS_RATE}/${BS_N}`:""}${p.loan?` · Kredit noch ${p.loan.left}×${p.loan.rate} €`:""}${Object.entries(p.free||{}).filter(([o,n])=>n&&S.players[o]&&!S.players[o].bankrupt).map(([o,n])=>` · 🎟️ ${n}× mietfrei bei ${esc(S.players[o].name)}`).join("")}${p.rache&&S.players[p.rache.to]&&!S.players[p.rache.to].bankrupt?` · 🔥 Rache an ${esc(S.players[p.rache.to].name)}`:""}${p.id===S.turn?" · du bist dran":""}</span>${p.quest&&QUESTS[p.quest.k]?`<button class="ghost small qbtn" data-a="quest">${p.quest.done?"✅":"🤫"} Auftrag</button>`:""}</div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
 }
 /* Flüssiger Spielerwechsel: ist im Zug nichts mehr zu entscheiden, geht es nach kurzer Pause automatisch weiter. */
 const AUTO_MS=2600;
@@ -1833,7 +1866,7 @@ function renderGame(){
   const over=S.status==="over"?`<section class="panel"><h2>Endstand</h2><div class="podium">${S.ranking.map(r=>`<div><span class="pl-place">${r.place}.</span><span class="dot" style="background:${r.color}"></span><b>${esc(r.name)}</b><span class="w">${r.left?"ausgestiegen":r.bankrupt?"pleite":fmt(r.worth)+" €"}</span></div>`).join("")}</div>${reportHTML(S)}<p class="note">${S.unranked?"Das Spiel wurde abgebrochen und zählt nicht für die Rangliste.":"Das Ergebnis steht jetzt in der Rangliste."}</p><h2>Rangliste</h2>${lbHTML()}</section>`:"";
   const top=`<div class="gtop"><div class="eyebrow">${isSpect()?"👀 ":""}${app.mode==="online"?esc(app.code)+" · ":""}Runde ${S.round}${S.maxRounds?"/"+S.maxRounds:""}</div><div class="gbtns">${app.mode==="online"?`<button class="ghost small" data-a="tochat" aria-label="Chat">💬</button>`:""}<button class="ghost small" data-a="snd" aria-label="${SND.on?"Ton aus":"Ton an"}">${SND.on?"🔊":"🔇"}</button><button class="ghost small" data-a="zoom" aria-label="${app.zoom?"Brett verkleinern":"Brett vergrößern"}">${app.zoom?"🔍−":"🔍+"}</button>${app.mode==="online"&&S.status==="playing"&&!isSpect()?`<button class="ghost small" data-a="push-open" aria-label="Bescheid, wenn du dran bist">${store.get("rbm-ntfy-on")||(("Notification" in window)&&Notification.permission==="granted")?"🔔":"🔕"}</button>`:""}${S.status==="playing"&&!isSpect()?`<button class="ghost small" data-a="quit-open">⏻ Beenden</button>`:""}${isSpect()?`<button class="ghost small" data-a="leave">👀 Verlassen</button>`:""}<button class="ghost small" data-a="home" aria-label="Menü">☰</button></div></div>${evNow(S)&&S.status==="playing"?`<div class="evbar">${evNow(S).ic} <b>${evNow(S).n}</b> · ${esc(evNow(S).x)}</div>`:""}`;
   const abortNote=S.status==="playing"&&S.abort&&Object.keys(S.abort).length&&!app.quitOpen?`<button class="ghost small abortnote" data-a="quit-open">⏻ ${Object.keys(S.abort).length} von ${alive(S).length} wollen aufhören. Tippen zum Abstimmen</button>`:"";
-  const center=centerHTML(),below=`${pushPanel()}${quitPanel()}${abortNote}${app.sel!=null?fieldSheet(app.sel):""}${duelPanel()}${tradePanel()}${over}<div class="players">${players}</div>${rulesHTML()}`;
+  const center=centerHTML(),below=`${questPanel()}${pushPanel()}${quitPanel()}${abortNote}${app.sel!=null?fieldSheet(app.sel):""}${duelPanel()}${tradePanel()}${over}<div class="players">${players}</div>${rulesHTML()}`;
   app.gp={top,cells:cellArr,center,below,zoom:!!app.zoom};
   return `<div id="g-top">${top}</div><div class="boardwrap"><div class="board ${app.zoom?"zoom":""}">${cellArr.join("")}<div class="center" id="g-center">${center}</div></div></div><div id="g-below">${below}</div>`;
 }
@@ -1888,7 +1921,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v27";
+const BUILD="rbm-v28";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -1955,7 +1988,7 @@ document.addEventListener("click",async ev=>{
     case "go-local":go("local");break;
     case "go-cpu":go("cpu");break;
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",15);render();break;
+    case "news-ok":store.set("rbm-news",16);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
@@ -2045,6 +2078,7 @@ document.addEventListener("click",async ev=>{
     case "abort-all":app.quitOpen=false;commit(S=>actAbortAll(S),app.S.players.map(p=>p.id));break;
     case "trade-open":stopAutoEnd();app.tradeOpen=true;app.duelOpen=false;render();setTimeout(()=>{const el=document.getElementById("t-to");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});},50);break;
     case "trade-close":app.tradeOpen=false;render();break;
+    case "quest":app.questOpen=!app.questOpen;render();if(app.questOpen)setTimeout(()=>{const el=document.querySelector(".panel.quest");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});},50);break;
     case "trade-go":{const to=+document.getElementById("t-to").value;const ids=pre=>[...document.querySelectorAll(`input[id^="${pre}"]:checked`)].map(el=>+el.id.slice(2));
       const give={props:ids("tg"),money:+document.getElementById("t-gm").value||0,free:+document.getElementById("t-gf").value||0},get={props:ids("tt"),money:+document.getElementById("t-tm").value||0,free:+document.getElementById("t-tf").value||0};
       if(!give.props.length&&!get.props.length&&!give.money&&!get.money&&!give.free&&!get.free){toast("Wähle etwas zum Tauschen aus.");break;}
