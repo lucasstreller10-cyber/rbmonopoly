@@ -629,6 +629,7 @@ function land(S,p,depth){
     const o=S.props[p.pos];
     if(!o){if(p.money>=f.p)canBuy=true;else log(S,p.name+" kann sich "+f.n+" nicht leisten.");}
     else if(o.owner!==p.id&&o.m){log(S,f.n+" hat eine Hypothek, "+p.name+" zahlt keine Miete.");}
+    else if(o.owner!==p.id&&freeOf(S,p.id,o.owner)>0){const ow=S.players[o.owner];p.free[ow.id]--;const left=p.free[ow.id];if(!left)delete p.free[ow.id];log(S,"🎟️ "+p.name+" steht mietfrei bei "+ow.name+" ("+rent(S,p.pos)+" € gespart"+(left?", noch "+left+"×":", Gutschein aufgebraucht")+").");}
     else if(o.owner!==p.id){const ow=S.players[o.owner];let r=rent(S,p.pos);if(ow.bonus){r*=2;ow.bonus=false;log(S,"Waldfest-Zuschlag! Doppelte Miete.");}log(S,p.name+" zahlt "+r+" Miete an "+ow.name+".");{const a=st(S,p.id),b=st(S,ow.id);a.rp+=r;b.rg+=r;b.rgMax=Math.max(b.rgMax,r);if(evNow(S)&&evNow(S).k==="kerwa")b.wf=(b.wf||0)+r;if(r>a.mx){a.mx=r;a.mxf=p.pos;a.mxto=ow.id;}}pay(S,p,ow,r);if(r>=RACHE_MIN&&!p.bankrupt&&!ow.bankrupt&&!p.rache&&(st(S,p.id).rv||0)<RACHE_MAX&&Math.random()<RACHE_P){p.rache={to:ow.id,amt:r};st(S,p.id).rv=(st(S,p.id).rv||0)+1;log(S,"🔥 "+p.name+" schwört Rache an "+ow.name+"!");}}
   }else if(f.t==="tax"){log(S,p.name+" zahlt "+f.a+" ("+f.n+") in die Kasse im Biergarten.");pay(S,p,null,f.a);}
   else if(f.t==="pot"){if(S.pot>0){log(S,p.name+" räumt die Kasse im Biergarten ab: +"+S.pot+" €!");{const a=st(S,p.id);a.pot+=S.pot;a.potMax=Math.max(a.potMax,S.pot);}p.money+=S.pot;S.pot=0;}else log(S,p.name+" parkt am Dorfplatz. Die Kasse ist leer.");}
@@ -895,14 +896,19 @@ function actDuelJudge(S,winner){
   S.card={deck:"duel",t:"⚔ "+W.name+" gewinnt!",x:L.name+" zahlt "+d.stake+" €."};
   duelStat(S,W,L);pay(S,L,W,d.stake);return endDuel(S);
 }
-function tradeDesc(S,t){return [...t.props.map(i=>BOARD[i].n),...(t.money?[t.money.toLocaleString("de-DE")+" €"]:[])].join(", ")||"nichts";}
+function tradeDesc(S,t){return [...t.props.map(i=>BOARD[i].n),...(t.money?[t.money.toLocaleString("de-DE")+" €"]:[]),...(t.free?[t.free+"× mietfrei"]:[])].join(", ")||"nichts";}
+const FREE_MAX=5;
+/* Mietfreiheit aus dem Tausch: holder darf n-mal mietfrei auf den Straßen von owner stehen. */
+function freeOf(S,holder,owner){return (S.players[holder].free||{})[owner]||0;}
+function addFree(S,holder,owner,n){if(!n)return;const h=S.players[holder];h.free=h.free||{};h.free[owner]=(h.free[owner]||0)+n;}
 function actTradeStart(S,to,give,get){
   const p=cur(S),o=S.players[to];
   if(S.trade||S.duel||!(S.phase==="roll"||S.phase==="end")||!o||o.bankrupt||o.id===p.id)return S;
   const ok=(pid,l)=>l.every(i=>S.props[i]&&S.props[i].owner===pid&&!S.props[i].h);
-  give={props:(give.props||[]).map(Number),money:Math.max(0,Math.floor(+give.money||0))};get={props:(get.props||[]).map(Number),money:Math.max(0,Math.floor(+get.money||0))};
+  const fr=x=>Math.min(FREE_MAX,Math.max(0,Math.floor(+x||0)));
+  give={props:(give.props||[]).map(Number),money:Math.max(0,Math.floor(+give.money||0)),free:fr(give.free)};get={props:(get.props||[]).map(Number),money:Math.max(0,Math.floor(+get.money||0)),free:fr(get.free)};
   if(!ok(p.id,give.props)||!ok(o.id,get.props)||give.money>p.money||get.money>o.money)return S;
-  if(!give.props.length&&!get.props.length&&!give.money&&!get.money)return S;
+  if(!give.props.length&&!get.props.length&&!give.money&&!get.money&&!give.free&&!get.free)return S;
   S.trade={from:p.id,to:o.id,give,get,prev:S.phase};S.phase="trade";
   S.card={deck:"trade",t:"🏛️ Tausch bei Kilian",x:p.name+" gibt "+tradeDesc(S,give)+" und will dafür von "+o.name+": "+tradeDesc(S,get)+"."};
   log(S,p.name+" schlägt "+o.name+" bei Kilian einen Tausch vor.");return S;
@@ -913,7 +919,7 @@ function actTradeAnswer(S,yes){
   const ok=t.give.props.every(i=>S.props[i]&&S.props[i].owner===A.id&&!S.props[i].h)&&t.get.props.every(i=>S.props[i]&&S.props[i].owner===B.id&&!S.props[i].h)&&A.money>=t.give.money&&B.money>=t.get.money;
   if(!yes||!ok){log(S,B.name+" lehnt den Tausch ab.");S.card={deck:"trade",t:"Abgelehnt",x:B.name+" will nicht. Kilian legt die Akte zu."};return S;}
   t.give.props.forEach(i=>S.props[i].owner=B.id);t.get.props.forEach(i=>S.props[i].owner=A.id);
-  A.money+=t.get.money-t.give.money;st(S,A.id).tr=(st(S,A.id).tr||0)+1;st(S,B.id).tr=(st(S,B.id).tr||0)+1;B.money+=t.give.money-t.get.money;
+  A.money+=t.get.money-t.give.money;addFree(S,B.id,A.id,t.give.free||0);addFree(S,A.id,B.id,t.get.free||0);st(S,A.id).tr=(st(S,A.id).tr||0)+1;st(S,B.id).tr=(st(S,B.id).tr||0)+1;B.money+=t.give.money-t.get.money;
   log(S,"Kilian beglaubigt den Tausch: "+A.name+" gibt "+tradeDesc(S,t.give)+", "+B.name+" gibt "+tradeDesc(S,t.get)+".");
   S.card={deck:"trade",t:"🏛️ Getauscht!",x:"Kilian stempelt ab. "+A.name+" zahlt 10 € Gebühr."};
   pay(S,A,null,10);if(S.status==="playing"&&cur(S).bankrupt)S.phase="end";return S;
@@ -1071,8 +1077,8 @@ function cpuMove(S,id){
     return S;}
   if(S.phase==="tour"&&S.tour)return actTourInput(S,id,cpuScore(S.tour.kind,lvl,S.tour.q));
   if(S.phase==="trade"&&S.trade){const t=S.trade;
-    const val=(l,pid)=>l.props.reduce((a,i)=>a+BOARD[i].p*(BOARD[i].g&&wouldComplete(S,i,pid)?2.5:1),0)+l.money;
-    const get=val(t.give,id),give=val(t.get,t.from);
+    const val=(l,pid,from)=>l.props.reduce((a,i)=>a+BOARD[i].p*(BOARD[i].g&&wouldComplete(S,i,pid)?2.5:1),0)+l.money+(l.free||0)*freeWorth(S,from);
+    const get=val(t.give,id,t.from),give=val(t.get,t.from,id);
     return actTradeAnswer(S,get>=give*([0,1.05,1.25,1.5][lvl])+20);}
   if(id!==S.turn)return S;
   if(S.phase==="roll"){
@@ -1104,6 +1110,8 @@ function cpuOffer(S,me,lvl,reserve){
   }
   return false;
 }
+/* Grober Wert eines mietfreien Besuchs: Durchschnittsmiete auf den Straßen des Besitzers. */
+function freeWorth(S,owner){const l=Object.keys(S.props).filter(i=>S.props[i].owner===owner&&!S.props[i].m);return l.length?Math.round(l.reduce((a,i)=>a+rent(S,+i),0)/l.length):0;}
 function wouldComplete(S,i,pid){const g=BOARD[i].g;return !!g&&BOARD.every((f,j)=>f.g!==g||j===+i||(S.props[j]&&S.props[j].owner===pid));}
 /* Bauen: gleichmäßig auf vollen Gruppen, aber immer mit Notgroschen. */
 function cpuBuild(S,me,reserve){
@@ -1360,13 +1368,14 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>🐗 Wildsau-Wahnsinn ist das Minigame-Feld: Nur wer dort landet, darf einen Mitspieler zu einem Handy-Minigame um Geld herausfordern.</li><li>Dorfklatsch-Karten (inklusive aller Wahnsinn-Karten): Pecks Baustelle, Kilians Steuerprüfung, Gisberts Frosch, Hermann Pfeufers Kralle, Elfmeter, Derby gegen Feldkahl, Wildschwein-Alarm, Schneewittchens Zwerge, Teleport-Bus, Grundstücks-Roulette, Robin Hood vom Gräfenberg und mehr.</li>
 <li><b>★ Challenge-Felder</b> (Zum Grünen Tal, Schwimmbad) und die Karte „Challenge-Zeit!“: Du spielst ein Handy-Minigame mit Ziel, zum Beispiel mindestens 12 Punkte bei der Wildsau-Jagd oder genau bei 5 Sekunden stoppen. Geschafft gibt Geld, verpasst kostet.</li>
 <li><b>! Ereignis-Felder</b>: Tadan im Marry (10 € für Freddy), Brezel in der Bäckerei Rosel, Wurstprobe in der Metzgerei, Feuerwehrfest, Matschpfütze am Wiesenweg, abfahrende Busse, Klosterglocken (alle frei aus dem Bunker), Gipfelglück am Hofberg und mehr.</li>
-<li><b>🏛️ Tauschen bei Kilian:</b> In deinem Zug kannst du anderen Grundstücke und Geld zum Tausch anbieten. Bürgermeister Kilian beglaubigt und nimmt 10 € Gebühr. Tippe auf ein Feld, um zu sehen, was dort passiert.</li>
+<li><b>🏛️ Tauschen bei Kilian:</b> In deinem Zug kannst du anderen Grundstücke und Geld zum Tausch anbieten. Du kannst auch Mietfreiheit anbieten oder verlangen (bis zu 5 mietfreie Besuche auf allen Straßen des anderen). Bürgermeister Kilian beglaubigt und nimmt 10 € Gebühr. Tippe auf ein Feld, um zu sehen, was dort passiert.</li>
 <li><b>⚔ Herausfordern:</b> Einmal pro Zug darfst du einen Mitspieler zu einem Minigame um 20 bis 200 € herausfordern: Wildsau-Jagd, Wildsau-Rennen, Äppler-Fangen, Klosterglocken, Stopp bei 5 Sekunden, Kopfrechen-Sprint, Farb-Chaos, Schätzen, Tic-Tac-Toe gegen die Wildsau oder Zufall. Alle Minigames laufen am Handy. Wer kneift, zahlt 10 €.</li>
 <li><b>Dorfchat</b> im Online-Spiel: Nachrichten, Sticker wie Tadan!, Wildsau! oder Rollmisch! und Zufallssprüche.</li>
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==14?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+  const news=store.get("rbm-news")!==15?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>🎟️ Beim Tauschen auch Mietfreiheit anbieten</li>
    <li>🔥 Rache-Duell nach fetter Miete</li>
    <li>👑 Dorfkönig des Monats in der Rangliste</li>
    <li>🔔 Bescheid, wenn du dran bist (auch bei geschlossener App)</li>
@@ -1654,10 +1663,10 @@ function tradePanel(){
   if(!os.some(o=>o.id===app.tradeTo))app.tradeTo=os[0].id;const to=app.tradeTo;
   const list=(pid,pre)=>{const ids=Object.keys(S.props).filter(i=>S.props[i].owner===pid).map(Number).sort((a,b)=>a-b);
     return ids.length?ids.map(i=>`<label class="chk"><input type="checkbox" id="${pre}${i}" ${S.props[i].h?"disabled":""}><span class="sw" style="background:${BOARD[i].g?GROUPS[BOARD[i].g].c:"var(--paper-2)"}"></span>${esc(BOARD[i].n)}${S.props[i].h?" (bebaut)":""}</label>`).join(""):`<p class="note">Keine Grundstücke.</p>`;};
-  return `<section class="panel"><h2>🏛️ Tauschen bei Kilian</h2><p class="note">Bürgermeister Kilian beglaubigt jeden Tausch und nimmt 10 € Gebühr vom Anbieter. Bebaute Grundstücke kann man nicht tauschen.</p>
+  return `<section class="panel"><h2>🏛️ Tauschen bei Kilian</h2><p class="note">Bürgermeister Kilian beglaubigt jeden Tausch und nimmt 10 € Gebühr vom Anbieter. Bebaute Grundstücke kann man nicht tauschen. Mietfrei heißt: Der andere zahlt so oft keine Miete, wenn er auf deinen Straßen landet.</p>
   <label>Tauschen mit<select id="t-to">${os.map(o=>`<option value="${o.id}" ${o.id===to?"selected":""}>${esc(o.name)}</option>`).join("")}</select></label>
-  <div class="trade"><div class="stack"><h3>Du gibst</h3>${list(p.id,"tg")}<label>Geld (€)<input id="t-gm" type="number" min="0" inputmode="numeric" value="0"></label></div>
-  <div class="stack"><h3>Du bekommst</h3>${list(to,"tt")}<label>Geld (€)<input id="t-tm" type="number" min="0" inputmode="numeric" value="0"></label></div></div>
+  <div class="trade"><div class="stack"><h3>Du gibst</h3>${list(p.id,"tg")}<label>Geld (€)<input id="t-gm" type="number" min="0" inputmode="numeric" value="0"></label><label>Mietfrei (Besuche)<select id="t-gf">${[0,1,2,3,4,5].map(n=>`<option value="${n}">${n?n+"×":"keine"}</option>`).join("")}</select></label></div>
+  <div class="stack"><h3>Du bekommst</h3>${list(to,"tt")}<label>Geld (€)<input id="t-tm" type="number" min="0" inputmode="numeric" value="0"></label><label>Mietfrei (Besuche)<select id="t-tf">${[0,1,2,3,4,5].map(n=>`<option value="${n}">${n?n+"×":"keine"}</option>`).join("")}</select></label></div></div>
   <div class="row"><button class="primary" data-a="trade-go">Angebot an Kilian geben</button><button class="ghost" data-a="trade-close">Abbrechen</button></div></section>`;
 }
 const RM=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1699,7 +1708,7 @@ function renderBar(){
   if(!p){bar.hidden=true;document.body.classList.remove("has-bar");app.barPid=null;return;}
   app.barPid=p.id;const n=Object.values(S.props).filter(o=>o.owner===p.id).length;
   const place=1+S.players.filter(q=>!q.bankrupt&&worth(S,q)>worth(S,p)).length;
-  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.bs?` · 🏦 ${p.bs.paid/BS_RATE}/${BS_N}`:""}${p.loan?` · Kredit noch ${p.loan.left}×${p.loan.rate} €`:""}${p.rache&&S.players[p.rache.to]&&!S.players[p.rache.to].bankrupt?` · 🔥 Rache an ${esc(S.players[p.rache.to].name)}`:""}${p.id===S.turn?" · du bist dran":""}</span></div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
+  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.bs?` · 🏦 ${p.bs.paid/BS_RATE}/${BS_N}`:""}${p.loan?` · Kredit noch ${p.loan.left}×${p.loan.rate} €`:""}${Object.entries(p.free||{}).filter(([o,n])=>n&&S.players[o]&&!S.players[o].bankrupt).map(([o,n])=>` · 🎟️ ${n}× mietfrei bei ${esc(S.players[o].name)}`).join("")}${p.rache&&S.players[p.rache.to]&&!S.players[p.rache.to].bankrupt?` · 🔥 Rache an ${esc(S.players[p.rache.to].name)}`:""}${p.id===S.turn?" · du bist dran":""}</span></div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
 }
 /* Flüssiger Spielerwechsel: ist im Zug nichts mehr zu entscheiden, geht es nach kurzer Pause automatisch weiter. */
 const AUTO_MS=2600;
@@ -1879,7 +1888,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v26";
+const BUILD="rbm-v27";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -1946,7 +1955,7 @@ document.addEventListener("click",async ev=>{
     case "go-local":go("local");break;
     case "go-cpu":go("cpu");break;
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",14);render();break;
+    case "news-ok":store.set("rbm-news",15);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
@@ -2037,8 +2046,8 @@ document.addEventListener("click",async ev=>{
     case "trade-open":stopAutoEnd();app.tradeOpen=true;app.duelOpen=false;render();setTimeout(()=>{const el=document.getElementById("t-to");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});},50);break;
     case "trade-close":app.tradeOpen=false;render();break;
     case "trade-go":{const to=+document.getElementById("t-to").value;const ids=pre=>[...document.querySelectorAll(`input[id^="${pre}"]:checked`)].map(el=>+el.id.slice(2));
-      const give={props:ids("tg"),money:+document.getElementById("t-gm").value||0},get={props:ids("tt"),money:+document.getElementById("t-tm").value||0};
-      if(!give.props.length&&!get.props.length&&!give.money&&!get.money){toast("Wähle etwas zum Tauschen aus.");break;}
+      const give={props:ids("tg"),money:+document.getElementById("t-gm").value||0,free:+document.getElementById("t-gf").value||0},get={props:ids("tt"),money:+document.getElementById("t-tm").value||0,free:+document.getElementById("t-tf").value||0};
+      if(!give.props.length&&!get.props.length&&!give.money&&!get.money&&!give.free&&!get.free){toast("Wähle etwas zum Tauschen aus.");break;}
       if(give.money>cur(app.S).money||get.money>app.S.players[to].money){toast("So viel Geld hat da jemand nicht.");break;}
       app.tradeOpen=false;commit(S=>actTradeStart(S,to,give,get));break;}
     case "trade-yes":commitLeased(S=>actTradeAnswer(S,true),[app.S.trade.to]);break;
