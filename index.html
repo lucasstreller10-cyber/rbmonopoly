@@ -407,8 +407,8 @@ const BOARD=[
  {n:"Beim Schaffeld",s:"Beim Schaf|feld",t:"prop",g:"or",p:240,hc:150,r:[20,100,300,750,925,1100],ic:"🐑"},
  {n:"Bushaltestelle West",s:"Bus West",t:"bus",p:200,ic:"🚌",fx:"bus",ev:BUSEV},
  {n:"Gasthaus zum Löwen „Marry“",s:"Löwen „Marry“",t:"prop",g:"li",p:260,hc:150,r:[22,110,330,800,975,1150],ic:"🦁",fx:"loewe",ev:"Tadan! Wer hier landet, gibt Freddy, der Dorflegende, einen aus: 10 € in die Kasse im Biergarten. Das gilt auch für den Besitzer."},
- {n:"Zum Grünen Tal",s:"Zum Grü|nen Tal",t:"prop",g:"li",p:280,hc:150,r:[24,120,360,850,1025,1200],ic:"🍺",fx:"challenge",ev:"Challenge-Feld: Wer hier landet, muss vor allen eine Challenge schaffen."},
- {n:"Schwimmbad",s:"Schwimm|bad",t:"werk",p:150,ic:"🏊",fx:"challenge",ev:"Challenge-Feld: Wer hier landet, muss vor allen eine Challenge schaffen."},
+ {n:"Zum Grünen Tal",s:"Zum Grü|nen Tal",t:"prop",g:"li",p:280,hc:150,r:[24,120,360,850,1025,1200],ic:"🍺",fx:"challenge",ev:"Challenge-Feld: Wer hier landet, muss vor allen eine Challenge schaffen. Manchmal steht stattdessen Charlys Casinotisch da."},
+ {n:"Schwimmbad",s:"Schwimm|bad",t:"werk",p:150,ic:"🏊",fx:"challenge",ev:"Challenge-Feld: Wer hier landet, muss vor allen eine Challenge schaffen. Manchmal steht stattdessen Charlys Casinotisch da."},
  {n:"Ab in den Bunker!",s:"Ab in den Bunker!",t:"gojail",ic:"🚔"},
  {n:"Staudt Getränkemarkt",s:"Staudt Ge|tränke",t:"prop",g:"gr",p:300,hc:200,r:[26,130,390,900,1100,1275],ic:"🍾"},
  {n:"Metzgerei",s:"Metz|gerei",t:"prop",g:"gr",p:300,hc:200,r:[26,130,390,900,1100,1275],ic:"🥩",fx:"metzger",ev:"Wurstprobe: Du bekommst eine Scheibe Fleischwurst und 20 € Rabatt zurück."},
@@ -482,6 +482,11 @@ const OFFER=["whack","rennen","faengt","glocken","stopp","rechnen","farben","sch
 const SOLO_ALL={bier:{g:"Mindestens 65 % Bier im Krug behalten.",ok:v=>v>=65},torwand:{g:"Triff mindestens 2 von 6 Schüssen.",ok:v=>v>=2},ttt:{g:"Hol mindestens 5 Punkte gegen die Wildsau.",ok:v=>v>=5},rennen:{g:"Schaffe mindestens 40 Schritte.",ok:v=>v>=40},faengt:{g:"Fange mindestens 12 Äppler.",ok:v=>v>=12},glocken:{g:"Schaffe mindestens 5 Runden.",ok:v=>v>=5},whack:{g:"Schaffe mindestens 12 Punkte.",ok:v=>v>=12},stopp:{g:"Stoppe zwischen 4,75 und 5,25 Sekunden.",ok:v=>Math.abs(v-5000)<=250},rechnen:{g:"Schaffe mindestens 7 Punkte.",ok:v=>v>=7},farben:{g:"Schaffe mindestens 8 Punkte.",ok:v=>v>=8},reflex:{g:"Reagiere schneller als 0,40 Sekunden.",ok:v=>v<400},tap:{g:"Pumpe mindestens 35-mal in 5 Sekunden.",ok:v=>v>=35},schaetz:{g:"Liege höchstens 10 % daneben, bei Jahreszahlen höchstens 5 Jahre.",ok:(v,c)=>v>=0&&Math.abs(v-SCHAETZ[c.q].a)<=schTol(SCHAETZ[c.q])},huetchen:{g:"Finde den Taler unter einem von drei Bembeln.",ok:()=>Math.random()<1/3,w:150,l:30}};
 const SOLO=Object.fromEntries(OFFER.map(k=>[k,SOLO_ALL[k]]));
 function valText(k,v,c){if(k==="reflex")return v>=5000?"zu früh getippt":(v/1000).toFixed(2).replace(".",",")+" s";if(k==="stopp")return (v/1000).toFixed(2).replace(".",",")+" s";if(k==="tap")return v+"× gepumpt";if(k==="rennen")return v+" Schritte";if(k==="faengt")return v+" Äppler";if(k==="glocken")return v+" Runden";if(k==="whack")return v+" Punkte";if(k==="rechnen"||k==="farben"||k==="ttt")return v+" Punkte";if(k==="torwand")return v+" von 6 Treffern";if(k==="bier")return v+" % im Krug";if(k==="schaetz")return (v<0?"Zeit abgelaufen":Number(v).toLocaleString("de-DE")+" getippt")+", richtig: "+SCHAETZ[c.q].a.toLocaleString("de-DE");return "Bembel "+v;}
+/* Auf den Challenge-Feldern kommt etwa jedes dritte Mal statt des Minigames ein zufälliges Casinospiel (Lucas, 05.10.). */
+const CH_CAS=1/3,CAS_G={wheel:"🎡 Glücksrad",bj:"🃏 Blackjack",slot:"🎰 Bandit",hl:"⬆⬇ Höher/Tiefer"};
+function casPop(S,p){const g=pick(Object.keys(CAS_G));S.phase="casino";S.casOnly=g;
+  S.card={deck:"ch",t:"🎰 Spontane Casino-Runde: "+CAS_G[g].replace(/^\S+\s/,""),x:"Charly hat seinen Tisch mitgebracht. Wähl deinen Einsatz und spiel eine Runde "+CAS_G[g].replace(/^\S+\s/,"")+", oder geh einfach weiter."};
+  log(S,p.name+" landet bei Charlys mobilem Casinotisch: "+CAS_G[g].replace(/^\S+\s/,"")+".");}
 function startChallenge(S){
   const kind=pick(Object.keys(SOLO)),x2=evOn(S,"pay")||1,c={kind,w:(SOLO[kind].w||80)*x2,l:(SOLO[kind].l||40)*x2};if(kind==="schaetz")c.q=schQ(S);
   S.challenge=c;S.phase="challenge";
@@ -498,7 +503,7 @@ function brunnen(S,p){
 }
 function fieldEvent(S,p,f,depth){
   switch(f.fx){
-    case "challenge":startChallenge(S);break;
+    case "challenge":if(Math.random()<CH_CAS)casPop(S,p);else startChallenge(S);break;
     case "penalty":S.phase="penalty";S.card={deck:"ch",t:"Elfmeter!",x:"Wähle eine Ecke. Tor: +60 €. Gehalten: −20 €."};log(S,p.name+" tritt zum Elfmeter an.");break;
     case "bach":if(Math.random()<.5){p.money+=30;log(S,"Sprung geschafft! "+p.name+" findet 30 € neben der Matschpfütze.");}else{log(S,"Platsch! "+p.name+" landet in der Matschpfütze und zahlt 30 €.");pay(S,p,null,30);}break;
     case "bus":if(Math.random()<.5){let t=p.pos;do{t=(t+1)%N}while(BOARD[t].t!=="bus");log(S,p.name+" springt in den abfahrenden Bus und fährt bis zur "+BOARD[t].n+".");moveTo(S,p,t,depth);}break;
@@ -760,7 +765,7 @@ function land(S,p,depth){
     c.f(S,p,depth);
   }
   if(f.fx&&!p.bankrupt&&S.status==="playing")fieldEvent(S,p,f,depth);
-  if(canBuy&&p.pos===here&&!p.bankrupt&&S.status==="playing"){if(S.phase==="challenge"||S.phase==="penalty")S.wantBuy=true;else S.phase="buy";}
+  if(canBuy&&p.pos===here&&!p.bankrupt&&S.status==="playing"){if(S.phase==="challenge"||S.phase==="penalty"||(S.phase==="casino"&&S.casOnly))S.wantBuy=true;else S.phase="buy";}
 }
 function resume(S){
   const p=cur(S);S.challenge=null;
@@ -789,11 +794,11 @@ const WHEEL=[{l:"×3",c:"#3f9b5f",m:3},{l:"Weg",c:"#c2402b",m:0},{l:"×2",c:"#e6
 /* Glücksrad-Jackpot (Lucas, 05.10.): ein ganz schmales goldenes Feld, das nur etwa bei jedem 200. Dreh kommt. Zahlt das 20-Fache. */
 function wheelGeo(){const w=WHEEL.map(x=>x.jp?WHEEL_JPW:(360-WHEEL_JPW)/(WHEEL.length-1));let a=0;return w.map(d=>{const r={a,d};a+=d;return r;});}
 function wheelPick(){return Math.random()<WHEEL_JP?WHEEL.length-1:Math.floor(Math.random()*(WHEEL.length-1));}
-function casDone(S){S.bj=null;S.hl=null;S.phase="x";settlePhase(S);return S;}
+function casDone(S){S.bj=null;S.hl=null;S.casOnly=null;return resume(S);}
 function actCasinoSkip(S){const p=cur(S);if(S.phase!=="casino"||S.bj||S.hl)return S;log(S,p.name+" schaut nur kurz rein und geht weiter.");S.card=null;return casDone(S);}
 function actCasino(S,game,stake){
   const p=cur(S);if(S.phase!=="casino"||S.status!=="playing"||S.bj||S.hl)return S;
-  stake=CAS_STAKES.includes(stake)?stake:CAS_STAKES[0];if(p.money<stake)return S;
+  stake=CAS_STAKES.includes(stake)?stake:CAS_STAKES[0];if(p.money<stake)return S;if(S.casOnly&&game!==S.casOnly)game=S.casOnly;
   if(game==="bj")return bjDeal(S,p,stake);
   if(game==="slot")return slotPull(S,p,stake);
   if(game==="hl")return hlDeal(S,p,stake);
@@ -1424,7 +1429,7 @@ function cpuMove(S,id){
   if(S.phase==="challenge"&&S.challenge)return actChallenge(S,cpuScore(S.challenge.kind,lvl,S.challenge.q));
   if(S.phase==="penalty")return actPenalty(S,pick(["links","Mitte","rechts"]));
   if(S.phase==="bank"&&S.offer){const o=S.offer;return actBank(S,o.k==="kredit"?me.money<250:o.k==="ankauf"?!BOARD[o.i].g||BOARD.filter((f,j)=>f.g===BOARD[o.i].g&&S.props[j]&&S.props[j].owner===me.id).length<2:me.money-o.amt>=reserve);}
-  if(S.phase==="casino"){if(S.bj)return cpuBj(S);if(S.hl){const h=S.hl,o=hlOdds(h);if(h.n>=2||(h.n&&Math.max(o.hi,o.lo)>1.8))return actHlCash(S);return actHl(S,o.hi&&(o.hi<=o.lo||!o.lo)?"hi":"lo");}if(me.money<250)return actCasinoSkip(S);return actCasino(S,pick(["bj","wheel","slot","hl"]),me.money>900?100:50);}
+  if(S.phase==="casino"){if(S.bj)return cpuBj(S);if(S.hl){const h=S.hl,o=hlOdds(h);if(h.n>=2||(h.n&&Math.max(o.hi,o.lo)>1.8))return actHlCash(S);return actHl(S,o.hi&&(o.hi<=o.lo||!o.lo)?"hi":"lo");}if(me.money<250)return actCasinoSkip(S);return actCasino(S,S.casOnly||pick(["bj","wheel","slot","hl"]),me.money>900?100:50);}
   if(S.phase==="end"){cpuBuild(S,me,reserve);if(canDuel(S)&&cpuDuel(S,me,lvl))return S;return actEnd(S);}
   return S;
 }
@@ -1826,7 +1831,7 @@ function centerHTML(){
     else if(S.phase==="bank"&&S.offer){const o=S.offer;acts+=`<button class="gold" data-a="bank-yes" ${o.k==="rabatt"&&p.money<o.amt?"disabled":""}>Annehmen</button><button class="ghost" data-a="bank-no">Ablehnen</button>`;}
     else if(S.phase==="casino"){if(S.hl){const o=hlOdds(S.hl);acts+=`<button class="gold" data-a="hl" data-d="hi" ${o.hi?"":"disabled"}>⬆ Höher${o.hi?" ×"+o.hi.toFixed(2).replace(".",","):""}</button><button class="gold" data-a="hl" data-d="lo" ${o.lo?"":"disabled"}>⬇ Tiefer${o.lo?" ×"+o.lo.toFixed(2).replace(".",","):""}</button>${S.hl.n?`<button class="primary" data-a="hl-cash">💰 Kassieren ${fmt(S.hl.pot)} €</button>`:""}`;}else if(S.bj)acts+=`<button class="gold" data-a="bj-hit">Karte</button><button class="primary" data-a="bj-stand">Stehen</button>${bjCanDbl(S)?`<button class="ghost" data-a="bj-dbl">Verdoppeln</button>`:""}${bjCanSplit(S)?`<button class="ghost" data-a="bj-split">Teilen</button>`:""}${bjCanSur(S)?`<button class="ghost" data-a="bj-sur">Aufgeben</button>`:""}`;
       else{const sk=CAS_STAKES.includes(app.casStake)?app.casStake:50,ok=p.money>=sk;
-        acts+=`<div class="stakes">Einsatz: ${CAS_STAKES.map(v=>`<button class="chip ${v===sk?"on":""}" data-a="cas-stake" data-v="${v}" ${p.money<v?"disabled":""}>${v} €</button>`).join("")}</div><button class="gold" data-a="casino" data-g="wheel" ${ok?"":"disabled"}>🎡 Glücksrad</button><button class="gold" data-a="casino" data-g="bj" ${ok?"":"disabled"}>🃏 Blackjack</button><button class="gold" data-a="casino" data-g="slot" ${ok?"":"disabled"}>🎰 Bandit</button><button class="gold" data-a="casino" data-g="hl" ${ok?"":"disabled"}>⬆⬇ Höher/Tiefer</button><button class="ghost" data-a="cas-skip">Weitergehen</button>`;}}
+        acts+=`<div class="stakes">Einsatz: ${CAS_STAKES.map(v=>`<button class="chip ${v===sk?"on":""}" data-a="cas-stake" data-v="${v}" ${p.money<v?"disabled":""}>${v} €</button>`).join("")}</div>${Object.keys(CAS_G).filter(g=>!S.casOnly||g===S.casOnly).map(g=>`<button class="gold" data-a="casino" data-g="${g}" ${ok?"":"disabled"}>${CAS_G[g]}</button>`).join("")}<button class="ghost" data-a="cas-skip">Weitergehen</button>`;}}
     else if(S.phase==="penalty")acts+=["links","Mitte","rechts"].map(d=>`<button class="${d==="Mitte"?"gold":"ghost"}" data-a="pen" data-d="${d}">${d[0].toUpperCase()+d.slice(1)}</button>`).join("");
     else if(S.phase==="end")acts+=`<button class="primary ${autoEndOk()?"autoend":""}" data-a="end">${autoEndOk()?"Weiter ▸":"Zug beenden"}</button>`;
     if(canDuel(S))acts+=`<button class="gold" data-a="duel-open">⚔ Herausfordern</button>`;
@@ -2356,7 +2361,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v48";
+const BUILD="rbm-v49";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
