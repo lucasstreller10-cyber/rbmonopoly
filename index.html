@@ -662,8 +662,13 @@ function loanRate(S,p){
 /* Kredithai: Haifisch-Harry leiht sofort Geld, ohne Fragen, und will das Anderthalbfache zurück. Wann er kommt, weiß keiner:
    zu Beginn jedes eigenen Zugs steigt die Chance (15, 25, 40, 60 %), spätestens beim fünften Zug steht er vor der Tür. */
 const HAI=[200,400,600],HAI_X=1.5,HAI_N=3,HAI_P=[0,.15,.25,.4,.6,1];
-function canHai(S){const p=cur(S);return S.status==="playing"&&(S.phase==="roll"||S.phase==="end")&&!!p&&!p.bankrupt&&!p.hai;}
-function actHai(S,amt){amt=+amt;if(!canHai(S)||!HAI.includes(amt))return S;const p=cur(S);
+function canHai(S){const p=cur(S),o=S.haiOffer;return S.status==="playing"&&(S.phase==="roll"||S.phase==="end")&&!!p&&!p.bankrupt&&!p.hai&&!!o&&o.pid===p.id&&o.r===S.round;}
+/* Harry taucht nur zufällig auf: zu Beginn eines Zugs mit 7 % Chance, wer knapp bei Kasse ist (unter 250 €), mit 18 %. Das Angebot gilt nur für diesen Zug. */
+function haiOffer(S){const p=cur(S);S.haiOffer=null;if(S.status!=="playing"||S.round<2||!p||p.bankrupt||p.hai||p.jail)return false;
+  if(Math.random()>=(p.money<250?.18:.07))return false;S.haiOffer={pid:p.id,r:S.round};
+  log(S,"🦈 Haifisch-Harry lehnt an der Bushaltestelle und winkt "+p.name+" zu.");
+  S.card={deck:"hai",t:"🦈 Psst, Kumpel!",x:"Haifisch-Harry hat heute Geld übrig: 200, 400 oder 600 €, sofort und ohne Fragen. Zurück will er das Anderthalbfache, wann es ihm passt. Das Angebot gilt nur in diesem Zug."};return true;}
+function actHai(S,amt){amt=+amt;if(!canHai(S)||!HAI.includes(amt))return S;const p=cur(S);S.haiOffer=null;
   p.hai={amt,owe:r5(amt*HAI_X),k:0};p.money+=amt;st(S,p.id).hai=(st(S,p.id).hai||0)+1;
   log(S,"🦈 "+p.name+" leiht sich "+amt+" € beim Kredithai. Haifisch-Harry will "+p.hai.owe+" € sehen, wann es ihm passt.");
   S.card={deck:"hai",t:"🦈 Haifisch-Harry",x:"„Kein Problem, Kumpel. "+amt+" € bar auf die Kralle. Irgendwann klingel ich und krieg "+p.hai.owe+" €. Wann? Das merkst du dann.“"};return S;}
@@ -949,7 +954,7 @@ function actEnd(S){
   if(S.round!==r0&&!(S.maxRounds&&S.round>S.maxRounds)){alive(S).forEach(q=>{bausparRate(S,q);loanRate(S,q);});S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));if(S.round%3===0||(S.maxRounds&&S.round===S.maxRounds))roundEvent(S);matchTick(S);}
   if(S.maxRounds&&S.round>S.maxRounds){S.round=S.maxRounds;finish(S);return S;}
   S.phase="roll";if(haiVisit(S,S.players[t])){if(S.status!=="playing")return S;if(cur(S).bankrupt)S.phase="end";return S;}
-  if(S.round!==r0&&S.round%10===0&&alive(S).length>1)tourStart(S);else bankOffer(S);return S;
+  if(S.round!==r0&&S.round%10===0&&alive(S).length>1)tourStart(S);else{bankOffer(S);if(S.phase==="roll")haiOffer(S);}return S;
 }
 /* Hypothek: unbebaute Grundstücke bei der Dorfbank beleihen. Man bekommt den halben Kaufpreis, solange gibt es keine Miete. Auslösen kostet 10 % mehr. */
 const mortVal=f=>r5(f.p/2),unmortCost=f=>r5(f.p*.55);
@@ -1029,9 +1034,9 @@ function actDuelInput(S,pid,val,internal){
   S.card={deck:"duel",t:"⚔ "+W.name+" gewinnt!",x:detail+" "+L.name+" zahlt "+d.stake+" €."};
   duelStat(S,W,L);pay(S,L,W,d.stake);return endDuel(S);
 }
-/* Rache-Duell (nur manchmal): Wer mindestens RACHE_MIN Miete zahlen musste, bekommt mit 30 % Chance ein Rache-Ticket (höchstens 2 pro Partie) und darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern.
+/* Rache-Duell (nur manchmal): Wer mindestens RACHE_MIN Miete zahlen musste, bekommt mit 12 % Chance ein Rache-Ticket (höchstens eins pro Partie) und darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern.
    Zufälliges Minispiel, der Besitzer kann nicht kneifen. Gewinnt der Rächer, bekommt er die halbe Miete zurück, verliert er, kostet es nichts. */
-const RACHE_MIN=150,RACHE_P=.3,RACHE_MAX=2;
+const RACHE_MIN=150,RACHE_P=.12,RACHE_MAX=1;
 function canRevenge(S){const p=cur(S),r=p&&p.rache,o=r&&S.players[r.to];return S.status==="playing"&&S.phase==="roll"&&!S.duel&&!p.jail&&!!o&&!o.bankrupt&&o.id!==p.id;}
 function actRevenge(S){
   if(!canRevenge(S))return S;const p=cur(S),o=S.players[p.rache.to],amt=p.rache.amt;p.rache=null;
@@ -1288,7 +1293,7 @@ function cpuMove(S,id){
   if(S.phase==="roll"){
     if(canRevenge(S))return actRevenge(S);
     if(canBet(S)&&me.money>reserve+200&&Math.random()<.35){const o=S.match.o,t=["h","d","a"].sort((x,y)=>o[x]-o[y])[0];actBet(S,t,me.money>900?50:20);}
-    if(canHai(S)&&me.money<80&&(!S.maxRounds||S.round+HAI_N<S.maxRounds)&&Math.random()<.5)actHai(S,me.money<0?400:200);
+    if(canHai(S)&&me.money<200&&(!S.maxRounds||S.round+HAI_N<S.maxRounds)&&Math.random()<.5)actHai(S,me.money<0?400:200);
     if(me.hai&&me.money-me.hai.owe>reserve+150)actHaiPay(S);
     if(cpuOffer(S,me,lvl,reserve))return S;
     cpuBuild(S,me,reserve);
@@ -1576,9 +1581,9 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>⚽ Torwandschießen:</b> Neues Minispiel: 6 Schüsse auf die Torwand, dreimal unten links, dreimal oben rechts. Wisch den Ball Richtung Loch.</li>
 <li><b>🎲 Livewette:</b> Läuft ein Duell, dürfen alle, die nicht mitspielen, vor dem ersten Ergebnis 50 € auf einen der beiden setzen. Richtig getippt zahlt das 1,9-fache.</li>
 <li><b>⚽ Sportwette:</b> Alle paar Runden spielt die Rottenberger Elf gegen ein Nachbardorf. Bis zum Anpfiff kann jeder in seinem Zug einmal 20, 50 oder 100 € auf Sieg, Unentschieden oder Niederlage setzen. Die Quoten stehen auf den Knöpfen, am Spieltag wird ausgezahlt.</li>
-<li><b>🦈 Kredithai:</b> In deinem Zug leiht dir Haifisch-Harry sofort 200, 400 oder 600 €, ohne Fragen. Er will das Anderthalbfache zurück und kommt ohne Vorwarnung zu Beginn eines deiner Züge kassieren, spätestens beim fünften. Reicht dein Geld nicht, holt er es sich über Hypotheken, notfalls bist du pleite. Du kannst ihn auch vorher auszahlen. Immer nur ein Hai-Kredit gleichzeitig.</li>
+<li><b>🦈 Kredithai:</b> Ab und zu taucht Haifisch-Harry zu Beginn deines Zugs auf (wer wenig Geld hat, trifft ihn öfter). Nur dann leiht er dir sofort 200, 400 oder 600 €, ohne Fragen. Er will das Anderthalbfache zurück und kommt ohne Vorwarnung zu Beginn eines deiner Züge kassieren, spätestens beim fünften. Reicht dein Geld nicht, holt er es sich über Hypotheken, notfalls bist du pleite. Du kannst ihn auch vorher auszahlen. Immer nur ein Hai-Kredit gleichzeitig.</li>
 <li><b>🤫 Geheimauftrag:</b> Zu Beginn bekommt jeder ein geheimes Ziel, zum Beispiel 3 Bushaltestellen besitzen oder zweimal im Bunker sitzen. Unten im Konto unter „🤫 Auftrag“ siehst du deins und wie weit du bist. Wer es schafft, bekommt sofort 200 bis 450 € Bonus. Am Spielende werden alle Aufträge aufgedeckt.</li>
-<li><b>🔥 Rache-Duell:</b> Wer mindestens 150 € Miete zahlen muss, schwört manchmal Rache (etwa jedes dritte Mal, höchstens zweimal pro Partie) und darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern. Zufälliges Minispiel, kneifen gilt nicht. Gewinnst du, zahlt er dir die halbe Miete zurück. Verlierst du, kostet es nichts.</li>
+<li><b>🔥 Rache-Duell:</b> Wer mindestens 150 € Miete zahlen muss, schwört selten Rache (etwa jedes achte Mal, höchstens einmal pro Partie) und darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern. Zufälliges Minispiel, kneifen gilt nicht. Gewinnst du, zahlt er dir die halbe Miete zurück. Verlierst du, kostet es nichts.</li>
 <li><b>🏦 Hypothek:</b> Tippe auf ein eigenes unbebautes Grundstück und nimm eine Hypothek auf: du bekommst den halben Kaufpreis, dafür gibt es dort keine Miete und in der Gruppe wird nicht gebaut. Ablösen kostet 10 % mehr. Wer pleite zu gehen droht, beleiht automatisch, bevor er aufgeben muss.</li>
 <li><b>🏦 Dorfbank:</b> Ab und zu macht die Dorfbank vor dem Würfeln ein verlockendes Angebot: ein schneller Kredit (in 5 Runden mit Zinsen zurück), ein Ankauf eines deiner Grundstücke weit über Wert oder eine freie Straße zum Sonderpreis. Annehmen oder ablehnen.</li>
 <li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, wählt einen Einsatz (50, 100 oder 200 €) und spielt Glücksrad (bis zum Dreifachen, die Kasse, eine Gratis-Straße, aber auch der Bunker) oder Blackjack am Tisch von Croupier Charly (echtes Kartenblatt, Bank zieht bis 17, Blackjack zahlt 3:2, du kannst verdoppeln, teilen oder aufgeben), den einarmigen Banditen „Wildsau-Automat“ (drei gleiche Symbole zahlen bis zum 100-fachen) oder Höher oder Tiefer (Quote nach den restlichen Karten, kassieren wann du willst, höchstens 6 Treffer). Man kann auch einfach weitergehen.</li>
@@ -2153,7 +2158,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v35";
+const BUILD="rbm-v36";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
