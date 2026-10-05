@@ -1285,11 +1285,11 @@ function commit(fn,ids){
 }
 
 /* ---------- Rangliste ---------- */
-async function saveResult(S){
-  if(S.unranked)return;
-  const id=(S.vsCpu?"cpu":app.mode==="online"?S.code:"local")+"-"+S.finishedAt;
+async function saveResult(S,mode){
+  if(S.unranked)return;mode=mode||app.mode;
+  const id=(S.vsCpu?"cpu":mode==="online"?S.code:"local")+"-"+S.finishedAt;
   if(app.savedResult===id)return;app.savedResult=id;
-  const doc={at:S.finishedAt,mode:S.vsCpu?"cpu":app.mode,rounds:S.round,ranking:S.ranking.map(r=>({name:r.name,worth:r.worth,place:r.place,bankrupt:r.bankrupt,cpu:!!r.cpu}))};if(S.vsCpu)doc.lvl=S.cpuLvl;
+  const doc={at:S.finishedAt,mode:S.vsCpu?"cpu":mode,rounds:S.round,ranking:S.ranking.map(r=>({name:r.name,worth:r.worth,place:r.place,bankrupt:r.bankrupt,cpu:!!r.cpu}))};if(S.vsCpu)doc.lvl=S.cpuLvl;
   if(app.db){try{await app.db.collection("results").doc(id).set(doc);return;}catch(e){}}
   const loc=store.get("rbm-results")||[];if(!loc.some(r=>r.id===id)){loc.push(Object.assign({id},doc));store.set("rbm-results",loc);app.results=mergeResults();render();}
 }
@@ -1705,7 +1705,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>🏦 Dorfbank:</b> Selten (ab Runde 3) macht die Dorfbank vor dem Würfeln ein verlockendes Angebot: ein schneller Kredit (in 5 Runden mit Zinsen zurück), ein Ankauf eines deiner Grundstücke weit über Wert oder eine freie Straße zum Sonderpreis. Annehmen oder ablehnen.</li>
 <li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, wählt einen Einsatz (50, 100 oder 200 €) und spielt Glücksrad (bis zum Dreifachen, die Kasse, eine Gratis-Straße, aber auch der Bunker; ganz selten, etwa bei jedem 200. Dreh, trifft man den goldenen Jackpot und bekommt das 20-Fache) oder Blackjack am Tisch von Croupier Charly (echtes Kartenblatt, Bank zieht bis 17, Blackjack zahlt 3:2, du kannst verdoppeln, teilen oder aufgeben), den einarmigen Banditen „Wildsau-Automat“ (drei gleiche Symbole zahlen bis zum 100-fachen) oder Höher oder Tiefer (Quote nach den restlichen Karten, kassieren wann du willst, höchstens 6 Treffer). Man kann auch einfach weitergehen.</li>
 <li><b>🏆 Dorfmeisterschaft:</b> Jede 10. Runde spielen alle dasselbe Minispiel. Platz 2 bekommt 150 €, Platz 3 75 €. Platz 1 bekommt 300 €, bei jeder zweiten Meisterschaft stattdessen eine Straße vom Letzten.</li>
-<li><b>👀 Zuschauen:</b> Bei Online-Spielen kann jeder mit dem Code oder über „Laufende Spiele“ zuschauen, ohne mitzuspielen, und im Chat mitreden.</li>
+<li><b>💤 Alle offline:</b> Ist bei einer Online-Partie 15 Minuten lang niemand mehr im Spiel, endet sie mit dem aktuellen Stand und kommt nach Vermögen in die Rangliste (ab Runde 3).</li><li><b>👀 Zuschauen:</b> Bei Online-Spielen kann jeder mit dem Code oder über „Laufende Spiele“ zuschauen, ohne mitzuspielen, und im Chat mitreden.</li>
 <li>Pasch heißt nochmal würfeln. Drei Pasche hintereinander: ab in den Bunker bei Big A, dort wird erstmal gemeinsam einer geraucht. Raus kommst du mit Pasch, 50 € oder Freikarte.</li>
 <li><b>Rollmisch!</b> Wer eine Doppel-Eins würfelt, kassiert 50 von jedem Mitspieler.</li>
 <li><b>Biergarten</b> ist Frei Parken: Wer dort landet, räumt die Kasse ab, in der alle Strafen landen.</li><li><b>🍺 Bierbrunnen:</b> Manchmal sprudelt im Biergarten Freibier. Wer dort landet, hält 8 Sekunden lang eine randvolle Maß: Handy ganz ruhig und gerade halten (ohne Bewegungssensor mit dem Finger dem wankenden Krug folgen). Mindestens 65 % im Krug bringt 50 €, sonst gehen 60 € in die Kasse.</li><li><b>Tadan!</b> Wer im Gasthaus zum Löwen („Marry“) landet, gibt Freddy, der Dorflegende, einen aus und zahlt 10 € in die Kasse im Biergarten.</li>
@@ -2059,8 +2059,8 @@ async function commitLeased(fn,ids){
   const ref=app.db.doc("games/"+app.code);
   /* Sofort lokal rechnen und anzeigen. Hat sich auf dem Server seitdem nichts geändert, wird genau dieser Stand gespeichert (gleiche Würfel), sonst neu gerechnet. */
   const base=app.S.rev||0,bsid=app.S.sid,nsid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);let opt=null;
-  try{opt=autoPass(fn(JSON.parse(JSON.stringify(app.S))));opt.rev=base+1;opt.sid=nsid();app.S=opt;render();}catch(e){opt=null;}
-  const decide=d=>{if(opt&&(d.rev||0)===base&&d.sid===bsid)return opt;const c=JSON.parse(JSON.stringify(d));const n=autoPass(fn(c));n.rev=(c.rev||0)+1;n.sid=nsid();return n;};
+  try{opt=autoPass(fn(JSON.parse(JSON.stringify(app.S))));opt.rev=base+1;opt.sid=nsid();opt.lastAt=Date.now();app.S=opt;render();}catch(e){opt=null;}
+  const decide=d=>{if(opt&&(d.rev||0)===base&&d.sid===bsid)return opt;const c=JSON.parse(JSON.stringify(d));const n=autoPass(fn(c));n.rev=(c.rev||0)+1;n.sid=nsid();n.lastAt=Date.now();return n;};
   const before={turn:app.S.turn,round:app.S.round};
   const done=next=>{if(next!==opt){app.S=next;render();}if(next.status==="over")saveResult(next);notifyTurn(before,next);};
   /* Eigene Züge nacheinander speichern, damit schnelles Tippen nichts durcheinanderbringt. */
@@ -2299,8 +2299,44 @@ function render(){
 function go(screen){app.screen=screen;app.err="";render();window.scrollTo(0,0);}
 
 /* ---------- Online ---------- */
+/* Alle offline (Lucas, 05.10.): Ist bei einer Online-Partie IDLE_MIN Minuten lang niemand im Spiel, endet sie mit dem aktuellen Stand
+   und kommt in die Rangliste. Jedes offene Handy meldet sich jede Minute (leases/HB_code_uid); wer die App als Nächster öffnet, schließt verwaiste Partien ab. */
+const IDLE_MIN=15,IDLE_MS=IDLE_MIN*60e3,MIN_ROUNDS=3;
+const hbRef=(code,uid)=>app.db.doc("leases/HB_"+code+"_"+uid);
+function heartbeat(){try{if(app.db&&app.mode==="online"&&app.code&&app.S&&app.S.status==="playing"&&!isSpect()&&document.visibilityState!=="hidden")hbRef(app.code,app.uid).set({at:Date.now()}).catch(()=>{});}catch(e){}}
+setInterval(heartbeat,60000);document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")heartbeat();});
+async function lastActive(G){
+  let t=G.lastAt||0,hb=false;
+  for(const p of G.players||[]){if(!p.uid||p.cpu)continue;try{const s=await hbRef(G.code,p.uid).get();const d=s.exists&&s.data();if(d&&d.at){hb=true;t=Math.max(t,d.at);}}catch(e){}}
+  return (G.lastAt||hb)?t:null;
+}
+function endIdle(S){
+  if(!S||S.status!=="playing")return null;
+  if(S.round<MIN_ROUNDS)S.unranked=true;
+  log(S,"💤 Alle sind offline. Das Spiel endet mit dem aktuellen Stand"+(S.unranked?", zählt aber nicht, weil es noch keine "+MIN_ROUNDS+" Runden hatte.":"."));
+  S.duel=null;S.trade=null;S.bj=null;S.hl=null;finish(S);S.idleEnd=true;S.rev=(S.rev||0)+1;return S;
+}
+async function sweepIdle(){
+  if(!app.db||(app.swept&&Date.now()-app.swept<120000))return;app.swept=Date.now();
+  let docs=[];try{docs=(await app.db.collection("games").where("status","==","playing").limit(50).get()).docs.map(d=>d.data());}catch(e){return;}
+  for(const G of docs){
+    if(!G||!G.code||G.vsCpu||(app.code===G.code&&app.mode==="online"))continue;
+    const last=await lastActive(G),ref=app.db.doc("games/"+G.code),now=Date.now();
+    try{
+      if(last==null){/* Alte Partie ohne Lebenszeichen: erst markieren, beim nächsten Mal werten. */
+        if(ref.txn)await ref.txn(c=>{const d=c.data();if(!d||d.status!=="playing"||d.lastAt)return undefined;d.lastAt=now;return d;});
+        else{const c=await ref.get(),d=c.data();if(d&&d.status==="playing"&&!d.lastAt){d.lastAt=now;await ref.set(d);}}
+        continue;}
+      if(now-last<IDLE_MS)continue;
+      let out=null;
+      if(ref.txn)out=await ref.txn(c=>{const d=c.data();if(!d||d.status!=="playing"||(d.lastAt||0)>now-IDLE_MS)return undefined;return endIdle(d)||undefined;});
+      else{const c=await ref.get(),d=c.data();if(d&&d.status==="playing"&&(d.lastAt||0)<=now-IDLE_MS){out=endIdle(d);if(out)await ref.set(out);}}
+      if(out&&out.status==="over")await saveResult(out,"online");
+    }catch(e){}
+  }
+}
 async function loadOpen(){
-  if(!app.db)return;app.openGames=null;render();
+  if(!app.db)return;app.openGames=null;render();sweepIdle();
   try{const snap=await app.db.collection("games").where("status","==","lobby").limit(50).get();
     const cut=Date.now()-3*3600e3;
     app.openGames=snap.docs.map(d=>d.data()).filter(g=>g.created>cut&&g.players&&g.players.length<4).sort((a,b)=>b.created-a.created).slice(0,10);}
@@ -2318,7 +2354,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v45";
+const BUILD="rbm-v46";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -2653,7 +2689,7 @@ function start(data){
   (async()=>{
     if(!window.claude||!window.claude.use)return;
     const [db,user]=await Promise.all([claude.use("db"),claude.use("user")]);
-    app.user=user;app.uid=user?await user.id():null;app.db=db;
+    app.user=user;app.uid=user?await user.id():null;app.db=db;setTimeout(()=>sweepIdle(),3000);
     if(db){db.collection("results").orderBy("at","desc").limit(300).onSnapshot(s=>{remoteResults=s.docs.map(d=>Object.assign({id:d.id},d.data()));app.results=remoteResults;if(app.screen==="home"||(app.S&&app.S.status==="over"))render();},()=>{});}
     if(app.screen==="home")render();
   })();
