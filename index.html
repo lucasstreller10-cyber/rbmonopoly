@@ -633,7 +633,7 @@ function bausparRate(S,p){
 /* Dorfbank Rottenberg: ab und zu (etwa jeder 9. Zug) ein verlockendes Angebot vor dem Würfeln. Annehmen oder ablehnen. */
 const LOAN_N=5;
 function bankOffer(S){
-  const p=cur(S);if(S.status!=="playing"||S.round<2||p.jail||p.bankrupt||Math.random()>.11)return;
+  const p=cur(S);if(S.status!=="playing"||S.round<3||p.jail||p.bankrupt||Math.random()>.05)return;
   const opts=[];
   if(!p.loan){const amt=pick([300,400,500]);opts.push({k:"kredit",amt,rate:Math.round(amt*1.3/LOAN_N/5)*5});}
   const mine=BOARD.map((f,i)=>i).filter(i=>{const o=S.props[i];return o&&o.owner===p.id&&!o.h&&!o.m&&!(BOARD[i].g&&ownsGroup(S,p.id,BOARD[i].g));});
@@ -1585,7 +1585,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>🤫 Geheimauftrag:</b> Zu Beginn bekommt jeder ein geheimes Ziel, zum Beispiel 3 Bushaltestellen besitzen oder zweimal im Bunker sitzen. Unten im Konto unter „🤫 Auftrag“ siehst du deins und wie weit du bist. Wer es schafft, bekommt sofort 200 bis 450 € Bonus. Am Spielende werden alle Aufträge aufgedeckt.</li>
 <li><b>🔥 Rache-Duell:</b> Wer mindestens 150 € Miete zahlen muss, schwört selten Rache (etwa jedes achte Mal, höchstens einmal pro Partie) und darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern. Zufälliges Minispiel, kneifen gilt nicht. Gewinnst du, zahlt er dir die halbe Miete zurück. Verlierst du, kostet es nichts.</li>
 <li><b>🏦 Hypothek:</b> Tippe auf ein eigenes unbebautes Grundstück und nimm eine Hypothek auf: du bekommst den halben Kaufpreis, dafür gibt es dort keine Miete und in der Gruppe wird nicht gebaut. Ablösen kostet 10 % mehr. Wer pleite zu gehen droht, beleiht automatisch, bevor er aufgeben muss.</li>
-<li><b>🏦 Dorfbank:</b> Ab und zu macht die Dorfbank vor dem Würfeln ein verlockendes Angebot: ein schneller Kredit (in 5 Runden mit Zinsen zurück), ein Ankauf eines deiner Grundstücke weit über Wert oder eine freie Straße zum Sonderpreis. Annehmen oder ablehnen.</li>
+<li><b>🏦 Dorfbank:</b> Selten (ab Runde 3) macht die Dorfbank vor dem Würfeln ein verlockendes Angebot: ein schneller Kredit (in 5 Runden mit Zinsen zurück), ein Ankauf eines deiner Grundstücke weit über Wert oder eine freie Straße zum Sonderpreis. Annehmen oder ablehnen.</li>
 <li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, wählt einen Einsatz (50, 100 oder 200 €) und spielt Glücksrad (bis zum Dreifachen, die Kasse, eine Gratis-Straße, aber auch der Bunker) oder Blackjack am Tisch von Croupier Charly (echtes Kartenblatt, Bank zieht bis 17, Blackjack zahlt 3:2, du kannst verdoppeln, teilen oder aufgeben), den einarmigen Banditen „Wildsau-Automat“ (drei gleiche Symbole zahlen bis zum 100-fachen) oder Höher oder Tiefer (Quote nach den restlichen Karten, kassieren wann du willst, höchstens 6 Treffer). Man kann auch einfach weitergehen.</li>
 <li><b>🏆 Dorfmeisterschaft:</b> Jede 10. Runde spielen alle dasselbe Minispiel. Platz 2 bekommt 150 €, Platz 3 75 €. Platz 1 bekommt 300 €, bei jeder zweiten Meisterschaft stattdessen eine Straße vom Letzten.</li>
 <li><b>👀 Zuschauen:</b> Bei Online-Spielen kann jeder mit dem Code oder über „Laufende Spiele“ zuschauen, ohne mitzuspielen, und im Chat mitreden.</li>
@@ -2158,7 +2158,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v36";
+const BUILD="rbm-v37";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
