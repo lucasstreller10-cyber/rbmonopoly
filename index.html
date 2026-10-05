@@ -215,7 +215,16 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 @keyframes achin2{from{opacity:0;transform:translate(-50%,10px)}}
 .news{border:2px solid var(--gold)}.news ul{margin:6px 0 10px;padding-left:4px;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px}
 .stakes{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%;font-size:13px;color:var(--muted)}.chip{padding:6px 11px;border-radius:999px;border:1px solid var(--gold);background:transparent;color:var(--paper);font-weight:700}.chip.on{background:var(--gold);color:#1b2a1f}.chip:disabled{opacity:.35}
-.bj .bjrow{margin-top:6px;display:flex;gap:5px;align-items:center;flex-wrap:wrap}.pc{display:inline-block;min-width:30px;padding:3px 5px;border-radius:6px;background:#fff;color:#1b1b1b;border:1px solid #bbb;font-weight:800;text-align:center}.pc.red{color:#c2402b}.pc.back{background:#2f5a3d;color:#e6b43d}
+.bjt{background:radial-gradient(ellipse at 50% 30%,#2f7a4a,#16492b)!important;color:#f4ecd8!important;border:3px solid #8a5a2b!important;text-align:center}.bjt>b{color:#f2d27a}
+.bjt{padding:6px 8px!important}.bjt>b{display:block;font-size:13px}.bjdealer,.bjhand{margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px}.bjmeta{text-align:left;min-width:62px}.bjlbl{font-size:11px;opacity:.85;white-space:nowrap}.bjv{font-size:15px;font-weight:800;color:#f2d27a}.bjv small{display:block;font-size:11px;color:#f4ecd8;font-weight:600}.bjhands{display:flex;flex-direction:column;gap:0;justify-content:center;flex-wrap:wrap}.bjhand.on{outline:2px solid #f2d27a;border-radius:8px;padding:2px 4px}
+.felt-line{display:none;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#f2d27a;opacity:.7;border-top:1px solid rgba(242,210,122,.35);border-bottom:1px solid rgba(242,210,122,.35);margin:6px auto 0;padding:2px 0;width:85%}
+.bjcards{display:flex;justify-content:center;min-height:44px}.bjcards .pc+.pc{margin-left:-8px}
+.pc{position:relative;display:inline-flex;align-items:center;justify-content:center;width:31px;height:44px;border-radius:5px;background:#fffdf7;color:#1b1b1b;border:1px solid #c9c2b0;box-shadow:0 2px 4px rgba(0,0,0,.35);font-weight:800}.pc b{font-size:16px;line-height:1;margin-top:6px}.pc i{position:absolute;left:2px;top:0;font-style:normal;font-size:10px}.pc i.br{display:none;left:auto;top:auto;right:3px;bottom:1px;transform:rotate(180deg)}.pc.red{color:#c2402b}
+.pc.back{background:repeating-linear-gradient(45deg,#8b1e2b 0 4px,#a8323f 4px 8px);border:2px solid #fffdf7}
+.pc.deal{animation:bjdeal .38s cubic-bezier(.2,.8,.3,1) both}.pc.flip{animation:bjflip .5s ease-out both}
+@keyframes bjdeal{from{opacity:0;transform:translate(60px,-70px) rotate(-25deg) scale(.8)}to{opacity:1;transform:none}}
+@keyframes bjflip{0%{transform:rotateY(90deg);opacity:.2}100%{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.pc.deal,.pc.flip{animation:none}}
 .cell.mort{filter:grayscale(.7) brightness(.85)}.cell.mort::after{content:"🏦";position:absolute;right:1px;bottom:1px;font-size:9px}
 .king{background:linear-gradient(135deg,#e6b43d,#b8860b);color:#1b2a1f;border-radius:14px;padding:10px 14px;margin:8px 0;font-size:16px;display:flex;flex-direction:column}.king small{font-size:12px;opacity:.8}
 .push h3{margin:10px 0 2px;font-size:15px}.push code.topic{background:var(--paper);color:var(--ink);padding:6px 10px;border-radius:8px;font-size:15px;user-select:all}
@@ -728,37 +737,68 @@ function actCasino(S,game,stake){
   log(S,"Glücksrad: "+p.name+" setzt "+stake+" € und dreht "+w.l+". "+x);S.card={deck:"ch",t:"🎡 "+w.l,x};
   return casDone(S);
 }
-/* Eine Hand Blackjack gegen die Bank: Bank zieht bis 17, Blackjack zahlt 3:2. */
+/* Blackjack am Tisch von Croupier Charly: echtes 52er-Blatt, frisch gemischt. Die Bank zieht bis 17, Blackjack zahlt 3:2.
+   Verdoppeln (nur mit zwei Karten), Teilen (zwei gleichwertige Karten, einmal), Aufgeben (halber Einsatz zurück). */
 const BJ_R=["A","2","3","4","5","6","7","8","9","10","B","D","K"],BJ_S=["♠","♥","♦","♣"];
-const bjCard=()=>BJ_R[Math.floor(Math.random()*13)]+BJ_S[Math.floor(Math.random()*4)];
-function bjVal(h){let v=0,a=0;h.forEach(c=>{const r=c.slice(0,-1);if(r==="A"){a++;v+=11;}else v+=/[BDK]|10/.test(r)?10:+r;});while(v>21&&a){v-=10;a--;}return v;}
+const bjRank=c=>c.slice(0,-1),bjCv=c=>{const r=bjRank(c);return r==="A"?11:/[BDK]|10/.test(r)?10:+r;};
+function bjVal(h){let v=0,a=0;h.forEach(c=>{const x=bjCv(c);if(x===11)a++;v+=x;});while(v>21&&a){v-=10;a--;}return v;}
 const bjTxt=h=>h.join(" ")+" ("+bjVal(h)+")";
+const bjNat=(h,b)=>h.c.length===2&&bjVal(h.c)===21&&b.h.length===1;
+function bjDraw(b){if(!b.deck.length)b.deck=shuffle(BJ_R.flatMap(r=>BJ_S.map(x=>r+x)));return b.deck.pop();}
 function bjDeal(S,p,stake){
-  p.money-=stake;S.bj={stake,p:[bjCard(),bjCard()],d:[bjCard(),bjCard()]};
-  log(S,p.name+" setzt "+stake+" € auf eine Hand Blackjack.");
-  if(bjVal(S.bj.p)===21)return bjEnd(S);
+  p.money-=stake;const b={id:Math.floor(Math.random()*1e9),stake,deck:shuffle(BJ_R.flatMap(r=>BJ_S.map(x=>r+x))),h:[],d:[],i:0};
+  const h={c:[],st:stake};b.h.push(h);h.c.push(bjDraw(b));b.d.push(bjDraw(b));h.c.push(bjDraw(b));b.d.push(bjDraw(b));S.bj=b;
+  log(S,p.name+" setzt "+stake+" € am Blackjack-Tisch von Croupier Charly.");
+  if(bjVal(h.c)===21||bjVal(b.d)===21)return bjEnd(S);
   S.card=null;return S;
 }
-function actBjHit(S){const p=cur(S),b=S.bj;if(S.phase!=="casino"||!b)return S;b.p.push(bjCard());const v=bjVal(b.p);if(v>21||v===21)return bjEnd(S);return S;}
-function actBjStand(S){if(S.phase!=="casino"||!S.bj)return S;return bjEnd(S);}
+/* Alte Spielstände (eine Hand als b.p) auf das neue Format heben. */
+function bjFix(b){if(b&&!b.h){b.h=[{c:b.p||[],st:b.stake}];b.i=0;b.deck=[];b.id=b.id||1;}return b;}
+const bjCur=S=>S.bj&&bjFix(S.bj).h[S.bj.i];
+function bjNext(S){const b=S.bj;b.i++;while(b.i<b.h.length&&b.h[b.i].done)b.i++;return b.i>=b.h.length?bjEnd(S):S;}
+function actBjHit(S){const h=bjCur(S);if(S.phase!=="casino"||!h)return S;h.c.push(bjDraw(S.bj));return bjVal(h.c)>=21?bjNext(S):S;}
+function actBjStand(S){if(S.phase!=="casino"||!bjCur(S))return S;return bjNext(S);}
+const bjCanDbl=S=>{const h=bjCur(S);return !!h&&h.c.length===2&&!h.sa&&cur(S).money>=h.st;};
+const bjCanSplit=S=>{const b=S.bj,h=bjCur(S);return !!h&&b.h.length===1&&h.c.length===2&&bjCv(h.c[0])===bjCv(h.c[1])&&cur(S).money>=h.st;};
+const bjCanSur=S=>{const b=S.bj,h=bjCur(S);return !!h&&b.h.length===1&&h.c.length===2;};
+function actBjDouble(S){if(S.phase!=="casino"||!bjCanDbl(S))return S;const h=bjCur(S),p=cur(S);p.money-=h.st;h.st*=2;h.dbl=true;h.c.push(bjDraw(S.bj));log(S,p.name+" verdoppelt auf "+h.st+" €.");return bjNext(S);}
+function actBjSplit(S){if(S.phase!=="casino"||!bjCanSplit(S))return S;const b=S.bj,h=b.h[0],p=cur(S);p.money-=h.st;
+  const ace=bjRank(h.c[0])==="A";b.h=[{c:[h.c[0]],st:h.st,sa:ace},{c:[h.c[1]],st:h.st,sa:ace}];b.h.forEach(x=>x.c.push(bjDraw(b)));
+  log(S,p.name+" teilt "+h.c[0]+" und "+h.c[1]+".");if(ace){b.h.forEach(x=>x.done=true);return bjEnd(S);}
+  b.i=0;if(bjVal(b.h[0].c)===21)return bjNext(S);return S;}
+function actBjSurrender(S){if(S.phase!=="casino"||!bjCanSur(S))return S;const b=S.bj,h=b.h[0];h.sur=true;return bjEnd(S);}
 function bjEnd(S){
-  const p=cur(S),b=S.bj,pv=bjVal(b.p),nat=pv===21&&b.p.length===2;
-  if(pv<=21&&!nat)while(bjVal(b.d)<17)b.d.push(bjCard());
-  const dv=bjVal(b.d),dnat=dv===21&&b.d.length===2;let back=0,t;
-  if(pv>21)t="Überkauft! Einsatz weg.";
-  else if(nat&&!dnat){back=Math.round(b.stake*2.5);t="Blackjack! +"+(back-b.stake)+" €";}
-  else if(dv>21){back=b.stake*2;t="Die Bank überkauft sich. +"+b.stake+" €";}
-  else if(pv>dv){back=b.stake*2;t="Gewonnen! +"+b.stake+" €";}
-  else if(pv===dv){back=b.stake;t="Unentschieden, Einsatz zurück.";}
-  else t="Die Bank gewinnt. Einsatz weg.";
-  p.money+=back;
-  log(S,"Blackjack: "+p.name+" "+(back>b.stake?"gewinnt "+(back-b.stake)+" €":back===b.stake?"spielt unentschieden":"verliert "+b.stake+" €")+".");
-  S.card={deck:"ch",t:"🃏 "+t,x:"Du: "+bjTxt(b.p)+" · Bank: "+bjTxt(b.d)};
+  const p=cur(S),b=S.bj,dn=b.d.length===2&&bjVal(b.d)===21;
+  const live=b.h.some(h=>!h.sur&&bjVal(h.c)<=21&&!bjNat(h,b));
+  if(live&&!dn)while(bjVal(b.d)<17)b.d.push(bjDraw(b));
+  const dv=bjVal(b.d);let back=0,tot=0;const res=[];
+  b.h.forEach(h=>{const v=bjVal(h.c);let r,x=0;tot+=h.st;
+    if(h.sur){x=h.st/2;r="aufgegeben";}
+    else if(v>21){r="überkauft";}
+    else if(bjNat(h,b)&&!dn){x=Math.round(h.st*2.5);r="Blackjack!";}
+    else if(dn){r=bjNat(h,b)?"Gleichstand":"Bank hat Blackjack";if(bjNat(h,b))x=h.st;}
+    else if(dv>21){x=h.st*2;r="Bank überkauft";}
+    else if(v>dv){x=h.st*2;r="gewonnen";}
+    else if(v===dv){x=h.st;r="Gleichstand";}
+    else r="verloren";
+    h.r=r;h.x=x;back+=x;res.push(r);});
+  p.money+=back;const net=back-tot;
+  const t=net>0?(res.includes("Blackjack!")?"Blackjack! +":"Gewonnen! +")+net+" €":net===0?"Gleichstand, Einsatz zurück.":dn&&b.h.length===1&&!b.h[0].sur?"Charly hat Blackjack! −"+(-net)+" €":"Die Bank gewinnt. −"+(-net)+" €";
+  log(S,"Blackjack: "+p.name+" "+(net>0?"gewinnt "+net+" €":net===0?"spielt unentschieden":"verliert "+(-net)+" €")+".");
+  S.card={deck:"ch",t:"🃏 "+t,x:b.h.map((h,k)=>(b.h.length>1?"Hand "+(k+1)+": ":"Du: ")+bjTxt(h.c)+" "+h.r).join(" · ")+" · Charly: "+bjTxt(b.d),bj:{id:b.id,d:b.d,h:b.h.map(h=>({c:h.c,st:h.st,r:h.r,x:h.x,dbl:!!h.dbl,sur:!!h.sur})),stake:b.stake,t}};
   return casDone(S);
 }
-function bjHTML(b){
-  const c=h=>h.map(x=>`<span class="pc ${/[♥♦]/.test(x)?"red":""}">${esc(x)}</span>`).join("");
-  return `<div class="card ch bj"><b>🃏 Blackjack · Einsatz ${b.stake} €</b><div class="bjrow">Bank: ${c([b.d[0]])}<span class="pc back">?</span></div><div class="bjrow">Du: ${c(b.p)} <b>${bjVal(b.p)}</b></div></div>`;
+/* Karten zeichnen; neue Karten fliegen einzeln auf den Tisch, am Ende dreht Charly seine verdeckte Karte um. */
+function bjCardHTML(c,cls,delay){return `<span class="pc ${/[♥♦]/.test(c)?"red":""} ${cls||""}" ${delay!=null?`style="animation-delay:${delay}ms"`:""}><i>${esc(bjRank(c))}</i><b>${c.slice(-1)}</b><i class="br">${esc(bjRank(c))}</i></span>`;}
+function bjHTML(b,fin){
+  bjFix(b);
+  const seen=app.bjSeen&&app.bjSeen.id===b.id?app.bjSeen:{id:b.id};let k=0;
+  const row=(key,cards,hide)=>{const n=seen[key]||0;const out=cards.map((c,j)=>{if(hide&&j===1)return `<span class="pc back ${j>=n?"deal":""}" ${j>=n?`style="animation-delay:${(k++)*160}ms"`:""}></span>`;
+      const isNew=j>=n||(key==="d"&&j===1&&fin&&!seen.rev);return bjCardHTML(c,isNew?(key==="d"&&j===1&&fin?"flip":"deal"):"",isNew?(k++)*(fin&&key==="d"?420:160):null);}).join("");seen[key]=cards.length;return out;};
+  const hands=b.h.map((h,j)=>`<div class="bjhand ${!fin&&b.i===j&&b.h.length>1?"on":""}"><div class="bjmeta"><div class="bjlbl">${b.h.length>1?"Hand "+(j+1):"Du"} · ${h.st} €${h.dbl?" ×2":""}</div><div class="bjv">${bjVal(h.c)}${fin&&h.r?`<small>${esc(h.r)}</small>`:""}</div></div><div class="bjcards">${row("h"+j,h.c)}</div></div>`).join("");
+  const dealer=`<div class="bjdealer"><div class="bjmeta"><div class="bjlbl">🤵 Charly</div><div class="bjv">${fin?bjVal(b.d):bjCv(b.d[0])+" + ?"}</div></div><div class="bjcards">${row("d",b.d,!fin)}</div></div>`;
+  if(fin)seen.rev=true;app.bjSeen=seen;
+  return `<div class="card bjt"><b>🃏 ${fin?esc(b.t):"Blackjack · Einsatz "+b.stake+" €"}</b>${dealer}<div class="felt-line">Bank zieht bis 17 · Blackjack zahlt 3:2</div><div class="bjhands">${hands}</div></div>`;
 }
 /* Dorfmeisterschaft: jede 10. Runde spielen alle dasselbe Minispiel, ohne Einsatz. Preise für Platz 1 bis 3,
    abwechselnd Geld und (beim nächsten Mal) eine freie Straße für den Sieger. */
@@ -1170,7 +1210,7 @@ function cpuMove(S,id){
   if(S.phase==="challenge"&&S.challenge)return actChallenge(S,cpuScore(S.challenge.kind,lvl,S.challenge.q));
   if(S.phase==="penalty")return actPenalty(S,pick(["links","Mitte","rechts"]));
   if(S.phase==="bank"&&S.offer){const o=S.offer;return actBank(S,o.k==="kredit"?me.money<250:o.k==="ankauf"?!BOARD[o.i].g||BOARD.filter((f,j)=>f.g===BOARD[o.i].g&&S.props[j]&&S.props[j].owner===me.id).length<2:me.money-o.amt>=reserve);}
-  if(S.phase==="casino"){if(S.bj)return bjVal(S.bj.p)<17?actBjHit(S):actBjStand(S);if(me.money<250)return actCasinoSkip(S);return actCasino(S,Math.random()<.5?"bj":"wheel",me.money>900?100:50);}
+  if(S.phase==="casino"){if(S.bj)return cpuBj(S);if(me.money<250)return actCasinoSkip(S);return actCasino(S,Math.random()<.5?"bj":"wheel",me.money>900?100:50);}
   if(S.phase==="end"){cpuBuild(S,me,reserve);if(canDuel(S)&&cpuDuel(S,me,lvl))return S;return actEnd(S);}
   return S;
 }
@@ -1191,6 +1231,12 @@ function cpuOffer(S,me,lvl,reserve){
 function freeWorth(S,owner){const l=Object.keys(S.props).filter(i=>S.props[i].owner===owner&&!S.props[i].m);return l.length?Math.round(l.reduce((a,i)=>a+rent(S,+i),0)/l.length):0;}
 /* Computer im Tic-Tac-Toe-Duell: tttBot spielt "o" gegen "x", also Brett notfalls spiegeln. Auf leicht macht er öfter Zufallszüge. */
 function cpuTtt(d,id,lvl){const me=id===d.tx?"x":"o",b=d.tb.map(c=>c?(c===me?"o":"x"):"");const free=b.map((c,i)=>c?-1:i).filter(i=>i>=0);return Math.random()<[0,.45,.2,.05][lvl]?pick(free):tttBot(b);}
+/* Vereinfachte Grundstrategie für die Computergegner am Blackjack-Tisch. */
+function cpuBj(S){const h=bjCur(S),up=bjCv(S.bj.d[0]),v=bjVal(h.c);
+  if(bjCanSplit(S)&&["A","8"].includes(bjRank(h.c[0])))return actBjSplit(S);
+  if(bjCanDbl(S)&&(v===11||(v===10&&up<10)))return actBjDouble(S);
+  if(bjCanSur(S)&&v===16&&up>=10)return actBjSurrender(S);
+  if(v<12||(v<17&&up>=7))return actBjHit(S);return actBjStand(S);}
 function wouldComplete(S,i,pid){const g=BOARD[i].g;return !!g&&BOARD.every((f,j)=>f.g!==g||j===+i||(S.props[j]&&S.props[j].owner===pid));}
 /* Bauen: gleichmäßig auf vollen Gruppen, aber immer mit Notgroschen. */
 function cpuBuild(S,me,reserve){
@@ -1442,7 +1488,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>🔥 Rache-Duell:</b> Wer mindestens 150 € Miete zahlen muss, schwört manchmal Rache (etwa jedes dritte Mal, höchstens zweimal pro Partie) und darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern. Zufälliges Minispiel, kneifen gilt nicht. Gewinnst du, zahlt er dir die halbe Miete zurück. Verlierst du, kostet es nichts.</li>
 <li><b>🏦 Hypothek:</b> Tippe auf ein eigenes unbebautes Grundstück und nimm eine Hypothek auf: du bekommst den halben Kaufpreis, dafür gibt es dort keine Miete und in der Gruppe wird nicht gebaut. Ablösen kostet 10 % mehr. Wer pleite zu gehen droht, beleiht automatisch, bevor er aufgeben muss.</li>
 <li><b>🏦 Dorfbank:</b> Ab und zu macht die Dorfbank vor dem Würfeln ein verlockendes Angebot: ein schneller Kredit (in 5 Runden mit Zinsen zurück), ein Ankauf eines deiner Grundstücke weit über Wert oder eine freie Straße zum Sonderpreis. Annehmen oder ablehnen.</li>
-<li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, wählt einen Einsatz (50, 100 oder 200 €) und spielt Glücksrad (bis zum Dreifachen, die Kasse, eine Gratis-Straße, aber auch der Bunker) oder eine Hand Blackjack gegen die Bank (Bank zieht bis 17, Blackjack zahlt 3:2). Man kann auch einfach weitergehen.</li>
+<li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, wählt einen Einsatz (50, 100 oder 200 €) und spielt Glücksrad (bis zum Dreifachen, die Kasse, eine Gratis-Straße, aber auch der Bunker) oder Blackjack am Tisch von Croupier Charly (echtes Kartenblatt, Bank zieht bis 17, Blackjack zahlt 3:2, du kannst verdoppeln, teilen oder aufgeben). Man kann auch einfach weitergehen.</li>
 <li><b>🏆 Dorfmeisterschaft:</b> Jede 10. Runde spielen alle dasselbe Minispiel. Platz 2 bekommt 150 €, Platz 3 75 €. Platz 1 bekommt 300 €, bei jeder zweiten Meisterschaft stattdessen eine Straße vom Letzten.</li>
 <li><b>👀 Zuschauen:</b> Bei Online-Spielen kann jeder mit dem Code oder über „Laufende Spiele“ zuschauen, ohne mitzuspielen, und im Chat mitreden.</li>
 <li>Pasch heißt nochmal würfeln. Drei Pasche hintereinander: ab in den Bunker bei Big A, dort wird erstmal gemeinsam einer geraucht. Raus kommst du mit Pasch, 50 € oder Freikarte.</li>
@@ -1457,7 +1503,8 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==18?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+  const news=store.get("rbm-news")!==19?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>🃏 Blackjack mit Croupier Charly: Verdoppeln, Teilen, Aufgeben</li>
    <li>🎟️ Waldfest-Tombola und ⭕ Tic-Tac-Toe-Duell Mann gegen Mann</li>
    <li>🦈 Kredithai: schnelles Geld mit Wucherzins</li>
    <li>🤫 Geheimauftrag für jeden Spieler</li>
@@ -1557,7 +1604,7 @@ function centerHTML(){
     }else if(S.phase==="buy"){const f=BOARD[p.pos];acts+=`<button class="gold" data-a="buy">${esc(f.s.replace(/\|/g,""))} kaufen (${f.p})</button><button class="ghost" data-a="skip">Nein</button>`;}
     else if(S.phase==="challenge"&&S.challenge)acts+=soloHTML(S.challenge);
     else if(S.phase==="bank"&&S.offer){const o=S.offer;acts+=`<button class="gold" data-a="bank-yes" ${o.k==="rabatt"&&p.money<o.amt?"disabled":""}>Annehmen</button><button class="ghost" data-a="bank-no">Ablehnen</button>`;}
-    else if(S.phase==="casino"){if(S.bj)acts+=`<button class="gold" data-a="bj-hit">Karte</button><button class="primary" data-a="bj-stand">Stehen</button>`;
+    else if(S.phase==="casino"){if(S.bj)acts+=`<button class="gold" data-a="bj-hit">Karte</button><button class="primary" data-a="bj-stand">Stehen</button>${bjCanDbl(S)?`<button class="ghost" data-a="bj-dbl">Verdoppeln</button>`:""}${bjCanSplit(S)?`<button class="ghost" data-a="bj-split">Teilen</button>`:""}${bjCanSur(S)?`<button class="ghost" data-a="bj-sur">Aufgeben</button>`:""}`;
       else{const sk=CAS_STAKES.includes(app.casStake)?app.casStake:50,ok=p.money>=sk;
         acts+=`<div class="stakes">Einsatz: ${CAS_STAKES.map(v=>`<button class="chip ${v===sk?"on":""}" data-a="cas-stake" data-v="${v}" ${p.money<v?"disabled":""}>${v} €</button>`).join("")}</div><button class="gold" data-a="casino" data-g="wheel" ${ok?"":"disabled"}>🎡 Glücksrad</button><button class="gold" data-a="casino" data-g="bj" ${ok?"":"disabled"}>🃏 Blackjack</button><button class="ghost" data-a="cas-skip">Weitergehen</button>`;}}
     else if(S.phase==="penalty")acts+=["links","Mitte","rechts"].map(d=>`<button class="${d==="Mitte"?"gold":"ghost"}" data-a="pen" data-d="${d}">${d[0].toUpperCase()+d.slice(1)}</button>`).join("");
@@ -1581,7 +1628,7 @@ function centerHTML(){
   if(app.wheelSeen==null)app.wheelSeen=S.wheel?S.wheel.k:0;
   const spin=!!S.wheel&&S.wheel.k!==app.wheelSeen;
   if(spin&&!app.wheelT){const k=S.wheel.k;app.wheelT=setTimeout(()=>{app.wheelT=null;app.wheelSeen=k;render();},4300);}
-  const q=S.card?"":quipFor(S),card=spin?wheelHTML(S.wheel):S.bj&&S.phase==="casino"?bjHTML(S.bj):S.card?`<div class="card ${S.card.deck}"><b>${esc(S.card.t)}</b>${esc(S.card.x)}</div>`:`<div class="msg">${esc(S.log[0]||"")}</div>${q?`<div class="quip">„${esc(q)}“</div>`:""}`;
+  const q=S.card?"":quipFor(S),card=spin?wheelHTML(S.wheel):S.bj&&S.phase==="casino"?bjHTML(S.bj):S.card&&S.card.bj?bjHTML(S.card.bj,true):S.card?`<div class="card ${S.card.deck}"><b>${esc(S.card.t)}</b>${esc(S.card.x)}</div>`:`<div class="msg">${esc(S.log[0]||"")}</div>${q?`<div class="quip">„${esc(q)}“</div>`:""}`;
   return `<div class="wm" aria-hidden="true">${WAPPEN}</div><div class="crest">${WAPPEN}</div><div class="mark">Rottenberg<small>Runde ${S.round}${S.maxRounds?" von "+S.maxRounds:""} · Kasse ${fmt(S.pot)} €</small></div>
    <div class="turnchip"><span class="avatar" style="background:${p.color}">${tokSvg(tokOf(p))}</span>${esc(p.name)}${p.jail?" · Bunker":""}</div>
    ${S.dice[0]?`<div class="dice" id="dice"><span>${DICE[S.dice[0]]}</span><span>${DICE[S.dice[1]]}</span></div>`:""}
@@ -1978,7 +2025,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v30";
+const BUILD="rbm-v31";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -2045,7 +2092,7 @@ document.addEventListener("click",async ev=>{
     case "go-local":go("local");break;
     case "go-cpu":go("cpu");break;
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",18);render();break;
+    case "news-ok":store.set("rbm-news",19);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
@@ -2164,6 +2211,9 @@ document.addEventListener("click",async ev=>{
     case "bank-no":commit(S=>actBank(S,false));break;
     case "bj-hit":commit(actBjHit);break;
     case "bj-stand":commit(actBjStand);break;
+    case "bj-dbl":commit(actBjDouble);break;
+    case "bj-split":commit(actBjSplit);break;
+    case "bj-sur":commit(actBjSurrender);break;
     case "mg-solo":{const c=app.S.challenge;if(c)mgBegin("solo",app.S.turn,c.kind,c.q);break;}
     case "mg-pick":if(mg)miniSubmit(b.dataset.v);break;
     case "mg-send":{const v=document.getElementById("mg-num").value;if(mg&&v!=="")miniSubmit(Math.round(+v));break;}
