@@ -215,6 +215,7 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 @keyframes achin2{from{opacity:0;transform:translate(-50%,10px)}}
 .news{border:2px solid var(--gold)}.news ul{margin:6px 0 10px;padding-left:4px;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px}
 .stakes{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%;font-size:13px;color:var(--muted)}.chip{padding:6px 11px;border-radius:999px;border:1px solid var(--gold);background:transparent;color:var(--paper);font-weight:700}.chip.on{background:var(--gold);color:#1b2a1f}.chip:disabled{opacity:.35}
+.betbox{width:100%}.chip.odd{line-height:1.15;padding:3px 9px;font-size:13px}.chip.odd b{color:var(--gold)}
 .slotm{background:linear-gradient(#b8322a,#7a1b16)!important;color:#fff3d6!important;border:3px solid #e6b43d!important;text-align:center;position:relative;padding:6px 26px 6px 8px!important}.slotm.won{animation:slotglow .5s ease-in-out 4 alternate}
 @keyframes slotglow{to{box-shadow:0 0 22px 6px #ffd76a}}
 .slottop{font-weight:900;letter-spacing:.08em;font-size:12px;color:#ffd76a;text-shadow:0 1px 0 #5a120e}
@@ -667,6 +668,27 @@ function haiDue(S,p){if(!p.hai||p.bankrupt)return;const h=p.hai;
   p.hai=null;const cash=p.money>=h.owe;p.money-=h.owe;
   log(S,"🦈 Der Kredithai kommt kassieren! "+p.name+" muss "+h.owe+" € zahlen"+(cash?".":", und das Geld reicht nicht."));
   if(p.money<0){settle(S,p,null);if(!p.bankrupt)log(S,"🦈 Harry hat sich das Fehlende über die Dorfbank geholt.");}}
+/* Sportwette: Alle paar Runden spielt die Rottenberger Elf gegen ein Nachbardorf. Bis zum Anpfiff darf jeder einmal auf Sieg, Unentschieden oder Niederlage setzen.
+   Quoten wie beim Wettbüro (aus den Torchancen berechnet, rund 8 % Marge). Das Ergebnis wird ausgewürfelt (Poisson-Tore) und am Spieltag ausgezahlt. */
+const BET_OPP=["SV Hösbach","Feldkahl","Wenighösbach","Goldbach","Laufach","Schöllkrippen","Sailauf","Haibach","Bessenbach","Mömbris"],BET_STAKES=[20,50,100],BET_T={h:"Sieg",d:"Remis",a:"Niederlage"};
+function poi(l,k){let f=1;for(let i=2;i<=k;i++)f*=i;return Math.exp(-l)*Math.pow(l,k)/f;}
+function matchProbs(lh,la){let h=0,d=0,a=0;for(let i=0;i<10;i++)for(let j=0;j<10;j++){const q=poi(lh,i)*poi(la,j);if(i>j)h+=q;else if(i===j)d+=q;else a+=q;}const t=h+d+a;return {h:h/t,d:d/t,a:a/t};}
+function poiDraw(l){let k=0,p=Math.exp(-l),s=p;const u=Math.random();while(u>s&&k<12){k++;p*=l/k;s+=p;}return k;}
+function matchNew(S){const home=Math.random()<.5,lh=.9+Math.random()*1.2,la=.9+Math.random()*1.2,pr=matchProbs(lh,la),o={};
+  ["h","d","a"].forEach(k=>o[k]=Math.max(1.05,Math.floor(100*.92/pr[k])/100));
+  S.match={opp:pick(BET_OPP),home,lh,la,o,ko:S.round+2,bets:{},n:(S.match?S.match.n:0)+1};
+  log(S,"⚽ Neues Spiel der Rottenberger Elf: "+(home?"Rottenberg gegen "+S.match.opp:S.match.opp+" gegen Rottenberg")+" in Runde "+S.match.ko+". Wetten offen!");}
+function canBet(S){const p=cur(S),m=S.match;return S.status==="playing"&&!!m&&!m.res&&S.round<m.ko&&(S.phase==="roll"||S.phase==="end")&&!!p&&!p.bankrupt&&!m.bets[p.id];}
+function actBet(S,t,stake){stake=+stake;const p=cur(S),m=S.match;if(!canBet(S)||!BET_T[t]||!BET_STAKES.includes(stake)||p.money<stake)return S;
+  p.money-=stake;m.bets[p.id]={t,st:stake,o:m.o[t]};log(S,"⚽ "+p.name+" setzt "+stake+" € auf "+BET_T[t]+" der Rottenberger (Quote "+m.o[t].toFixed(2).replace(".",",")+").");return S;}
+function matchTick(S){const m=S.match;
+  if(m&&!m.res&&S.round>=m.ko){const g1=poiDraw(m.lh),g2=poiDraw(m.la),t=g1>g2?"h":g1===g2?"d":"a";m.res={g1,g2,t};
+    const score=m.home?"Rottenberg "+g1+":"+g2+" "+m.opp:m.opp+" "+g2+":"+g1+" Rottenberg";const wins=[];
+    Object.keys(m.bets).forEach(id=>{const b=m.bets[id],q=S.players[id];if(!q||q.bankrupt)return;if(b.t===t){const w=Math.round(b.st*b.o);q.money+=w;st(S,q.id).betw=(st(S,q.id).betw||0)+w-b.st;wins.push(q.name+" +"+w+" €");}});
+    log(S,"⚽ Abpfiff: "+score+". "+(t==="h"?"Rottenberg gewinnt!":t==="d"?"Unentschieden.":"Rottenberg verliert.")+(wins.length?" Wettgewinne: "+wins.join(", ")+".":Object.keys(m.bets).length?" Keiner hat richtig getippt.":""));
+    if(!S.card)S.card={deck:"ev",t:"⚽ Abpfiff: "+score,x:(wins.length?"Gewonnen: "+wins.join(", ")+".":Object.keys(m.bets).length?"Alle Tipps daneben, das Wettbüro freut sich.":"Diesmal hat keiner gewettet.")};}
+  if((!m||m.res)&&S.round%4===2&&(!S.maxRounds||S.round+2<=S.maxRounds))matchNew(S);}
+function matchRefund(S){const m=S.match;if(!m||m.res)return;Object.keys(m.bets).forEach(id=>{const q=S.players[id];if(q&&!q.bankrupt)q.money+=m.bets[id].st;});m.res={void:true};}
 function pay(S,from,to,amt){
   if(from.bankrupt||amt<=0)return;
   from.money-=amt; if(to)to.money+=amt; else S.pot+=amt;
@@ -916,7 +938,7 @@ function actEnd(S){
     if(q.sleep>0){q.sleep--;if(q.sleep){log(S,q.name+" pennt im Bunker weiter (noch "+q.sleep+").");continue;}q.jail=false;q.jailTurns=0;log(S,q.name+" wacht im Bunker auf, reibt sich die Augen und darf raus.");continue;}
     if(q.skip>0){q.skip--;log(S,q.name+(q.skipWhy==="glaab"?" muss bei Bernd Glaab nachsitzen und setzt aus":" hängt in Hermann Pfeufers eiserner Kralle und setzt aus")+(q.skip?" (noch "+q.skip+")":" (jetzt frei)")+".");continue;}break;}
   S.turn=t;
-  if(S.round!==r0&&!(S.maxRounds&&S.round>S.maxRounds)){alive(S).forEach(q=>{bausparRate(S,q);loanRate(S,q);haiDue(S,q);});S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));if(S.round%3===0||(S.maxRounds&&S.round===S.maxRounds))roundEvent(S);}
+  if(S.round!==r0&&!(S.maxRounds&&S.round>S.maxRounds)){alive(S).forEach(q=>{bausparRate(S,q);loanRate(S,q);haiDue(S,q);});S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));if(S.round%3===0||(S.maxRounds&&S.round===S.maxRounds))roundEvent(S);matchTick(S);}
   if(S.maxRounds&&S.round>S.maxRounds){S.round=S.maxRounds;finish(S);return S;}
   S.phase="roll";if(S.round!==r0&&S.round%10===0&&alive(S).length>1)tourStart(S);else bankOffer(S);return S;
 }
@@ -1083,7 +1105,7 @@ function actTradeAnswer(S,yes){
   S.card={deck:"trade",t:"🏛️ Getauscht!",x:"Kilian stempelt ab. "+A.name+" zahlt 10 € Gebühr."};
   pay(S,A,null,10);if(S.status==="playing"&&cur(S).bankrupt)S.phase="end";return S;
 }
-function worth(S,p){if(p.bankrupt)return 0;let w=p.money+(p.bs?p.bs.paid:0)-(p.loan?p.loan.left*p.loan.rate:0)-(p.hai?p.hai.owe:0);Object.keys(S.props).forEach(i=>{const o=S.props[i];if(o.owner===p.id)w+=(o.m?BOARD[i].p-mortVal(BOARD[i]):BOARD[i].p)+o.h*houseCost(BOARD[i]);});return w;}
+function worth(S,p){if(p.bankrupt)return 0;let w=p.money+(S.match&&!S.match.res&&S.match.bets[p.id]?S.match.bets[p.id].st:0)+(p.bs?p.bs.paid:0)-(p.loan?p.loan.left*p.loan.rate:0)-(p.hai?p.hai.owe:0);Object.keys(S.props).forEach(i=>{const o=S.props[i];if(o.owner===p.id)w+=(o.m?BOARD[i].p-mortVal(BOARD[i]):BOARD[i].p)+o.h*houseCost(BOARD[i]);});return w;}
 /* Aussteigen: Straßen des Spielers werden frei (Häuser weg), er scheidet aus. */
 function actQuit(S,pid){
   const p=S.players[pid];if(S.status!=="playing"||!p||p.bankrupt)return S;
@@ -1109,7 +1131,7 @@ function actAbortVote(S,pid,yes){
 }
 function actAbortAll(S){if(S.status!=="playing")return S;S.abort={};alive(S).forEach(p=>S.abort[p.id]=true);abortReady(S);return S;}
 function finish(S){
-  questCheck(S);
+  questCheck(S);matchRefund(S);
   S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));
   S.status="over";S.phase="over";S.finishedAt=Date.now();
   const r=S.players.map(p=>({id:p.id,name:p.name,cpu:!!p.cpu,color:p.color,worth:worth(S,p),bankrupt:p.bankrupt,left:!!p.left,ba:p.bankruptAt}));
@@ -1244,6 +1266,7 @@ function cpuMove(S,id){
   if(id!==S.turn)return S;
   if(S.phase==="roll"){
     if(canRevenge(S))return actRevenge(S);
+    if(canBet(S)&&me.money>reserve+200&&Math.random()<.35){const o=S.match.o,t=["h","d","a"].sort((x,y)=>o[x]-o[y])[0];actBet(S,t,me.money>900?50:20);}
     if(canHai(S)&&me.money<80&&(!S.maxRounds||S.round+HAI_N<S.maxRounds)&&Math.random()<.5)actHai(S,me.money<0?400:200);
     if(me.hai&&me.money-me.hai.owe>reserve+150)actHaiPay(S);
     if(cpuOffer(S,me,lvl,reserve))return S;
@@ -1529,6 +1552,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Waldfest (Mieten +50 %), Sommerloch (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
 <li><b>📜 Spielbericht und 🏅 Erfolge:</b> Am Ende gibt es Auszeichnungen wie Miethai oder Duellkönig und den Verlauf aller Vermögen. Auf jedem Handy sammelst du 37 Erfolge.</li>
 <li><b>🎟️ Waldfest-Tombola:</b> Beim Waldfest und ab und zu als eigenes Dorf-Ereignis kauft jeder ein Los für 20 €. Der Waldfestverein legt 150 € drauf, einer gewinnt den ganzen Topf, ein anderer eine Bunker-Freikarte.</li>
+<li><b>⚽ Sportwette:</b> Alle paar Runden spielt die Rottenberger Elf gegen ein Nachbardorf. Bis zum Anpfiff kann jeder in seinem Zug einmal 20, 50 oder 100 € auf Sieg, Unentschieden oder Niederlage setzen. Die Quoten stehen auf den Knöpfen, am Spieltag wird ausgezahlt.</li>
 <li><b>🦈 Kredithai:</b> In deinem Zug leiht dir Haifisch-Harry sofort 200, 400 oder 600 €, ohne Fragen. Nach 3 Runden kommt er kassieren und will das Anderthalbfache zurück. Reicht dein Geld nicht, holt er es sich über Hypotheken, notfalls bist du pleite. Du kannst ihn auch vorher auszahlen. Immer nur ein Hai-Kredit gleichzeitig.</li>
 <li><b>🤫 Geheimauftrag:</b> Zu Beginn bekommt jeder ein geheimes Ziel, zum Beispiel 3 Bushaltestellen besitzen oder zweimal im Bunker sitzen. Unten im Konto unter „🤫 Auftrag“ siehst du deins und wie weit du bist. Wer es schafft, bekommt sofort 200 bis 450 € Bonus. Am Spielende werden alle Aufträge aufgedeckt.</li>
 <li><b>🔥 Rache-Duell:</b> Wer mindestens 150 € Miete zahlen muss, schwört manchmal Rache (etwa jedes dritte Mal, höchstens zweimal pro Partie) und darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern. Zufälliges Minispiel, kneifen gilt nicht. Gewinnst du, zahlt er dir die halbe Miete zurück. Verlierst du, kostet es nichts.</li>
@@ -1549,7 +1573,8 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==20?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+  const news=store.get("rbm-news")!==21?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>⚽ Sportwette auf die Rottenberger Elf</li>
    <li>🎰 Einarmiger Bandit und ⬆⬇ Höher oder Tiefer im Casino</li>
    <li>🃏 Blackjack mit Croupier Charly: Verdoppeln, Teilen, Aufgeben</li>
    <li>🎟️ Waldfest-Tombola und ⭕ Tic-Tac-Toe-Duell Mann gegen Mann</li>
@@ -1659,7 +1684,9 @@ function centerHTML(){
     if(canDuel(S))acts+=`<button class="gold" data-a="duel-open">⚔ Herausfordern</button>`;
     if(canRevenge(S))acts+=`<button class="gold" data-a="revenge">🔥 Rache an ${esc(S.players[p.rache.to].name)}</button>`;
     if((S.phase==="roll"||S.phase==="end")&&others(S,p).length)acts+=`<button class="ghost" data-a="trade-open">🏛️ Tauschen</button>`;
-    if(canHai(S))acts+=app.haiOpen?`<div class="stakes">🦈 Leihen: ${HAI.map(v=>`<button class="chip" data-a="hai" data-v="${v}">${v} €</button>`).join("")}<button class="chip" data-a="hai-close">✕</button></div><p class="note">Zurück in ${HAI_N} Runden: das Anderthalbfache.</p>`:`<button class="ghost" data-a="hai-open">🦈 Kredithai</button>`;
+    if(canBet(S)){const m=S.match;acts+=app.betOpen?`<div class="betbox"><div class="note">⚽ ${esc(m.home?"Rottenberg – "+m.opp:m.opp+" – Rottenberg")} · Runde ${m.ko}</div><div class="stakes">${BET_STAKES.map(v=>`<button class="chip ${v===(app.betStake||20)?"on":""}" data-a="bet-stake" data-v="${v}" ${p.money<v?"disabled":""}>${v} €</button>`).join("")}</div><div class="stakes">${["h","d","a"].map(t=>`<button class="chip odd" data-a="bet" data-t="${t}" ${p.money<(app.betStake||20)?"disabled":""}>${BET_T[t]}<br><b>${m.o[t].toFixed(2).replace(".",",")}</b></button>`).join("")}<button class="chip" data-a="bet-close">✕</button></div></div>`:`<button class="ghost" data-a="bet-open">⚽ Sportwette</button>`;}
+    if(app.betOpen&&canBet(S)){}
+    else if(canHai(S))acts+=app.haiOpen?`<div class="stakes">🦈 Leihen: ${HAI.map(v=>`<button class="chip" data-a="hai" data-v="${v}">${v} €</button>`).join("")}<button class="chip" data-a="hai-close">✕</button></div><p class="note">Zurück in ${HAI_N} Runden: das Anderthalbfache.</p>`:`<button class="ghost" data-a="hai-open">🦈 Kredithai</button>`;
     else if(p.hai&&(S.phase==="roll"||S.phase==="end"))acts+=`<button class="ghost" data-a="hai-pay" ${p.money<p.hai.owe?"disabled":""}>🦈 Harry auszahlen (${fmt(p.hai.owe)} €)</button>`;
   }else if(S.phase==="trade"&&S.trade){
     const B=S.players[S.trade.to];
@@ -1897,7 +1924,7 @@ function floater(pid,diff){
   ["pl"+pid,app.barPid===pid?"mybar":null].forEach(id=>{const el=id&&document.getElementById(id);if(!el)return;
     const f=document.createElement("span");f.className="float "+(diff>0?"plus":"minus");f.textContent=(diff>0?"+":"−")+fmt(Math.abs(diff))+" €";el.appendChild(f);setTimeout(()=>f.remove(),1600);});
 }
-const BANNERS=[[/Einarmiger Bandit: .*JACKPOT/,"🎰 JACKPOT!"],[/Waldfest-Tombola: /,"🎟️ TOMBOLA!"],[/Kredithai kommt kassieren/,"🦈 HARRY KASSIERT!"],[/Geheimauftrag erfüllt/,"🤫 AUFTRAG ERFÜLLT!"],[/Spielende/,"👑 BARON!"],[/ROLLMISCH/,"🎲 ROLLMISCH!"],[/Schlussrunde/,"🏁 SCHLUSSRUNDE!"],[/Dorfmeisterschaft!/,"🏆 DORFMEISTERSCHAFT!"],[/Glücksrad: .*(Straße|Kasse: \+|\+200)/,"🎰 JACKPOT!"],[/Dorf-Ereignis/,"🎪 DORF-EREIGNIS!"],[/pleite/,"💸 PLEITE!"],[/TOOOR/,"⚽ TOOOR!"],[/Tadan/,"🦁 TADAN!"],[/räumt die Kasse/,"🍻 JACKPOT!"],[/Kilian beglaubigt/,"🏛️ GETAUSCHT!"],[/Peck liefert/,"🏗️ PECK LIEFERT!"],[/Blitzer am Schwimmbad/,"📸 GEBLITZT!"],[/eiserner Kralle fest/,"🦾 DIE KRALLE!"],[/sitzt im Bunker/,"🚬 BUNKER!"],[/gewinnt .*€/,"⚔ SIEG!"],[/\(Pasch\)/,"🎲 PASCH!"]];
+const BANNERS=[[/⚽ Abpfiff: /,"⚽ ABPFIFF!"],[/Einarmiger Bandit: .*JACKPOT/,"🎰 JACKPOT!"],[/Waldfest-Tombola: /,"🎟️ TOMBOLA!"],[/Kredithai kommt kassieren/,"🦈 HARRY KASSIERT!"],[/Geheimauftrag erfüllt/,"🤫 AUFTRAG ERFÜLLT!"],[/Spielende/,"👑 BARON!"],[/ROLLMISCH/,"🎲 ROLLMISCH!"],[/Schlussrunde/,"🏁 SCHLUSSRUNDE!"],[/Dorfmeisterschaft!/,"🏆 DORFMEISTERSCHAFT!"],[/Glücksrad: .*(Straße|Kasse: \+|\+200)/,"🎰 JACKPOT!"],[/Dorf-Ereignis/,"🎪 DORF-EREIGNIS!"],[/pleite/,"💸 PLEITE!"],[/TOOOR/,"⚽ TOOOR!"],[/Tadan/,"🦁 TADAN!"],[/räumt die Kasse/,"🍻 JACKPOT!"],[/Kilian beglaubigt/,"🏛️ GETAUSCHT!"],[/Peck liefert/,"🏗️ PECK LIEFERT!"],[/Blitzer am Schwimmbad/,"📸 GEBLITZT!"],[/eiserner Kralle fest/,"🦾 DIE KRALLE!"],[/sitzt im Bunker/,"🚬 BUNKER!"],[/gewinnt .*€/,"⚔ SIEG!"],[/\(Pasch\)/,"🎲 PASCH!"]];
 function showBanner(lines){
   if(RM)return;const txt=lines.join("\n");const hit=BANNERS.find(([re])=>re.test(txt));if(!hit)return;
   const b=document.getElementById("banner");b.innerHTML=`<span>${esc(hit[1])}</span>`;b.hidden=false;clearTimeout(showBanner.t);showBanner.t=setTimeout(()=>b.hidden=true,2000);
@@ -1914,13 +1941,13 @@ function renderBar(){
   if(!p){bar.hidden=true;document.body.classList.remove("has-bar");app.barPid=null;return;}
   app.barPid=p.id;const n=Object.values(S.props).filter(o=>o.owner===p.id).length;
   const place=1+S.players.filter(q=>!q.bankrupt&&worth(S,q)>worth(S,p)).length;
-  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.bs?` · 🏦 ${p.bs.paid/BS_RATE}/${BS_N}`:""}${p.loan?` · Kredit noch ${p.loan.left}×${p.loan.rate} €`:""}${p.hai?` · 🦈 ${fmt(p.hai.owe)} € fällig Runde ${p.hai.due}`:""}${Object.entries(p.free||{}).filter(([o,n])=>n&&S.players[o]&&!S.players[o].bankrupt).map(([o,n])=>` · 🎟️ ${n}× mietfrei bei ${esc(S.players[o].name)}`).join("")}${p.rache&&S.players[p.rache.to]&&!S.players[p.rache.to].bankrupt?` · 🔥 Rache an ${esc(S.players[p.rache.to].name)}`:""}${p.id===S.turn?" · du bist dran":""}</span>${p.quest&&QUESTS[p.quest.k]?`<button class="ghost small qbtn" data-a="quest">${p.quest.done?"✅":"🤫"} Auftrag</button>`:""}</div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
+  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.bs?` · 🏦 ${p.bs.paid/BS_RATE}/${BS_N}`:""}${p.loan?` · Kredit noch ${p.loan.left}×${p.loan.rate} €`:""}${p.hai?` · 🦈 ${fmt(p.hai.owe)} € fällig Runde ${p.hai.due}`:""}${S.match&&!S.match.res&&S.match.bets[p.id]?` · ⚽ ${BET_T[S.match.bets[p.id].t]} ${S.match.bets[p.id].st} € (Runde ${S.match.ko})`:""}${Object.entries(p.free||{}).filter(([o,n])=>n&&S.players[o]&&!S.players[o].bankrupt).map(([o,n])=>` · 🎟️ ${n}× mietfrei bei ${esc(S.players[o].name)}`).join("")}${p.rache&&S.players[p.rache.to]&&!S.players[p.rache.to].bankrupt?` · 🔥 Rache an ${esc(S.players[p.rache.to].name)}`:""}${p.id===S.turn?" · du bist dran":""}</span>${p.quest&&QUESTS[p.quest.k]?`<button class="ghost small qbtn" data-a="quest">${p.quest.done?"✅":"🤫"} Auftrag</button>`:""}</div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
 }
 /* Flüssiger Spielerwechsel: ist im Zug nichts mehr zu entscheiden, geht es nach kurzer Pause automatisch weiter. */
 const AUTO_MS=2600;
 function autoEndOk(){
   const S=app.S;if(!S||S.status!=="playing"||S.phase!=="end"||!canAct())return false;
-  if(canDuel(S)||app.sel!=null||app.tradeOpen||app.duelOpen||app.haiOpen||app.autoOff===S.rev)return false;
+  if(canDuel(S)||app.sel!=null||app.tradeOpen||app.duelOpen||app.haiOpen||app.betOpen||app.autoOff===S.rev)return false;
   return true;
 }
 function armAutoEnd(){
@@ -2094,7 +2121,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v32";
+const BUILD="rbm-v33";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -2161,7 +2188,7 @@ document.addEventListener("click",async ev=>{
     case "go-local":go("local");break;
     case "go-cpu":go("cpu");break;
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",20);render();break;
+    case "news-ok":store.set("rbm-news",21);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
@@ -2252,6 +2279,10 @@ document.addEventListener("click",async ev=>{
     case "trade-open":stopAutoEnd();app.tradeOpen=true;app.duelOpen=false;render();setTimeout(()=>{const el=document.getElementById("t-to");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});},50);break;
     case "trade-close":app.tradeOpen=false;render();break;
     case "ttt-pvp":{const d=app.S.duel;if(!d||!d.tb)break;const t=d.tt,h=+b.dataset.h;commitLeased(S=>actTttPvp(S,t,h),[t]);break;}
+    case "bet-open":stopAutoEnd();app.betOpen=true;render();break;
+    case "bet-close":app.betOpen=false;render();break;
+    case "bet-stake":app.betStake=+b.dataset.v;render();break;
+    case "bet":{const t=b.dataset.t,v=app.betStake||20;app.betOpen=false;commitLeased(S=>actBet(S,t,v));break;}
     case "hai-open":stopAutoEnd();app.haiOpen=true;render();break;
     case "hai-close":app.haiOpen=false;render();break;
     case "hai":{const v=+b.dataset.v;app.haiOpen=false;commitLeased(S=>actHai(S,v));break;}
