@@ -217,6 +217,7 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .stakes{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%;font-size:13px;color:var(--muted)}.chip{padding:6px 11px;border-radius:999px;border:1px solid var(--gold);background:transparent;color:var(--paper);font-weight:700}.chip.on{background:var(--gold);color:#1b2a1f}.chip:disabled{opacity:.35}
 .bierbox{position:relative;width:min(100%,260px);height:190px;margin:0 auto;border-radius:12px;background:radial-gradient(circle at 50% 40%,#3b2a14,#1d140a);touch-action:none;user-select:none;overflow:hidden}.bierbox.finger{cursor:grab}.krug{position:absolute;width:58px;height:78px;transform:translate(-50%,-50%);border:3px solid #e9eef2;border-top:none;border-radius:4px 4px 10px 10px;background:rgba(255,255,255,.12);pointer-events:none}.krug .bier{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(#ffd25a,#e59a12);border-radius:0 0 7px 7px;box-shadow:0 -7px 0 #fffbea}.krug .henkel{position:absolute;right:-19px;top:14px;width:15px;height:36px;border:3px solid #e9eef2;border-left:none;border-radius:0 12px 12px 0}
 .recs{display:flex;flex-direction:column;gap:6px}.rec{background:rgba(255,255,255,.05);border-radius:10px;padding:8px 10px}.rec summary{display:flex;justify-content:space-between;gap:8px;cursor:pointer;list-style:none;font-size:14px}.rec summary::-webkit-details-marker{display:none}.rec summary b{color:var(--gold);text-align:right;font-size:13px}.rec ol{list-style:none;margin:6px 0 0;padding:0;font-size:14px}.rec li{display:flex;gap:6px;padding:3px 0;border-top:1px solid rgba(255,255,255,.06)}.rec li b{margin-left:auto}.rec li span{width:24px}
+.schq{font-size:18px;font-weight:800;text-align:center;margin:4px 0 8px;line-height:1.3}.schbar{height:6px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden;margin:0 auto 10px;width:min(100%,260px)}.schbar i{display:block;height:100%;background:linear-gradient(90deg,#e0453a,#f0c419);transition:width .1s linear}
 .twall{position:relative;width:min(100%,190px);aspect-ratio:3/2;margin:0 auto;background:linear-gradient(#2a8a4a,#1f6e3a);border:5px solid #f4f4f4;border-radius:4px;overflow:visible;box-shadow:inset 0 0 0 2px #0d4a24}
 .thole{position:absolute;width:18%;aspect-ratio:1;border-radius:50%;background:radial-gradient(#071a0e,#0b2a16 70%);border:3px solid #f4f4f4;transform:translate(-50%,-50%)}.thole.l{left:22%;top:74%}.thole.h{left:78%;top:28%}.thole.aim{box-shadow:0 0 0 3px #f2d27a,0 0 14px #f2d27a}
 .tball{position:absolute;left:50%;top:125%;font-size:22px;transform:translate(-50%,-50%);opacity:0;pointer-events:none;z-index:2}
@@ -478,13 +479,13 @@ const CHALLENGES=[
 ];
 /* Die 9 Minispiele, die angeboten werden (alles Geschick, Tempo, Köpfchen oder Wissen, kein reines Glück). */
 const OFFER=["whack","rennen","faengt","glocken","stopp","rechnen","farben","schaetz","ttt","torwand"];
-const SOLO_ALL={bier:{g:"Mindestens 65 % Bier im Krug behalten.",ok:v=>v>=65},torwand:{g:"Triff mindestens 2 von 6 Schüssen.",ok:v=>v>=2},ttt:{g:"Hol mindestens 5 Punkte gegen die Wildsau.",ok:v=>v>=5},rennen:{g:"Schaffe mindestens 40 Schritte.",ok:v=>v>=40},faengt:{g:"Fange mindestens 12 Äppler.",ok:v=>v>=12},glocken:{g:"Schaffe mindestens 5 Runden.",ok:v=>v>=5},whack:{g:"Schaffe mindestens 12 Punkte.",ok:v=>v>=12},stopp:{g:"Stoppe zwischen 4,75 und 5,25 Sekunden.",ok:v=>Math.abs(v-5000)<=250},rechnen:{g:"Schaffe mindestens 7 Punkte.",ok:v=>v>=7},farben:{g:"Schaffe mindestens 8 Punkte.",ok:v=>v>=8},reflex:{g:"Reagiere schneller als 0,40 Sekunden.",ok:v=>v<400},tap:{g:"Pumpe mindestens 35-mal in 5 Sekunden.",ok:v=>v>=35},schaetz:{g:"Liege höchstens 10 % daneben, bei Jahreszahlen höchstens 5 Jahre.",ok:(v,c)=>Math.abs(v-SCHAETZ[c.q].a)<=schTol(SCHAETZ[c.q])},huetchen:{g:"Finde den Taler unter einem von drei Bembeln.",ok:()=>Math.random()<1/3,w:150,l:30}};
+const SOLO_ALL={bier:{g:"Mindestens 65 % Bier im Krug behalten.",ok:v=>v>=65},torwand:{g:"Triff mindestens 2 von 6 Schüssen.",ok:v=>v>=2},ttt:{g:"Hol mindestens 5 Punkte gegen die Wildsau.",ok:v=>v>=5},rennen:{g:"Schaffe mindestens 40 Schritte.",ok:v=>v>=40},faengt:{g:"Fange mindestens 12 Äppler.",ok:v=>v>=12},glocken:{g:"Schaffe mindestens 5 Runden.",ok:v=>v>=5},whack:{g:"Schaffe mindestens 12 Punkte.",ok:v=>v>=12},stopp:{g:"Stoppe zwischen 4,75 und 5,25 Sekunden.",ok:v=>Math.abs(v-5000)<=250},rechnen:{g:"Schaffe mindestens 7 Punkte.",ok:v=>v>=7},farben:{g:"Schaffe mindestens 8 Punkte.",ok:v=>v>=8},reflex:{g:"Reagiere schneller als 0,40 Sekunden.",ok:v=>v<400},tap:{g:"Pumpe mindestens 35-mal in 5 Sekunden.",ok:v=>v>=35},schaetz:{g:"Liege höchstens 10 % daneben, bei Jahreszahlen höchstens 5 Jahre.",ok:(v,c)=>v>=0&&Math.abs(v-SCHAETZ[c.q].a)<=schTol(SCHAETZ[c.q])},huetchen:{g:"Finde den Taler unter einem von drei Bembeln.",ok:()=>Math.random()<1/3,w:150,l:30}};
 const SOLO=Object.fromEntries(OFFER.map(k=>[k,SOLO_ALL[k]]));
-function valText(k,v,c){if(k==="reflex")return v>=5000?"zu früh getippt":(v/1000).toFixed(2).replace(".",",")+" s";if(k==="stopp")return (v/1000).toFixed(2).replace(".",",")+" s";if(k==="tap")return v+"× gepumpt";if(k==="rennen")return v+" Schritte";if(k==="faengt")return v+" Äppler";if(k==="glocken")return v+" Runden";if(k==="whack")return v+" Punkte";if(k==="rechnen"||k==="farben"||k==="ttt")return v+" Punkte";if(k==="torwand")return v+" von 6 Treffern";if(k==="bier")return v+" % im Krug";if(k==="schaetz")return Number(v).toLocaleString("de-DE")+" getippt, richtig: "+SCHAETZ[c.q].a.toLocaleString("de-DE");return "Bembel "+v;}
+function valText(k,v,c){if(k==="reflex")return v>=5000?"zu früh getippt":(v/1000).toFixed(2).replace(".",",")+" s";if(k==="stopp")return (v/1000).toFixed(2).replace(".",",")+" s";if(k==="tap")return v+"× gepumpt";if(k==="rennen")return v+" Schritte";if(k==="faengt")return v+" Äppler";if(k==="glocken")return v+" Runden";if(k==="whack")return v+" Punkte";if(k==="rechnen"||k==="farben"||k==="ttt")return v+" Punkte";if(k==="torwand")return v+" von 6 Treffern";if(k==="bier")return v+" % im Krug";if(k==="schaetz")return (v<0?"Zeit abgelaufen":Number(v).toLocaleString("de-DE")+" getippt")+", richtig: "+SCHAETZ[c.q].a.toLocaleString("de-DE");return "Bembel "+v;}
 function startChallenge(S){
   const kind=pick(Object.keys(SOLO)),x2=evOn(S,"pay")||1,c={kind,w:(SOLO[kind].w||80)*x2,l:(SOLO[kind].l||40)*x2};if(kind==="schaetz")c.q=schQ(S);
   S.challenge=c;S.phase="challenge";
-  S.card={deck:"ch",t:"★ Challenge: "+KIND_N(kind),x:(kind==="schaetz"?SCHAETZ[c.q].q+" ":MINI[kind]+" ")+"Ziel: "+SOLO[kind].g+" Geschafft +"+c.w+" €, sonst −"+c.l+" €."};
+  S.card={deck:"ch",t:"★ Challenge: "+KIND_N(kind),x:(kind==="schaetz"?"Die Frage kommt erst, wenn du startest, dann hast du "+SCH_S+" Sekunden. ":MINI[kind]+" ")+"Ziel: "+SOLO[kind].g+" Geschafft +"+c.w+" €, sonst −"+c.l+" €."};
   log(S,cur(S).name+" muss eine Challenge spielen: "+KIND_N(kind)+".");
 }
 /* Bierbrunnen (Lucas, 05.10.): Manchmal sprudelt im Biergarten Freibier. Wer landet, muss 8 Sekunden lang mit randvoller Maß ruhig bleiben. */
@@ -910,13 +911,13 @@ function tourStart(S){
   S.tourN=(S.tourN||0)+1;const kind=pick(OFFER),streets=S.tourN%2===0;
   S.tour={kind,q:kind==="schaetz"?schQ(S):kind==="glocken"?1+Math.floor(Math.random()*1e6):0,in:{},players:alive(S).map(p=>p.id),streets,prev:"roll"};
   S.phase="tour";
-  S.card={deck:"ev",t:streets?"🏆 Dorfmeisterschaft um Grundstücke!":"🏆 Rottenberger Dorfmeisterschaft!",x:"Alle spielen "+KIND_N(kind)+". "+(kind==="schaetz"?SCHAETZ[S.tour.q].q+" ":"")+
+  S.card={deck:"ev",t:streets?"🏆 Dorfmeisterschaft um Grundstücke!":"🏆 Rottenberger Dorfmeisterschaft!",x:"Alle spielen "+KIND_N(kind)+". "+(kind==="schaetz"?"Die Frage kommt erst, wenn du startest, dann hast du "+SCH_S+" Sekunden. ":"")+
     (streets?"Der Sieger bekommt vom Letzten eine Straße (dessen günstigste ohne Häuser). 2. Platz 150 €, 3. Platz 75 €."
       :"Ohne Einsatz. Preise: 1. Platz 300 €, 2. Platz 150 €, 3. Platz 75 €.")};
   log(S,"Dorfmeisterschaft! Alle spielen "+KIND_N(kind)+".");
 }
 function tourPending(S){const t=S.tour;return t?t.players.filter(id=>!S.players[id].bankrupt&&!(id in t.in)):[];}
-function tourScore(t,v){return t.kind==="stopp"?-Math.abs(v-5000):t.kind==="schaetz"?-Math.abs(v-SCHAETZ[t.q].a):v;}
+function tourScore(t,v){return t.kind==="stopp"?-Math.abs(v-5000):t.kind==="schaetz"?(v<0?-Infinity:-Math.abs(v-SCHAETZ[t.q].a)):v;}
 function actTourInput(S,pid,val){
   const t=S.tour;if(!t||S.phase!=="tour"||!t.players.includes(pid)||pid in t.in)return S;
   val=Number(val);if(!isFinite(val))return S;t.in[pid]=val;log(S,S.players[pid].name+" ist fertig.");
@@ -1029,11 +1030,23 @@ const SCHAETZ=[
  {q:"Wie viele Streifen hat die Flagge der USA?",a:13},{q:"Wie hoch ist ein DIN-A4-Blatt in Millimetern?",a:297},{q:"Wie breit ist ein DIN-A4-Blatt in Millimetern?",a:210},
  {q:"Wie viele Tasten hat eine normale deutsche PC-Tastatur?",a:105},{q:"Wie schnell fährt ein ICE höchstens im normalen Betrieb, in km/h?",a:300},{q:"In welcher Höhe fliegt ein Passagierflugzeug ungefähr, in Metern?",a:10000},
  {q:"Wie viele Flaschen sind in einem normalen Kasten Bier?",a:20},{q:"Wie viele Saiten hat eine Gitarre?",a:6},{q:"Wie viele Kanten hat ein Würfel?",a:12},
- {q:"Wie viele Buchstaben hat das Alphabet ohne Umlaute und ß?",a:26},{q:"Wie viele Minuten dauert ein Eishockeyspiel reine Spielzeit?",a:60},{q:"Wie viele Spieler einer Mannschaft stehen beim Volleyball auf dem Feld?",a:6}
+ {q:"Wie viele Buchstaben hat das Alphabet ohne Umlaute und ß?",a:26},{q:"Wie viele Minuten dauert ein Eishockeyspiel reine Spielzeit?",a:60},{q:"Wie viele Spieler einer Mannschaft stehen beim Volleyball auf dem Feld?",a:6},
+ /* Verrückte Fragen (Lucas, 05.10.). */
+ {q:"Wie viele Herzen hat ein Oktopus?",a:3},{q:"Wie viele Augen hat eine Honigbiene?",a:5},{q:"Wie viele Beine hat ein Hummer?",a:10},
+ {q:"Wie viele Stunden schläft ein Koala am Tag ungefähr?",a:20},{q:"Wie viele Kilo wiegt das Herz eines Blauwals ungefähr?",a:180},{q:"Wie viele Jahre wurde die älteste Katze der Welt?",a:38},
+ {q:"Wie lang war der längste Bart der Welt, in Zentimetern?",a:533},{q:"Wie viele Kilo wog der schwerste Kürbis der Welt?",a:1247},{q:"Wie viele Stunden dauerte der längste Kuss der Welt?",a:58},
+ {q:"Wie viele Kinder hatte die Frau mit den meisten Geburten der Geschichte?",a:69},{q:"Wie viele Sekunden dauerte der längste Hühnerflug-Rekord?",a:13},{q:"Wie viele Stunden am Tag kaut eine Kuh ungefähr?",a:8},
+ {q:"Wie viele Zähne verbraucht ein Hai im Leben ungefähr?",a:30000},{q:"Wie viele Kilometer fliegt eine Küstenseeschwalbe im Jahr ungefähr?",a:70000},{q:"Wie viele Tage war der Rekordhalter am Stück im Weltall?",a:437},
+ {q:"Wie viele Tonnen wiegt eine normale Schäfchenwolke ungefähr?",a:500},{q:"Wie viele Jahre braucht eine Plastikflasche ungefähr, bis sie zerfällt?",a:450},{q:"Wie viele Liter Wasser braucht man für ein Kilo Rindfleisch ungefähr?",a:15000},
+ {q:"Wie viele Liter Bier trinkt ein Deutscher im Schnitt pro Jahr?",a:88},{q:"Wie viele Millionen Maß wurden auf dem Oktoberfest 2024 ungefähr ausgeschenkt?",a:7},{q:"Wie viele Kilometer Blutgefäße hat ein Mensch ungefähr?",a:100000},
+ {q:"Wie oft blinzelt ein Mensch ungefähr pro Minute?",a:15},{q:"Wie viele Kilo wiegt ein Elefantenbaby bei der Geburt ungefähr?",a:100},{q:"Wie viele Wildschweine wurden in Deutschland in der Jagdsaison 2019/20 erlegt, in Tausend?",a:880},
+ {q:"Wie viele Kilo wird ein richtig großer Keiler ungefähr schwer?",a:200},{q:"Wie viele Millionen Rinder gibt es in Deutschland ungefähr?",a:11},{q:"Wie viele Kilo Nudeln isst ein Italiener im Jahr ungefähr?",a:23},
+ {q:"Wie viele Stunden lebt eine ausgewachsene Eintagsfliege ungefähr?",a:24}
 ];
 /* Schätzfragen kommen aus einem gemischten Stapel, damit sich in einer Partie nichts wiederholt. */
 function schQ(S){if(!S.schD||!S.schD.length)S.schD=shuffle(SCHAETZ.map((_,i)=>i));return S.schD.shift();}
 /* Bei Jahreszahlen zählen ±5 Jahre, sonst ±10 %. */
+const SCH_S=6;
 const schTol=q=>/Jahr wurde|In welchem Jahr|Jahr druckte/.test(q.q)?5:Math.max(1,q.a*.1);
 const TTT_L=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
 const tttWin=(b,w)=>TTT_L.find(l=>l.every(i=>b[i]===w));
@@ -1079,7 +1092,7 @@ function actDuelInput(S,pid,val,internal){
   else if(["whack","rechnen","farben","rennen","faengt","glocken","ttt","torwand"].includes(d.kind)){const u={whack:" Punkte",rennen:" Schritte",faengt:" Äppler",glocken:" Runden",torwand:" Treffer"}[d.kind]||" Punkte";detail=A.name+": "+a+u+", "+B.name+": "+b+u+".";if(a!==b)W=a>b?A:B;}
   else if(d.kind==="huetchen"){const ball=1+Math.floor(Math.random()*3);detail="Der Taler lag unter Bembel "+ball+". "+A.name+" tippte "+a+", "+B.name+" tippte "+b+".";if((a===ball)!==(b===ball))W=a===ball?A:B;}
   else if(d.kind==="tap"){detail=A.name+": "+a+"×, "+B.name+": "+b+"× gepumpt.";if(a!==b)W=a>b?A:B;}
-  else{const q=SCHAETZ[d.q],da=Math.abs(a-q.a),db=Math.abs(b-q.a);detail="Richtig: "+fmt(q.a)+". "+A.name+": "+fmt(a)+", "+B.name+": "+fmt(b)+".";if(da!==db)W=da<db?A:B;}
+  else{const q=SCHAETZ[d.q],da=a<0?Infinity:Math.abs(a-q.a),db=b<0?Infinity:Math.abs(b-q.a),ft=v=>v<0?"zu langsam":fmt(v);detail="Richtig: "+fmt(q.a)+". "+A.name+": "+ft(a)+", "+B.name+": "+ft(b)+".";if(da!==db)W=da<db?A:B;}
   if(W)d.win=W.id;
   if(!W){log(S,KIND_N(d.kind)+": Unentschieden. "+detail);S.card={deck:"duel",t:"Unentschieden!",x:detail+" Niemand zahlt."};return endDuel(S);}
   const L=W===A?B:A;
@@ -1099,7 +1112,7 @@ function actRevenge(S){
   const d={from:p.id,to:o.id,stake,kind,state:"play",in:{},prev:"roll",revenge:true};tttInit(d);S.duel=d;cpuLiveBets(S);
   if(kind==="schaetz")d.q=schQ(S);if(kind==="glocken")d.q=1+Math.floor(Math.random()*1e6);
   S.duel=d;S.phase="duel";
-  S.card={deck:"duel",t:"🔥 Rache-Duell: "+KIND_N(kind),x:p.name+" rächt sich an "+o.name+". Gewinnt "+p.name+", zahlt "+o.name+" "+stake+" € zurück. Verliert "+p.name+", kostet es nichts. "+(kind==="schaetz"?SCHAETZ[d.q].q:kind==="ttt"?TTT_PVP:MINI[kind])};
+  S.card={deck:"duel",t:"🔥 Rache-Duell: "+KIND_N(kind),x:p.name+" rächt sich an "+o.name+". Gewinnt "+p.name+", zahlt "+o.name+" "+stake+" € zurück. Verliert "+p.name+", kostet es nichts. "+(kind==="schaetz"?"Die Frage kommt erst, wenn du startest, dann hast du "+SCH_S+" Sekunden. ":kind==="ttt"?TTT_PVP:MINI[kind])};
   log(S,"🔥 "+p.name+" fordert "+o.name+" zum Rache-Duell: "+KIND_N(kind)+" um "+stake+" €.");return S;
 }
 function canDuel(S){const p=cur(S);return !S.duelUsed&&!!S.miniHere&&BOARD[p.pos].t==="mini"&&(S.phase==="roll"||S.phase==="end")&&others(S,p).length>0;}
@@ -1142,7 +1155,7 @@ function actDuelAnswer(S,yes){
     S.card={deck:"duel",t:"⚔ "+W.name+" gewinnt!",x:A.name+" würfelt "+ra+", "+B.name+" würfelt "+rb+". "+L.name+" zahlt "+d.stake+" €."};
     duelStat(S,W,L);pay(S,L,W,d.stake);return endDuel(S);
   }
-  if(MINI[d.kind]){d.state="play";d.in={};tttInit(d);cpuLiveBets(S);S.card={deck:"duel",t:"⚔ "+KIND_N(d.kind),x:(d.kind==="schaetz"?SCHAETZ[d.q].q+" ":d.kind==="ttt"?TTT_PVP+" ":MINI[d.kind]+" ")+"Einsatz "+d.stake+" €."};log(S,B.name+" nimmt an: "+KIND_N(d.kind)+".");return S;}
+  if(MINI[d.kind]){d.state="play";d.in={};tttInit(d);cpuLiveBets(S);S.card={deck:"duel",t:"⚔ "+KIND_N(d.kind),x:(d.kind==="schaetz"?"Die Frage kommt erst, wenn du startest, dann hast du "+SCH_S+" Sekunden. ":d.kind==="ttt"?TTT_PVP+" ":MINI[d.kind]+" ")+"Einsatz "+d.stake+" €."};log(S,B.name+" nimmt an: "+KIND_N(d.kind)+".");return S;}
   d.state="judge";
   S.card={deck:"duel",t:"⚔ "+d.ct,x:A.name+" gegen "+B.name+": "+d.cx+" Wer war besser? Einsatz "+d.stake+" €."};
   log(S,B.name+" nimmt die Herausforderung an: "+d.ct+".");
@@ -1877,6 +1890,7 @@ function mgInit(m){
   if(kind==="rechnen"){m.stage="go";m.end=now+20000;m.pq=mathQ();}
   if(kind==="farben"){m.stage="go";m.end=now+15000;newInk(m);}
   if(kind==="bier"){m.stage="go";m.t0=now;m.end=now+8000;m.lvl=100;m.sens=null;m.gx=50;m.gy=50;m.vx=0;m.vy=0;m.slosh=0;m.last=now;bierMot.j=0;bierMot.g0=null;bierMot.t=0;}
+  if(kind==="schaetz"){m.stage="go";m.end=now+SCH_S*1000;m.iv=setInterval(()=>{if(mg!==m){clearInterval(m.iv);return;}const t=performance.now(),l=document.getElementById("mg-left"),bar=document.getElementById("sch-bar");if(l)l.textContent=Math.max(0,Math.ceil((m.end-t)/1000));if(bar)bar.style.width=Math.max(0,(m.end-t)/(SCH_S*10))+"%";if(t>=m.end){const el=document.getElementById("mg-num"),v=el&&el.value!==""?Math.round(+el.value):-1;miniSubmit(v<0?-1:v);}},100);setTimeout(()=>{const el=document.getElementById("mg-num");if(el)el.focus();},60);}
   if(kind==="torwand"){m.stage="go";m.shot=0;m.score=0;m.fly=false;m.res=[];}
   if(kind==="ttt"){m.stage="go";m.b=Array(9).fill("");m.game=0;m.score=0;m.res=[];m.lock=false;m.msg="";}
   if(kind==="rennen"){m.stage="go";m.end=now+7000;m.last=null;}
@@ -1955,7 +1969,7 @@ function mgBody(){
   if(m.stage==="count")return `<div class="countdown"><span>${m.cd}</span><small>${esc(KIND_N(k))} · Rekord: ${bestText(k)}</small></div>`;
   if(k==="ssp")return `<div class="acts">${[["schere","✌️ Schere"],["stein","✊ Stein"],["papier","✋ Papier"]].map(([v,l])=>`<button class="gold" data-a="mg-pick" data-v="${v}">${l}</button>`).join("")}</div>`;
   if(k==="huetchen")return `<div class="acts">${[1,2,3].map(v=>`<button class="gold" data-a="mg-pick" data-v="${v}" style="font-size:24px;padding:10px 14px">🍺<small style="font-size:12px"> ${v}</small></button>`).join("")}</div>`;
-  if(k==="schaetz")return `<div class="row" style="justify-content:center"><input id="mg-num" type="number" inputmode="numeric" style="width:8em"><button class="gold" data-a="mg-send">Tipp abgeben</button></div>`;
+  if(k==="schaetz")return `<div class="schq">${esc(SCHAETZ[m.q]?SCHAETZ[m.q].q:"")}</div><div class="schbar"><i id="sch-bar" style="width:100%"></i></div><div class="row" style="justify-content:center"><input id="mg-num" type="number" inputmode="numeric" enterkeyhint="send" style="width:8em"><button class="gold" data-a="mg-send">Tipp abgeben</button></div><div class="note">Noch <b id="mg-left">${SCH_S}</b> s</div>`;
   if(k==="reflex")return m.stage==="go"?`<button class="primary" data-a="mg-hit" style="font-size:24px;padding:16px 24px">🐗 JETZT!</button>`:`<button class="ghost" data-a="mg-hit" style="padding:16px 24px">Warte auf die Wildsau …</button>`;
   if(k==="tap")return `<button class="gold" data-a="mg-tap" style="font-size:22px;padding:18px 26px">🍎 Pumpen! <span id="mg-count">${m.count}</span></button><div class="note" id="mg-time">${m.stage==="go"?"Läuft …":"Die Zeit startet beim ersten Tippen."}</div>`;
   if(k==="rennen"){const pct=Math.min(100,m.count*1.6);return `<div class="track"><span class="flag">🏁</span><span class="runner" style="left:calc(${pct}% - ${pct*.28}px)">🐗</span></div><div class="feet"><button class="gold ${m.last==="L"?"used":""}" data-a="mg-foot" data-v="L">👣 LINKS</button><button class="gold ${m.last==="R"?"used":""}" data-a="mg-foot" data-v="R">RECHTS 👣</button></div><div class="note">Schritte: <b id="mg-score">${m.count}</b> · noch <span id="mg-left">${leftS(m)}</span></div>`;}
@@ -2304,7 +2318,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v44";
+const BUILD="rbm-v45";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -2363,6 +2377,7 @@ function mgFast(a,b){
 }
 document.addEventListener("pointerdown",ev=>{const b=ev.target.closest("[data-a]");if(!b||b.disabled||!FAST.has(b.dataset.a))return;if(ev.pointerType==="mouse"&&ev.button!==0)return;ev.preventDefault();mgFast(b.dataset.a,b);},{passive:false});
 /* Torwandschießen: Wisch vom Ball weg. Seitwärts steuert links/rechts, die Länge des Wischs die Höhe. Kleine Streuung wie beim echten Schuss. */
+document.addEventListener("keydown",ev=>{if(ev.key==="Enter"&&ev.target&&ev.target.id==="mg-num"){ev.preventDefault();const v=ev.target.value;if(mg&&v!=="")miniSubmit(Math.round(+v));}});
 let twS=null;
 document.addEventListener("pointerdown",ev=>{const pt=ev.target.closest&&ev.target.closest("#tw-pitch");if(!pt||!mg||mg.kind!=="torwand"||mg.stage!=="go"||mg.fly)return;ev.preventDefault();twS={x:ev.clientX,y:ev.clientY,t:performance.now(),w:pt.getBoundingClientRect().width};},{passive:false});
 document.addEventListener("pointerup",ev=>{if(!twS)return;const s0=twS;twS=null;const m=mg;if(!m||m.kind!=="torwand"||m.stage!=="go"||m.fly)return;
