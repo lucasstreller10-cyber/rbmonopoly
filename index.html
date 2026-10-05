@@ -477,11 +477,11 @@ const CHALLENGES=[
 ];
 /* Die 9 Minispiele, die angeboten werden (alles Geschick, Tempo, Köpfchen oder Wissen, kein reines Glück). */
 const OFFER=["whack","rennen","faengt","glocken","stopp","rechnen","farben","schaetz","ttt","torwand"];
-const SOLO_ALL={bier:{g:"Mindestens 65 % Bier im Krug behalten.",ok:v=>v>=65},torwand:{g:"Triff mindestens 2 von 6 Schüssen.",ok:v=>v>=2},ttt:{g:"Hol mindestens 5 Punkte gegen die Wildsau.",ok:v=>v>=5},rennen:{g:"Schaffe mindestens 40 Schritte.",ok:v=>v>=40},faengt:{g:"Fange mindestens 12 Äppler.",ok:v=>v>=12},glocken:{g:"Schaffe mindestens 5 Runden.",ok:v=>v>=5},whack:{g:"Schaffe mindestens 12 Punkte.",ok:v=>v>=12},stopp:{g:"Stoppe zwischen 4,75 und 5,25 Sekunden.",ok:v=>Math.abs(v-5000)<=250},rechnen:{g:"Schaffe mindestens 7 Punkte.",ok:v=>v>=7},farben:{g:"Schaffe mindestens 8 Punkte.",ok:v=>v>=8},reflex:{g:"Reagiere schneller als 0,40 Sekunden.",ok:v=>v<400},tap:{g:"Pumpe mindestens 35-mal in 5 Sekunden.",ok:v=>v>=35},schaetz:{g:"Liege höchstens 10 % daneben.",ok:(v,c)=>Math.abs(v-SCHAETZ[c.q].a)<=Math.max(1,SCHAETZ[c.q].a*.1)},huetchen:{g:"Finde den Taler unter einem von drei Bembeln.",ok:()=>Math.random()<1/3,w:150,l:30}};
+const SOLO_ALL={bier:{g:"Mindestens 65 % Bier im Krug behalten.",ok:v=>v>=65},torwand:{g:"Triff mindestens 2 von 6 Schüssen.",ok:v=>v>=2},ttt:{g:"Hol mindestens 5 Punkte gegen die Wildsau.",ok:v=>v>=5},rennen:{g:"Schaffe mindestens 40 Schritte.",ok:v=>v>=40},faengt:{g:"Fange mindestens 12 Äppler.",ok:v=>v>=12},glocken:{g:"Schaffe mindestens 5 Runden.",ok:v=>v>=5},whack:{g:"Schaffe mindestens 12 Punkte.",ok:v=>v>=12},stopp:{g:"Stoppe zwischen 4,75 und 5,25 Sekunden.",ok:v=>Math.abs(v-5000)<=250},rechnen:{g:"Schaffe mindestens 7 Punkte.",ok:v=>v>=7},farben:{g:"Schaffe mindestens 8 Punkte.",ok:v=>v>=8},reflex:{g:"Reagiere schneller als 0,40 Sekunden.",ok:v=>v<400},tap:{g:"Pumpe mindestens 35-mal in 5 Sekunden.",ok:v=>v>=35},schaetz:{g:"Liege höchstens 10 % daneben, bei Jahreszahlen höchstens 5 Jahre.",ok:(v,c)=>Math.abs(v-SCHAETZ[c.q].a)<=schTol(SCHAETZ[c.q])},huetchen:{g:"Finde den Taler unter einem von drei Bembeln.",ok:()=>Math.random()<1/3,w:150,l:30}};
 const SOLO=Object.fromEntries(OFFER.map(k=>[k,SOLO_ALL[k]]));
 function valText(k,v,c){if(k==="reflex")return v>=5000?"zu früh getippt":(v/1000).toFixed(2).replace(".",",")+" s";if(k==="stopp")return (v/1000).toFixed(2).replace(".",",")+" s";if(k==="tap")return v+"× gepumpt";if(k==="rennen")return v+" Schritte";if(k==="faengt")return v+" Äppler";if(k==="glocken")return v+" Runden";if(k==="whack")return v+" Punkte";if(k==="rechnen"||k==="farben"||k==="ttt")return v+" Punkte";if(k==="torwand")return v+" von 6 Treffern";if(k==="bier")return v+" % im Krug";if(k==="schaetz")return Number(v).toLocaleString("de-DE")+" getippt, richtig: "+SCHAETZ[c.q].a.toLocaleString("de-DE");return "Bembel "+v;}
 function startChallenge(S){
-  const kind=pick(Object.keys(SOLO)),x2=evOn(S,"pay")||1,c={kind,w:(SOLO[kind].w||80)*x2,l:(SOLO[kind].l||40)*x2};if(kind==="schaetz")c.q=Math.floor(Math.random()*SCHAETZ.length);
+  const kind=pick(Object.keys(SOLO)),x2=evOn(S,"pay")||1,c={kind,w:(SOLO[kind].w||80)*x2,l:(SOLO[kind].l||40)*x2};if(kind==="schaetz")c.q=schQ(S);
   S.challenge=c;S.phase="challenge";
   S.card={deck:"ch",t:"★ Challenge: "+KIND_N(kind),x:(kind==="schaetz"?SCHAETZ[c.q].q+" ":MINI[kind]+" ")+"Ziel: "+SOLO[kind].g+" Geschafft +"+c.w+" €, sonst −"+c.l+" €."};
   log(S,cur(S).name+" muss eine Challenge spielen: "+KIND_N(kind)+".");
@@ -906,7 +906,7 @@ function tourStakeOf(S,pid){
 }
 function tourStart(S){
   S.tourN=(S.tourN||0)+1;const kind=pick(OFFER),streets=S.tourN%2===0;
-  S.tour={kind,q:kind==="schaetz"?Math.floor(Math.random()*SCHAETZ.length):kind==="glocken"?1+Math.floor(Math.random()*1e6):0,in:{},players:alive(S).map(p=>p.id),streets,prev:"roll"};
+  S.tour={kind,q:kind==="schaetz"?schQ(S):kind==="glocken"?1+Math.floor(Math.random()*1e6):0,in:{},players:alive(S).map(p=>p.id),streets,prev:"roll"};
   S.phase="tour";
   S.card={deck:"ev",t:streets?"🏆 Dorfmeisterschaft um Grundstücke!":"🏆 Rottenberger Dorfmeisterschaft!",x:"Alle spielen "+KIND_N(kind)+". "+(kind==="schaetz"?SCHAETZ[S.tour.q].q+" ":"")+
     (streets?"Der Sieger bekommt vom Letzten eine Straße (dessen günstigste ohne Häuser). 2. Platz 150 €, 3. Platz 75 €."
@@ -993,8 +993,46 @@ const SCHAETZ=[
  {q:"In welchem Jahr kam das erste iPhone heraus?",a:2007},{q:"Wie viele tausend Kilometer ist der Mond im Schnitt von der Erde entfernt?",a:384},
  {q:"Wie viele farbige Felder hat ein Zauberwürfel insgesamt?",a:54},{q:"Wie lang ist ein Marathon in Metern?",a:42195},{q:"Wie viele Kilometer misst der Erdumfang am Äquator?",a:40075},
  {q:"In welchem Jahr kam der Euro als Bargeld?",a:2002},{q:"Wie viele Länder grenzen an Deutschland?",a:9},{q:"Wie viele Sekunden hat ein Tag?",a:86400},
- {q:"Wie viele Bundesländer hat Deutschland?",a:16},{q:"Wie viele Augen hat ein Würfel zusammengezählt?",a:21}
+ {q:"Wie viele Bundesländer hat Deutschland?",a:16},{q:"Wie viele Augen hat ein Würfel zusammengezählt?",a:21},
+ /* Neue Fragen (Lucas, 05.10.: „die User haben es schon durchschaut“). */
+ {q:"Wie hoch ist der Kölner Dom in Metern?",a:157},{q:"Wie hoch ist der Berliner Fernsehturm in Metern?",a:368},{q:"Wie lang ist der Rhein in Kilometern?",a:1233},
+ {q:"Wie lang ist der Main in Kilometern?",a:527},{q:"Wie viele Einwohner hat Aschaffenburg ungefähr, in Tausend?",a:72},{q:"Wie viele Einwohner hat Hösbach ungefähr, in Tausend?",a:13},
+ {q:"In welchem Jahr wurde Schloss Johannisburg in Aschaffenburg fertig?",a:1614},{q:"Wie hoch ist der Große Feldberg im Taunus in Metern?",a:881},{q:"Wie hoch ist die Wasserkuppe in der Rhön in Metern?",a:950},
+ {q:"Wie hoch ist der Brocken im Harz in Metern?",a:1141},{q:"Wie hoch ist der Große Arber im Bayerischen Wald in Metern?",a:1456},{q:"Wie viele Einwohner hat Bayern ungefähr, in Millionen?",a:13},
+ {q:"Wie viele Einwohner hat Deutschland ungefähr, in Millionen?",a:84},{q:"Wie viele Einwohner hat Frankfurt am Main ungefähr, in Tausend?",a:770},{q:"Wie viele Einwohner hat München ungefähr, in Tausend?",a:1500},
+ {q:"Wie groß ist Deutschland in tausend Quadratkilometern?",a:358},{q:"Wie viele Kilometer Autobahn hat Deutschland ungefähr?",a:13200},{q:"Wie groß ist der Bodensee in Quadratkilometern?",a:536},
+ {q:"In welchem Jahr wurde die Bundesrepublik gegründet?",a:1949},{q:"In welchem Jahr war die Wiedervereinigung?",a:1990},{q:"In welchem Jahr wurde die Berliner Mauer gebaut?",a:1961},
+ {q:"Wie viele Bundeskanzler hatte die Bundesrepublik bis heute, Friedrich Merz mitgezählt?",a:10},{q:"Wie viele Abgeordnete sitzen seit 2025 im Bundestag?",a:630},{q:"Wie viele Jahre war Angela Merkel Kanzlerin?",a:16},
+ {q:"In welchem Jahr wurde das bayerische Reinheitsgebot erlassen?",a:1516},{q:"In welchem Jahr fand das erste Oktoberfest statt?",a:1810},{q:"Wie viele Brauereien gibt es in Deutschland ungefähr?",a:1500},
+ {q:"In welchem Jahr schlug Luther seine Thesen an?",a:1517},{q:"In welchem Jahr entdeckte Kolumbus Amerika?",a:1492},{q:"In welchem Jahr begann die Französische Revolution?",a:1789},
+ {q:"In welchem Jahr meldete Carl Benz sein Automobil zum Patent an?",a:1886},{q:"In welchem Jahr sank die Titanic?",a:1912},{q:"In welchem Jahr landeten die ersten Menschen auf dem Mond?",a:1969},
+ {q:"Wie viele Menschen haben bisher den Mond betreten?",a:12},{q:"In welchem Jahr fand die erste Fußball-WM statt?",a:1930},{q:"In welchem Jahr startete die erste Bundesliga-Saison?",a:1963},
+ {q:"In welchem Jahr war die Fußball-WM in Deutschland, das Sommermärchen?",a:2006},{q:"Wie oft wurden die deutschen Männer Fußball-Weltmeister?",a:4},{q:"Wie viele Tore fielen insgesamt beim WM-Halbfinale Deutschland gegen Brasilien 2014?",a:8},
+ {q:"Wie viele Vereine spielen in der Bundesliga?",a:18},{q:"Wie breit ist ein Fußballtor in Zentimetern?",a:732},{q:"Wie hoch ist ein Fußballtor in Zentimetern?",a:244},
+ {q:"Wie hoch hängt ein Basketballkorb in Zentimetern?",a:305},{q:"Wie lang ist ein WM-Fußballfeld in Metern?",a:105},{q:"Wie viele Kilometer ist die Tour de France ungefähr lang?",a:3400},
+ {q:"Wie viele Feldspieler plus Torwart hat eine Handballmannschaft auf dem Feld?",a:7},{q:"Wie viele Minuten dauert ein Basketballspiel nach FIBA-Regeln reine Spielzeit?",a:40},{q:"In welchem Jahr wurde Google gegründet?",a:1998},
+ {q:"In welchem Jahr ging YouTube online?",a:2005},{q:"In welchem Jahr kam WhatsApp heraus?",a:2009},{q:"In welchem Jahr kam der erste Game Boy heraus?",a:1989},
+ {q:"In welchem Jahr kam die erste PlayStation in Japan heraus?",a:1994},{q:"In welchem Jahr druckte Gutenberg ungefähr seine ersten Bücher?",a:1450},{q:"In welchem Jahr endete der Zweite Weltkrieg?",a:1945},
+ {q:"Wie hoch ist der Mount Everest in Metern?",a:8849},{q:"Wie lang ist der Nil in Kilometern?",a:6650},{q:"Wie tief ist der Marianengraben ungefähr in Metern?",a:11000},
+ {q:"Wie viele Menschen leben auf der Erde, in Milliarden?",a:8},{q:"Wie viele Länder sind Mitglied der UNO?",a:193},{q:"Wie hoch ist der Burj Khalifa in Metern?",a:828},
+ {q:"Wie hoch ist die Freiheitsstatue mit Sockel in Metern?",a:93},{q:"Wie viele Stufen hat der Eiffelturm bis ganz oben?",a:1665},{q:"Wie viele Millionen Kilometer ist die Sonne von der Erde entfernt?",a:150},
+ {q:"Wie viele Kilometer legt Licht in einer Sekunde zurück?",a:300000},{q:"Wie viele Tage braucht der Mars für eine Runde um die Sonne?",a:687},{q:"Wie viele Planeten hat unser Sonnensystem?",a:8},
+ {q:"Wie viele Liter Blut hat ein Erwachsener ungefähr?",a:5},{q:"Wie viele Muskeln hat der Mensch ungefähr?",a:650},{q:"Wie viele Haare hat ein Mensch ungefähr auf dem Kopf, in Tausend?",a:100},
+ {q:"Wie viele Tage dauert eine Schwangerschaft beim Menschen ungefähr?",a:280},{q:"Wie oft schlägt das Herz eines Erwachsenen in Ruhe ungefähr pro Minute?",a:70},{q:"Wie viele Monate ist eine Elefantenkuh trächtig?",a:22},
+ {q:"Wie viele Mägen hat eine Kuh?",a:4},{q:"Wie schnell rennt ein Gepard ungefähr in km/h?",a:110},{q:"Wie lang wird ein Blauwal ungefähr in Metern?",a:30},
+ {q:"Wie viele Stunden hat ein Jahr ohne Schalttag?",a:8760},{q:"Wie viele Sekunden hat eine Stunde?",a:3600},{q:"Wie viele Minuten hat ein Tag?",a:1440},
+ {q:"Wie viele Karten hat ein Skatblatt?",a:32},{q:"Wie viele Karten hat ein Rommé-Spiel mit sechs Jokern?",a:110},{q:"Wie viele Felder hat ein Schachbrett?",a:64},
+ {q:"Wie viele Felder hat ein Original-Monopoly-Brett?",a:40},{q:"Wie viele Steine hat ein Domino-Spiel bis Doppel-Sechs?",a:28},{q:"Wie viele Steine hat jeder Spieler bei Mühle?",a:9},
+ {q:"Wie viele Würfel braucht man für Kniffel?",a:5},{q:"Wie viele Felder hat die Laufrunde bei Mensch ärgere dich nicht?",a:40},{q:"Wie viele Sterne hat die Europaflagge?",a:12},
+ {q:"Wie viele Streifen hat die Flagge der USA?",a:13},{q:"Wie hoch ist ein DIN-A4-Blatt in Millimetern?",a:297},{q:"Wie breit ist ein DIN-A4-Blatt in Millimetern?",a:210},
+ {q:"Wie viele Tasten hat eine normale deutsche PC-Tastatur?",a:105},{q:"Wie schnell fährt ein ICE höchstens im normalen Betrieb, in km/h?",a:300},{q:"In welcher Höhe fliegt ein Passagierflugzeug ungefähr, in Metern?",a:10000},
+ {q:"Wie viele Flaschen sind in einem normalen Kasten Bier?",a:20},{q:"Wie viele Saiten hat eine Gitarre?",a:6},{q:"Wie viele Kanten hat ein Würfel?",a:12},
+ {q:"Wie viele Buchstaben hat das Alphabet ohne Umlaute und ß?",a:26},{q:"Wie viele Minuten dauert ein Eishockeyspiel reine Spielzeit?",a:60},{q:"Wie viele Spieler einer Mannschaft stehen beim Volleyball auf dem Feld?",a:6}
 ];
+/* Schätzfragen kommen aus einem gemischten Stapel, damit sich in einer Partie nichts wiederholt. */
+function schQ(S){if(!S.schD||!S.schD.length)S.schD=shuffle(SCHAETZ.map((_,i)=>i));return S.schD.shift();}
+/* Bei Jahreszahlen zählen ±5 Jahre, sonst ±10 %. */
+const schTol=q=>/Jahr wurde|In welchem Jahr|Jahr druckte/.test(q.q)?5:Math.max(1,q.a*.1);
 const TTT_L=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
 const tttWin=(b,w)=>TTT_L.find(l=>l.every(i=>b[i]===w));
 function tttBot(b){
@@ -1057,7 +1095,7 @@ function actRevenge(S){
   if(!canRevenge(S))return S;const p=cur(S),o=S.players[p.rache.to],amt=p.rache.amt;p.rache=null;
   const kind=pick(OFFER),stake=Math.min(r5(amt/2),o.money);if(stake<=0)return S;
   const d={from:p.id,to:o.id,stake,kind,state:"play",in:{},prev:"roll",revenge:true};tttInit(d);S.duel=d;cpuLiveBets(S);
-  if(kind==="schaetz")d.q=Math.floor(Math.random()*SCHAETZ.length);if(kind==="glocken")d.q=1+Math.floor(Math.random()*1e6);
+  if(kind==="schaetz")d.q=schQ(S);if(kind==="glocken")d.q=1+Math.floor(Math.random()*1e6);
   S.duel=d;S.phase="duel";
   S.card={deck:"duel",t:"🔥 Rache-Duell: "+KIND_N(kind),x:p.name+" rächt sich an "+o.name+". Gewinnt "+p.name+", zahlt "+o.name+" "+stake+" € zurück. Verliert "+p.name+", kostet es nichts. "+(kind==="schaetz"?SCHAETZ[d.q].q:kind==="ttt"?TTT_PVP:MINI[kind])};
   log(S,"🔥 "+p.name+" fordert "+o.name+" zum Rache-Duell: "+KIND_N(kind)+" um "+stake+" €.");return S;
@@ -1070,7 +1108,7 @@ function actDuelStart(S,to,stake,kind){
   stake=Math.min(stake*(evOn(S,"pay")||1),p.money,o.money);if(stake<=0)return S;
   const d={from:p.id,to:o.id,stake,kind,state:"ask",prev:S.phase};
   if(kind==="challenge"){const c=pick(CHALLENGES.filter(c=>c.t!=="Kellner-Dienst"));d.ct=c.t;d.cx=c.x;}
-  if(kind==="schaetz")d.q=Math.floor(Math.random()*SCHAETZ.length);
+  if(kind==="schaetz")d.q=schQ(S);
   if(kind==="glocken")d.q=1+Math.floor(Math.random()*1e6);
   S.duel=d;S.duelUsed=true;S.phase="duel";
   S.card={deck:"duel",t:"⚔ Herausforderung!",x:p.name+" fordert "+o.name+" zum "+KIND_N(kind)+" um "+stake+" € heraus."+(d.ct?" Aufgabe: "+d.cx:"")};
@@ -2208,7 +2246,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v39";
+const BUILD="rbm-v40";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
