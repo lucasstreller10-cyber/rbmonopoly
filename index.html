@@ -215,6 +215,7 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 @keyframes achin2{from{opacity:0;transform:translate(-50%,10px)}}
 .news{border:2px solid var(--gold)}.news ul{margin:6px 0 10px;padding-left:4px;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:14px}
 .stakes{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;width:100%;font-size:13px;color:var(--muted)}.chip{padding:6px 11px;border-radius:999px;border:1px solid var(--gold);background:transparent;color:var(--paper);font-weight:700}.chip.on{background:var(--gold);color:#1b2a1f}.chip:disabled{opacity:.35}
+.bierbox{position:relative;width:min(100%,260px);height:190px;margin:0 auto;border-radius:12px;background:radial-gradient(circle at 50% 40%,#3b2a14,#1d140a);touch-action:none;user-select:none;overflow:hidden}.bierbox.finger{cursor:grab}.krug{position:absolute;width:58px;height:78px;transform:translate(-50%,-50%);border:3px solid #e9eef2;border-top:none;border-radius:4px 4px 10px 10px;background:rgba(255,255,255,.12);pointer-events:none}.krug .bier{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(#ffd25a,#e59a12);border-radius:0 0 7px 7px;box-shadow:0 -7px 0 #fffbea}.krug .henkel{position:absolute;right:-19px;top:14px;width:15px;height:36px;border:3px solid #e9eef2;border-left:none;border-radius:0 12px 12px 0}
 .twall{position:relative;width:min(100%,190px);aspect-ratio:3/2;margin:0 auto;background:linear-gradient(#2a8a4a,#1f6e3a);border:5px solid #f4f4f4;border-radius:4px;overflow:visible;box-shadow:inset 0 0 0 2px #0d4a24}
 .thole{position:absolute;width:18%;aspect-ratio:1;border-radius:50%;background:radial-gradient(#071a0e,#0b2a16 70%);border:3px solid #f4f4f4;transform:translate(-50%,-50%)}.thole.l{left:22%;top:74%}.thole.h{left:78%;top:28%}.thole.aim{box-shadow:0 0 0 3px #f2d27a,0 0 14px #f2d27a}
 .tball{position:absolute;left:50%;top:125%;font-size:22px;transform:translate(-50%,-50%);opacity:0;pointer-events:none;z-index:2}
@@ -475,14 +476,22 @@ const CHALLENGES=[
 ];
 /* Die 9 Minispiele, die angeboten werden (alles Geschick, Tempo, Köpfchen oder Wissen, kein reines Glück). */
 const OFFER=["whack","rennen","faengt","glocken","stopp","rechnen","farben","schaetz","ttt","torwand"];
-const SOLO_ALL={torwand:{g:"Triff mindestens 2 von 6 Schüssen.",ok:v=>v>=2},ttt:{g:"Hol mindestens 5 Punkte gegen die Wildsau.",ok:v=>v>=5},rennen:{g:"Schaffe mindestens 40 Schritte.",ok:v=>v>=40},faengt:{g:"Fange mindestens 12 Äppler.",ok:v=>v>=12},glocken:{g:"Schaffe mindestens 5 Runden.",ok:v=>v>=5},whack:{g:"Schaffe mindestens 12 Punkte.",ok:v=>v>=12},stopp:{g:"Stoppe zwischen 4,75 und 5,25 Sekunden.",ok:v=>Math.abs(v-5000)<=250},rechnen:{g:"Schaffe mindestens 7 Punkte.",ok:v=>v>=7},farben:{g:"Schaffe mindestens 8 Punkte.",ok:v=>v>=8},reflex:{g:"Reagiere schneller als 0,40 Sekunden.",ok:v=>v<400},tap:{g:"Pumpe mindestens 35-mal in 5 Sekunden.",ok:v=>v>=35},schaetz:{g:"Liege höchstens 10 % daneben.",ok:(v,c)=>Math.abs(v-SCHAETZ[c.q].a)<=Math.max(1,SCHAETZ[c.q].a*.1)},huetchen:{g:"Finde den Taler unter einem von drei Bembeln.",ok:()=>Math.random()<1/3,w:150,l:30}};
+const SOLO_ALL={bier:{g:"Mindestens 65 % Bier im Krug behalten.",ok:v=>v>=65},torwand:{g:"Triff mindestens 2 von 6 Schüssen.",ok:v=>v>=2},ttt:{g:"Hol mindestens 5 Punkte gegen die Wildsau.",ok:v=>v>=5},rennen:{g:"Schaffe mindestens 40 Schritte.",ok:v=>v>=40},faengt:{g:"Fange mindestens 12 Äppler.",ok:v=>v>=12},glocken:{g:"Schaffe mindestens 5 Runden.",ok:v=>v>=5},whack:{g:"Schaffe mindestens 12 Punkte.",ok:v=>v>=12},stopp:{g:"Stoppe zwischen 4,75 und 5,25 Sekunden.",ok:v=>Math.abs(v-5000)<=250},rechnen:{g:"Schaffe mindestens 7 Punkte.",ok:v=>v>=7},farben:{g:"Schaffe mindestens 8 Punkte.",ok:v=>v>=8},reflex:{g:"Reagiere schneller als 0,40 Sekunden.",ok:v=>v<400},tap:{g:"Pumpe mindestens 35-mal in 5 Sekunden.",ok:v=>v>=35},schaetz:{g:"Liege höchstens 10 % daneben.",ok:(v,c)=>Math.abs(v-SCHAETZ[c.q].a)<=Math.max(1,SCHAETZ[c.q].a*.1)},huetchen:{g:"Finde den Taler unter einem von drei Bembeln.",ok:()=>Math.random()<1/3,w:150,l:30}};
 const SOLO=Object.fromEntries(OFFER.map(k=>[k,SOLO_ALL[k]]));
-function valText(k,v,c){if(k==="reflex")return v>=5000?"zu früh getippt":(v/1000).toFixed(2).replace(".",",")+" s";if(k==="stopp")return (v/1000).toFixed(2).replace(".",",")+" s";if(k==="tap")return v+"× gepumpt";if(k==="rennen")return v+" Schritte";if(k==="faengt")return v+" Äppler";if(k==="glocken")return v+" Runden";if(k==="whack")return v+" Punkte";if(k==="rechnen"||k==="farben"||k==="ttt")return v+" Punkte";if(k==="torwand")return v+" von 6 Treffern";if(k==="schaetz")return Number(v).toLocaleString("de-DE")+" getippt, richtig: "+SCHAETZ[c.q].a.toLocaleString("de-DE");return "Bembel "+v;}
+function valText(k,v,c){if(k==="reflex")return v>=5000?"zu früh getippt":(v/1000).toFixed(2).replace(".",",")+" s";if(k==="stopp")return (v/1000).toFixed(2).replace(".",",")+" s";if(k==="tap")return v+"× gepumpt";if(k==="rennen")return v+" Schritte";if(k==="faengt")return v+" Äppler";if(k==="glocken")return v+" Runden";if(k==="whack")return v+" Punkte";if(k==="rechnen"||k==="farben"||k==="ttt")return v+" Punkte";if(k==="torwand")return v+" von 6 Treffern";if(k==="bier")return v+" % im Krug";if(k==="schaetz")return Number(v).toLocaleString("de-DE")+" getippt, richtig: "+SCHAETZ[c.q].a.toLocaleString("de-DE");return "Bembel "+v;}
 function startChallenge(S){
   const kind=pick(Object.keys(SOLO)),x2=evOn(S,"pay")||1,c={kind,w:(SOLO[kind].w||80)*x2,l:(SOLO[kind].l||40)*x2};if(kind==="schaetz")c.q=Math.floor(Math.random()*SCHAETZ.length);
   S.challenge=c;S.phase="challenge";
   S.card={deck:"ch",t:"★ Challenge: "+KIND_N(kind),x:(kind==="schaetz"?SCHAETZ[c.q].q+" ":MINI[kind]+" ")+"Ziel: "+SOLO[kind].g+" Geschafft +"+c.w+" €, sonst −"+c.l+" €."};
   log(S,cur(S).name+" muss eine Challenge spielen: "+KIND_N(kind)+".");
+}
+/* Bierbrunnen (Lucas, 05.10.): Manchmal sprudelt im Biergarten Freibier. Wer landet, muss 8 Sekunden lang mit randvoller Maß ruhig bleiben. */
+const BRUNNEN_P=.5,BRUNNEN_W=50,BRUNNEN_L=60;
+function brunnen(S,p){
+  const x2=evOn(S,"pay")||1,c={kind:"bier",w:BRUNNEN_W*x2,l:BRUNNEN_L*x2};
+  S.challenge=c;S.phase="challenge";
+  S.card={deck:"ch",t:"🍺 Der Bierbrunnen sprudelt!",x:"Auf dem Dorfplatz sprudelt Freibier, und "+p.name+" bekommt eine randvolle Maß in die Hand. "+MINI.bier+" Mindestens 65 % im Krug: +"+c.w+" €, sonst −"+c.l+" € in die Kasse."};
+  log(S,"🍺 Der Bierbrunnen sprudelt! "+p.name+" muss die volle Maß ruhig halten.");
 }
 function fieldEvent(S,p,f,depth){
   switch(f.fx){
@@ -736,7 +745,7 @@ function land(S,p,depth){
     else if(o.owner!==p.id&&freeOf(S,p.id,o.owner)>0){const ow=S.players[o.owner];p.free[ow.id]--;const left=p.free[ow.id];if(!left)delete p.free[ow.id];log(S,"🎟️ "+p.name+" steht mietfrei bei "+ow.name+" ("+rent(S,p.pos)+" € gespart"+(left?", noch "+left+"×":", Gutschein aufgebraucht")+").");}
     else if(o.owner!==p.id){const ow=S.players[o.owner];let r=rent(S,p.pos);if(ow.bonus){r*=2;ow.bonus=false;log(S,"Waldfest-Zuschlag! Doppelte Miete.");}log(S,p.name+" zahlt "+r+" Miete an "+ow.name+".");{const a=st(S,p.id),b=st(S,ow.id);a.rp+=r;b.rg+=r;b.rgMax=Math.max(b.rgMax,r);if(evNow(S)&&evNow(S).k==="kerwa")b.wf=(b.wf||0)+r;if(r>a.mx){a.mx=r;a.mxf=p.pos;a.mxto=ow.id;}}pay(S,p,ow,r);if(r>=RACHE_MIN&&!p.bankrupt&&!ow.bankrupt&&!p.rache&&(st(S,p.id).rv||0)<RACHE_MAX&&Math.random()<RACHE_P){p.rache={to:ow.id,amt:r};st(S,p.id).rv=(st(S,p.id).rv||0)+1;log(S,"🔥 "+p.name+" schwört Rache an "+ow.name+"!");}}
   }else if(f.t==="tax"){log(S,p.name+" zahlt "+f.a+" ("+f.n+") in die Kasse im Biergarten.");pay(S,p,null,f.a);}
-  else if(f.t==="pot"){if(S.pot>0){log(S,p.name+" räumt die Kasse im Biergarten ab: +"+S.pot+" €!");{const a=st(S,p.id);a.pot+=S.pot;a.potMax=Math.max(a.potMax,S.pot);}p.money+=S.pot;S.pot=0;}else log(S,p.name+" parkt am Dorfplatz. Die Kasse ist leer.");}
+  else if(f.t==="pot"){if(S.pot>0){log(S,p.name+" räumt die Kasse im Biergarten ab: +"+S.pot+" €!");{const a=st(S,p.id);a.pot+=S.pot;a.potMax=Math.max(a.potMax,S.pot);}p.money+=S.pot;S.pot=0;}else log(S,p.name+" parkt am Dorfplatz. Die Kasse ist leer.");if(S.status==="playing"&&!p.bankrupt&&Math.random()<BRUNNEN_P)brunnen(S,p);}
   else if(f.t==="gojail"){sendJail(S,p);}
   else if(f.t==="casino"){S.phase="casino";S.card={deck:"ch",t:"🎰 Rottenberger Casino",x:"Wähl deinen Einsatz und spiel: Glücksrad (bis zum Dreifachen, die Kasse oder eine Gratis-Straße, aber auch der Bunker) Blackjack bei Croupier Charly, den Wildsau-Automaten oder Höher oder Tiefer. Du kannst auch einfach weitergehen."};log(S,p.name+" betritt das Rottenberger Casino.");}
   else if(f.t==="mini"){S.miniHere=true;S.card={deck:"wahn",t:"🐗 Wildsau-Wahnsinn",x:others(S,p).length?"Minigame-Feld! Nur hier darfst du jemanden um Geld herausfordern.":"Minigame-Feld, aber es ist niemand mehr da zum Herausfordern."};log(S,p.name+" landet auf dem Minigame-Feld und darf herausfordern.");}
@@ -757,7 +766,7 @@ function resume(S){
 function actChallenge(S,val){
   const p=cur(S),c=S.challenge;if(S.phase!=="challenge"||!c)return S;
   val=Number(val);if(!isFinite(val))return S;
-  const ok=SOLO[c.kind].ok(val,c),vt=valText(c.kind,val,c);
+  const ok=SOLO_ALL[c.kind].ok(val,c),vt=valText(c.kind,val,c);
   if(ok){st(S,p.id).cw++;p.money+=c.w;log(S,p.name+" schafft die Challenge ("+vt+"): +"+c.w+" €!");S.card={deck:"ch",t:"★ Geschafft!",x:vt+". "+p.name+" bekommt "+c.w+" €."};}
   else{st(S,p.id).cl++;log(S,p.name+" verpasst die Challenge ("+vt+"): −"+c.l+" €.");S.card={deck:"ch",t:"Nicht geschafft",x:vt+". "+p.name+" zahlt "+c.l+" € in die Kasse im Biergarten."};pay(S,p,null,c.l);}
   return resume(S);
@@ -965,9 +974,9 @@ function actMortgage(S,pid,i){const p=S.players[pid];if(!p||S.status!=="playing"
 function actUnmortgage(S,pid,i){const p=S.players[pid],o=S.props[i];if(!p||!o||o.owner!==p.id||!o.m||p.money<unmortCost(BOARD[i]))return S;p.money-=unmortCost(BOARD[i]);delete o.m;log(S,"🏦 "+p.name+" löst die Hypothek auf "+BOARD[i].n+" ab ("+unmortCost(BOARD[i])+" €).");return S;}
 function actBuild(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||f.t!=="prop"||o.h>=MAXH||!ownsGroup(S,p.id,f.g)||grpMort(S,f.g)||p.money<houseCost(f)||S.phase==="buy")return S;p.money-=houseCost(f);o.h++;st(S,p.id).hs++;log(S,p.name+" baut "+(o.h===MAXH?"ein Hotel":"ein Haus")+" auf "+f.n+".");return S;}
 function actSell(S,i){const p=cur(S),f=BOARD[i],o=S.props[i];if(!o||o.owner!==p.id||o.h<1)return S;o.h--;p.money+=houseCost(f)/2;log(S,p.name+" verkauft ein Haus auf "+f.n+".");return S;}
-const DUELS={zufall:"🎲 Zufalls-Minigame",torwand:"⚽ Torwandschießen",ttt:"⭕ Tic-Tac-Toe",rennen:"🏁 Wildsau-Rennen",faengt:"🍏 Äppler-Fangen",glocken:"🔔 Klosterglocken",whack:"🐗 Wildsau-Jagd",stopp:"⏱️ Stopp bei 5 Sekunden",rechnen:"🧮 Kopfrechen-Sprint",farben:"🎨 Farb-Chaos",reflex:"⚡ Wildsau-Reflex",tap:"🍎 Äppler-Pumpen",schaetz:"🤔 Schätzen",huetchen:"🍺 Bembel-Hütchenspiel",ssp:"✊ Schnick-Schnack-Schnuck",wuerfel:"🎲 Würfel-Duell"};
+const DUELS={bier:"🍺 Bierbrunnen",zufall:"🎲 Zufalls-Minigame",torwand:"⚽ Torwandschießen",ttt:"⭕ Tic-Tac-Toe",rennen:"🏁 Wildsau-Rennen",faengt:"🍏 Äppler-Fangen",glocken:"🔔 Klosterglocken",whack:"🐗 Wildsau-Jagd",stopp:"⏱️ Stopp bei 5 Sekunden",rechnen:"🧮 Kopfrechen-Sprint",farben:"🎨 Farb-Chaos",reflex:"⚡ Wildsau-Reflex",tap:"🍎 Äppler-Pumpen",schaetz:"🤔 Schätzen",huetchen:"🍺 Bembel-Hütchenspiel",ssp:"✊ Schnick-Schnack-Schnuck",wuerfel:"🎲 Würfel-Duell"};
 const KIND_N=k=>DUELS[k].replace(/^\S+\s/,"");
-const MINI={torwand:"Torwandschießen wie im Sportstudio: 6 Schüsse, dreimal unten links, dreimal oben rechts. Wisch den Ball in Richtung Loch, je länger der Wisch, desto höher fliegt er.",ttt:"Drei schnelle Partien Tic-Tac-Toe gegen die Wildsau. Du bist ❌ und fängst an. Sieg 3 Punkte, Unentschieden 1 Punkt. Die Sau ist schlau, aber nicht unschlagbar.",rennen:"Tippe abwechselnd LINKS und RECHTS, so schnell du kannst. Jeder richtige Schritt bringt deine Wildsau weiter. 7 Sekunden.",faengt:"Äppler fallen vom Baum. Tipp sie an, bevor sie auf den Boden klatschen. 12 Sekunden.",glocken:"Die Klosterglocken spielen eine Melodie. Tippe sie nach. Jede Runde wird sie länger. Ein Fehler, und es ist vorbei.",whack:"12 Sekunden Wildsau-Jagd: Wildsau +1, goldene Sau +3, aber Finger weg von Freddy, das kostet 2 Punkte.",stopp:"Die Uhr läuft los und verschwindet nach 1,5 Sekunden. Stoppe so nah wie möglich an 5,00 Sekunden.",rechnen:"20 Sekunden Kopfrechnen. Richtig +1, falsch −1.",farben:"15 Sekunden: Tippe die Farbe, in der das Wort geschrieben ist, nicht das Wort. Richtig +1, falsch −1.",huetchen:"Unter einem von drei Bembeln liegt ein Taler. Tippt geheim auf einen Bembel. Wer ihn allein findet, gewinnt.",ssp:"Wählt geheim Schere, Stein oder Papier.",reflex:"Tippe so schnell wie möglich, sobald die Wildsau auftaucht. Wer zu früh tippt, kassiert 5 Sekunden Strafe.",tap:"Pumpe 5 Sekunden lang so oft wie möglich auf den Äppler-Knopf.",schaetz:"Schätzfrage: Wer näher dran ist, gewinnt."};
+const MINI={bier:"Halte das Handy 8 Sekunden ganz ruhig und gerade, jedes Wackeln und Kippen schwappt Bier raus. Ohne Bewegungssensor: Finger auf den Krug und ihm folgen, er wankt immer wilder.",torwand:"Torwandschießen wie im Sportstudio: 6 Schüsse, dreimal unten links, dreimal oben rechts. Wisch den Ball in Richtung Loch, je länger der Wisch, desto höher fliegt er.",ttt:"Drei schnelle Partien Tic-Tac-Toe gegen die Wildsau. Du bist ❌ und fängst an. Sieg 3 Punkte, Unentschieden 1 Punkt. Die Sau ist schlau, aber nicht unschlagbar.",rennen:"Tippe abwechselnd LINKS und RECHTS, so schnell du kannst. Jeder richtige Schritt bringt deine Wildsau weiter. 7 Sekunden.",faengt:"Äppler fallen vom Baum. Tipp sie an, bevor sie auf den Boden klatschen. 12 Sekunden.",glocken:"Die Klosterglocken spielen eine Melodie. Tippe sie nach. Jede Runde wird sie länger. Ein Fehler, und es ist vorbei.",whack:"12 Sekunden Wildsau-Jagd: Wildsau +1, goldene Sau +3, aber Finger weg von Freddy, das kostet 2 Punkte.",stopp:"Die Uhr läuft los und verschwindet nach 1,5 Sekunden. Stoppe so nah wie möglich an 5,00 Sekunden.",rechnen:"20 Sekunden Kopfrechnen. Richtig +1, falsch −1.",farben:"15 Sekunden: Tippe die Farbe, in der das Wort geschrieben ist, nicht das Wort. Richtig +1, falsch −1.",huetchen:"Unter einem von drei Bembeln liegt ein Taler. Tippt geheim auf einen Bembel. Wer ihn allein findet, gewinnt.",ssp:"Wählt geheim Schere, Stein oder Papier.",reflex:"Tippe so schnell wie möglich, sobald die Wildsau auftaucht. Wer zu früh tippt, kassiert 5 Sekunden Strafe.",tap:"Pumpe 5 Sekunden lang so oft wie möglich auf den Äppler-Knopf.",schaetz:"Schätzfrage: Wer näher dran ist, gewinnt."};
 const SCHAETZ=[
  {q:"Wie hoch ist der Rottenberg in Metern?",a:408},{q:"In welchem Jahr wurde die Rottenberger Pestkapelle gebaut?",a:1632},{q:"In welchem Jahr kam Rottenberg zu Hösbach?",a:1978},
  {q:"In welchem Jahr wurde die alte Rottenberger Schule gebaut?",a:1818},{q:"Wie hoch ist der Gräfenberg in Metern?",a:364},{q:"Wie hoch ist der Klosterberg in Metern?",a:383},
@@ -1270,6 +1279,7 @@ function cpuScore(kind,lvl,q){
   if(kind==="glocken")return Math.max(1,n(2,7,1.3));
   if(kind==="ttt")return Math.min(9,n(2,5,1.6));
   if(kind==="torwand")return Math.min(6,n(1,3,1.1));
+  if(kind==="bier")return Math.min(100,n(50,40,14));
   if(kind==="rechnen")return Math.round(4+10*s+3*g());
   if(kind==="farben")return Math.round(5+11*s+3*g());
   if(kind==="stopp")return Math.max(1500,Math.round(5000+(900-800*s)*g()));
@@ -1591,7 +1601,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>👀 Zuschauen:</b> Bei Online-Spielen kann jeder mit dem Code oder über „Laufende Spiele“ zuschauen, ohne mitzuspielen, und im Chat mitreden.</li>
 <li>Pasch heißt nochmal würfeln. Drei Pasche hintereinander: ab in den Bunker bei Big A, dort wird erstmal gemeinsam einer geraucht. Raus kommst du mit Pasch, 50 € oder Freikarte.</li>
 <li><b>Rollmisch!</b> Wer eine Doppel-Eins würfelt, kassiert 50 von jedem Mitspieler.</li>
-<li><b>Biergarten</b> ist Frei Parken: Wer dort landet, räumt die Kasse ab, in der alle Strafen landen.</li><li><b>Tadan!</b> Wer im Gasthaus zum Löwen („Marry“) landet, gibt Freddy, der Dorflegende, einen aus und zahlt 10 € in die Kasse im Biergarten.</li>
+<li><b>Biergarten</b> ist Frei Parken: Wer dort landet, räumt die Kasse ab, in der alle Strafen landen.</li><li><b>🍺 Bierbrunnen:</b> Manchmal sprudelt im Biergarten Freibier. Wer dort landet, hält 8 Sekunden lang eine randvolle Maß: Handy ganz ruhig und gerade halten (ohne Bewegungssensor mit dem Finger dem wankenden Krug folgen). Mindestens 65 % im Krug bringt 50 €, sonst gehen 60 € in die Kasse.</li><li><b>Tadan!</b> Wer im Gasthaus zum Löwen („Marry“) landet, gibt Freddy, der Dorflegende, einen aus und zahlt 10 € in die Kasse im Biergarten.</li>
 <li>🐗 Wildsau-Wahnsinn ist das Minigame-Feld: Nur wer dort landet, darf einen Mitspieler zu einem Handy-Minigame um Geld herausfordern.</li><li>Dorfklatsch-Karten (inklusive aller Wahnsinn-Karten): Pecks Baustelle, Kilians Steuerprüfung, Gisberts Frosch, Hermann Pfeufers Kralle, Elfmeter, Derby gegen Feldkahl, Wildschwein-Alarm, Schneewittchens Zwerge, Teleport-Bus, Grundstücks-Roulette, Robin Hood vom Gräfenberg und mehr.</li>
 <li><b>★ Challenge-Felder</b> (Zum Grünen Tal, Schwimmbad) und die Karte „Challenge-Zeit!“: Du spielst ein Handy-Minigame mit Ziel, zum Beispiel mindestens 12 Punkte bei der Wildsau-Jagd oder genau bei 5 Sekunden stoppen. Geschafft gibt Geld, verpasst kostet.</li>
 <li><b>! Ereignis-Felder</b>: Tadan im Marry (10 € für Freddy), Brezel in der Bäckerei Rosel, Wurstprobe in der Metzgerei, Feuerwehrfest, Matschpfütze am Wiesenweg, abfahrende Busse, Klosterglocken (alle frei aus dem Bunker), Gipfelglück am Hofberg und mehr.</li>
@@ -1772,15 +1782,17 @@ function mgInit(m){
   if(kind==="stopp"){m.stage="go";m.t0=now;}
   if(kind==="rechnen"){m.stage="go";m.end=now+20000;m.pq=mathQ();}
   if(kind==="farben"){m.stage="go";m.end=now+15000;newInk(m);}
+  if(kind==="bier"){m.stage="go";m.t0=now;m.end=now+8000;m.lvl=100;m.sens=null;m.gx=50;m.gy=50;m.vx=0;m.vy=0;m.slosh=0;m.last=now;bierMot.j=0;bierMot.g0=null;bierMot.t=0;}
   if(kind==="torwand"){m.stage="go";m.shot=0;m.score=0;m.fly=false;m.res=[];}
   if(kind==="ttt"){m.stage="go";m.b=Array(9).fill("");m.game=0;m.score=0;m.res=[];m.lock=false;m.msg="";}
   if(kind==="rennen"){m.stage="go";m.end=now+7000;m.last=null;}
   if(kind==="faengt"){m.stage="go";m.end=now+12000;m.nextA=now+300;m.aid=0;}
   if(kind==="glocken"){let x=q||(1+Math.floor(Math.random()*1e6));m.rng=()=>(x=(x*16807)%2147483647)%4;m.seq=[m.rng(),m.rng()];m.round=0;startBells(m);}
-  if(["whack","stopp","rechnen","farben","rennen","faengt"].includes(kind))m.iv=setInterval(()=>mgTick(m),80);
+  if(["whack","stopp","rechnen","farben","rennen","faengt","bier"].includes(kind))m.iv=setInterval(()=>mgTick(m),80);
 }
 function mgTick(m){
   if(mg!==m){clearInterval(m.iv);return;}const now=performance.now();
+  if(m.kind==="bier"){bierTick(m,now);return;}
   if(m.kind==="stopp"){const t=now-m.t0,el=document.getElementById("mg-clock");if(el)el.textContent=t<1500?(t/1000).toFixed(2).replace(".",","):"?,??";if(t>15000)miniSubmit(Math.round(t));return;}
   if(now>=m.end){miniSubmit(["whack","rennen","faengt"].includes(m.kind)?m.count:m.score);return;}
   const l=document.getElementById("mg-left");if(l)l.textContent=leftS(m);
@@ -1812,6 +1824,37 @@ function tttMove(m,h){
   if(end())return;m.lock=true;mgRefresh();
   setTimeout(()=>{if(mg!==m)return;m.b[tttBot(m.b)]="o";m.lock=false;if(!end())mgRefresh();},380);
 }
+/* Bierbrunnen: Bewegungssensor (Ruck und Neigung) oder, wenn keiner da ist, Finger-Verfolgung. */
+const bierMot={j:0,g0:null,t:0,tilt:0};
+window.addEventListener("devicemotion",e=>{const m=mg;if(!m||m.kind!=="bier"||m.stage!=="go")return;
+  const a=e.acceleration,g=e.accelerationIncludingGravity;if(!g||g.x==null)return;
+  const gv=[g.x,g.y,g.z],gl=Math.hypot(...gv);if(!gl)return;
+  if(!bierMot.g0)bierMot.g0=gv;const g0=bierMot.g0,cs=(gv[0]*g0[0]+gv[1]*g0[1]+gv[2]*g0[2])/(gl*Math.hypot(...g0));
+  bierMot.tilt=Math.acos(Math.max(-1,Math.min(1,cs)))*180/Math.PI;
+  const j=a&&a.x!=null?Math.hypot(a.x,a.y,a.z):Math.abs(gl-9.81);bierMot.j=Math.max(bierMot.j*.6,j);bierMot.t=performance.now();});
+let bierP=null;
+const bierPt=ev=>{const b=document.getElementById("bier-box");if(!b)return null;const r=b.getBoundingClientRect();return {x:(ev.clientX-r.left)/r.width*100,y:(ev.clientY-r.top)/r.height*100,w:r.width,h:r.height};};
+document.addEventListener("pointerdown",ev=>{if(!mg||mg.kind!=="bier"||!(ev.target.closest&&ev.target.closest("#bier-box")))return;ev.preventDefault();bierP=bierPt(ev);},{passive:false});
+document.addEventListener("pointermove",ev=>{if(bierP&&mg&&mg.kind==="bier")bierP=bierPt(ev);});
+["pointerup","pointercancel"].forEach(t=>document.addEventListener(t,()=>{bierP=null;}));
+function bierTick(m,now){
+  const dt=Math.min(.25,(now-m.last)/1000),el=now-m.t0;m.last=now;
+  if(m.sens==null){if(now-bierMot.t<400&&bierMot.g0)m.sens=true;else if(el>900)m.sens=false;if(m.sens!=null)mgRefresh();}
+  let spill=0;
+  if(m.sens){spill=Math.max(0,bierMot.j-.3)*12*dt+Math.max(0,bierMot.tilt-12)*1.6*dt;m.slosh=Math.min(1,bierMot.j/2+bierMot.tilt/40);}
+  else if(m.sens===false){
+    const sp=18+el/8000*42;m.vx+= (Math.random()-.5)*sp*dt*9;m.vy+=(Math.random()-.5)*sp*dt*9;const v=Math.hypot(m.vx,m.vy);if(v>sp){m.vx*=sp/v;m.vy*=sp/v;}
+    m.gx+=m.vx*dt;m.gy+=m.vy*dt;if(m.gx<14||m.gx>86){m.vx*=-1;m.gx=Math.max(14,Math.min(86,m.gx));}if(m.gy<22||m.gy>78){m.vy*=-1;m.gy=Math.max(22,Math.min(78,m.gy));}
+    let off=1;if(bierP){off=Math.hypot((bierP.x-m.gx)*bierP.w/100,(bierP.y-m.gy)*bierP.h/100)>40?1:0;}
+    spill=off*20*dt;m.slosh=off?.8:.15;
+  }
+  m.lvl=Math.max(0,m.lvl-spill);
+  const k=document.getElementById("bier-krug"),l=document.getElementById("bier-lvl"),p=document.getElementById("bier-pct"),t=document.getElementById("mg-left");
+  if(k){k.style.left=m.gx+"%";k.style.top=m.gy+"%";k.style.transform=`translate(-50%,-50%) rotate(${(Math.sin(now/90)*m.slosh*9).toFixed(1)}deg)`;}
+  if(l)l.style.height=(m.lvl*.78)+"%";if(p)p.textContent=Math.round(m.lvl)+" %";if(t)t.textContent=leftS(m);
+  if(spill>.05&&Math.random()<.15)buzz(15);
+  if(now>=m.end)miniSubmit(Math.round(m.lvl));
+}
 function mgRefresh(){const el=document.getElementById("mg-area");if(el&&mg)el.innerHTML=mgBody();}
 function mgBody(){
   const m=mg,k=m.kind;
@@ -1827,6 +1870,7 @@ function mgBody(){
   if(k==="whack")return `<div class="whack">${[...Array(9)].map((_,h)=>`<button data-a="mg-whack" data-h="${h}" class="${h===m.hole?"boar "+m.ht:""}" aria-label="Loch ${h+1}">${h===m.hole?(m.ht==="freddy"?"🧔":"🐗"):""}</button>`).join("")}</div><div class="note">🐗 +1 · goldene 🐗 +3 · 🧔 Freddy −2 · <b>${m.count}</b> Pkt · <span id="mg-left">${leftS(m)}</span></div>`;
   if(k==="stopp")return `<div class="bigq" id="mg-clock">0,00</div><button class="primary" data-a="mg-stop" style="font-size:20px;padding:12px 26px">⏱️ Stopp!</button>`;
   if(k==="rechnen")return `<div class="bigq">${m.pq.t} = ?</div><div class="acts">${m.pq.opts.map(v=>`<button class="gold" data-a="mg-ans" data-v="${v}" style="min-width:64px;font-size:18px">${v}</button>`).join("")}</div><div class="note">Punkte: <b>${m.score}</b>${m.streak>=2?` · 🔥 ${m.streak}er-Serie`:""} · noch <span id="mg-left">${leftS(m)}</span></div>`;
+  if(k==="bier")return `<div class="bierbox ${m.sens===false?"finger":""}" id="bier-box"><div class="krug" id="bier-krug" style="left:${m.gx}%;top:${m.gy}%"><span class="bier" id="bier-lvl" style="height:${m.lvl*.78}%"></span><span class="henkel"></span></div></div><div class="note">${m.sens==null?"Halt still …":m.sens?"📱 Handy ruhig und gerade halten!":"👆 Finger auf den Krug und folgen!"} · Im Krug: <b id="bier-pct">${Math.round(m.lvl)} %</b> · noch <span id="mg-left">${leftS(m)}</span></div>`;
   if(k==="torwand"){const low=m.shot<3;return `<div class="twall" id="tw-wall"><span class="thole l ${low?"aim":""}"></span><span class="thole h ${low?"":"aim"}"></span><span class="tball" id="tw-ball">⚽</span></div><div class="tpitch" id="tw-pitch"><span class="tspot">⚽</span><small>Wisch nach ${low?"unten links":"oben rechts"}</small></div><div class="note">Schuss ${Math.min(m.shot+1,6)}/6 · Treffer: <b>${m.score}</b> · ${m.res.map(r=>r?"✅":"❌").join("")}</div>`;}
   if(k==="ttt")return `<div class="ttt">${m.b.map((c,h)=>`<button data-a="mg-ttt" data-h="${h}" class="${c} ${m.win&&m.win.includes(h)?"win":""}" ${c||m.lock?"disabled":""}>${c==="x"?"❌":c==="o"?"🐗":""}</button>`).join("")}</div><div class="note">Partie ${m.msg?m.game:Math.min(m.game+1,3)}/3 · Punkte: <b>${m.score}</b>${m.res.length?" · "+m.res.join(" "):""}${m.msg?"<br>"+esc(m.msg):""}</div>`;
   if(k==="farben")return `<div class="bigq" style="color:${INK[m.ink][1]}">${INK[m.word][0]}</div><div class="acts">${INK.map((c,i)=>`<button class="ghost" data-a="mg-ink" data-v="${i}">${c[0]}</button>`).join("")}</div><div class="note">Punkte: <b>${m.score}</b>${m.streak>=2?` · 🔥 ${m.streak}er-Serie`:""} · noch <span id="mg-left">${leftS(m)}</span></div>`;
@@ -2158,7 +2202,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v37";
+const BUILD="rbm-v38";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -2369,7 +2413,7 @@ document.addEventListener("click",async ev=>{
     case "hl-cash":commit(actHlCash);break;
     case "bj-split":commit(actBjSplit);break;
     case "bj-sur":commit(actBjSurrender);break;
-    case "mg-solo":{const c=app.S.challenge;if(c)mgBegin("solo",app.S.turn,c.kind,c.q);break;}
+    case "mg-solo":{const c=app.S.challenge;if(c&&c.kind==="bier"){try{const D=window.DeviceMotionEvent;if(D&&typeof D.requestPermission==="function")D.requestPermission().catch(()=>{});}catch(e){}}if(c)mgBegin("solo",app.S.turn,c.kind,c.q);break;}
     case "mg-pick":if(mg)miniSubmit(b.dataset.v);break;
     case "mg-send":{const v=document.getElementById("mg-num").value;if(mg&&v!=="")miniSubmit(Math.round(+v));break;}
     case "sticker":sendChat({kind:"sticker",s:b.dataset.s});break;
