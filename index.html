@@ -1174,6 +1174,20 @@ function actTradeStart(S,to,give,get){
   S.card={deck:"trade",t:"🏛️ Tausch bei Kilian",x:p.name+" gibt "+tradeDesc(S,give)+" und will dafür von "+o.name+": "+tradeDesc(S,get)+"."};
   log(S,p.name+" schlägt "+o.name+" bei Kilian einen Tausch vor.");return S;
 }
+/* Gegenangebot (Lucas, 05.10.): Wer gefragt wird, kann umdrehen und selbst ein Angebot machen. Hin und her, höchstens TRADE_MAX-mal. */
+const TRADE_MAX=6;
+function actTradeCounter(S,pid,give,get){
+  const t=S.trade;if(!t||S.phase!=="trade"||pid!==t.to||(t.n||0)>=TRADE_MAX)return S;
+  const p=S.players[pid],o=S.players[t.from];if(!p||!o||o.bankrupt)return S;
+  const ok=(id,l)=>l.every(i=>S.props[i]&&S.props[i].owner===id&&!S.props[i].h);
+  const fr=x=>Math.min(FREE_MAX,Math.max(0,Math.floor(+x||0)));
+  give={props:(give.props||[]).map(Number),money:Math.max(0,Math.floor(+give.money||0)),free:fr(give.free)};get={props:(get.props||[]).map(Number),money:Math.max(0,Math.floor(+get.money||0)),free:fr(get.free)};
+  if(!ok(p.id,give.props)||!ok(o.id,get.props)||give.money>p.money||get.money>o.money)return S;
+  if(!give.props.length&&!get.props.length&&!give.money&&!get.money&&!give.free&&!get.free)return S;
+  S.trade={from:p.id,to:o.id,give,get,prev:t.prev,n:(t.n||0)+1};
+  S.card={deck:"trade",t:"🔁 Gegenangebot",x:p.name+" gibt "+tradeDesc(S,give)+" und will dafür von "+o.name+": "+tradeDesc(S,get)+"."};
+  log(S,p.name+" macht "+o.name+" ein Gegenangebot.");return S;
+}
 function actTradeAnswer(S,yes){
   const t=S.trade;if(!t||S.phase!=="trade")return S;
   const A=S.players[t.from],B=S.players[t.to];S.trade=null;S.phase=t.prev;
@@ -1372,7 +1386,13 @@ function cpuMove(S,id){
   if(S.phase==="trade"&&S.trade){const t=S.trade;
     const val=(l,pid,from)=>l.props.reduce((a,i)=>a+BOARD[i].p*(BOARD[i].g&&wouldComplete(S,i,pid)?2.5:1),0)+l.money+(l.free||0)*freeWorth(S,from);
     const get=val(t.give,id,t.from),give=val(t.get,t.from,id);
-    return actTradeAnswer(S,get>=give*([0,1.05,1.25,1.5][lvl])+20);}
+    const need=give*([0,1.05,1.25,1.5][lvl])+20;if(get>=need)return actTradeAnswer(S,true);
+    /* Knapp daneben: der Computer verlangt etwas mehr Geld statt abzulehnen. */
+    const ex=Math.ceil((need-get)/10)*10,H=S.players[t.from];
+    if((t.n||0)<3&&get>=need*.6&&ex<=400){let g2=Object.assign({},t.get),w2=Object.assign({},t.give);
+      if(g2.money>=ex)g2.money-=ex;else{w2.money+=ex-g2.money;g2.money=0;}
+      if(w2.money<=H.money&&(g2.props.length||g2.money||g2.free||w2.props.length||w2.money||w2.free)){const T=actTradeCounter(S,id,g2,w2);if(S.trade&&S.trade.from===id)return T;}}
+    return actTradeAnswer(S,false);}
   if(id!==S.turn)return S;
   if(S.phase==="roll"){
     if(canRevenge(S))return actRevenge(S);
@@ -1803,7 +1823,7 @@ function centerHTML(){
     else if(p.hai&&(S.phase==="roll"||S.phase==="end"))acts+=`<button class="ghost" data-a="hai-pay" ${p.money<p.hai.owe?"disabled":""}>🦈 Harry auszahlen (${fmt(p.hai.owe)} €)</button>`;
   }else if(S.phase==="trade"&&S.trade){
     const B=S.players[S.trade.to];
-    acts=mayAct([B.id])?`<button class="gold" data-a="trade-yes">${esc(B.name)}: Annehmen</button><button class="ghost" data-a="trade-no">Ablehnen</button>`:`<div class="note">Warte auf ${esc(B.name)} …</div>`;
+    acts=mayAct([B.id])&&!(app.mode==="local"&&B.cpu)?`<button class="gold" data-a="trade-yes">${esc(B.name)}: Annehmen</button>${(S.trade.n||0)<TRADE_MAX?`<button class="ghost" data-a="trade-counter-open">🔁 Gegenangebot</button>`:""}<button class="ghost" data-a="trade-no">Ablehnen</button>`:`<div class="note">Warte auf ${esc(B.name)} …</div>`;
   }else if(S.phase==="duel"&&S.duel){
     const d=S.duel,A=S.players[d.from],B=S.players[d.to];
     if(d.state==="ask")acts=mayAct([d.to])?`<button class="gold" data-a="duel-yes">${esc(B.name)}: Annehmen</button><button class="ghost" data-a="duel-no">Kneifen (10 €)</button>`:`<div class="note">Warte auf ${esc(B.name)} …</div>`;
@@ -2046,11 +2066,19 @@ function questPanel(){
   <button class="ghost small" data-a="quest">Zuklappen</button></section>`;
 }
 function tradePanel(){
-  const S=app.S;if(!app.tradeOpen||!canAct()||!(S.phase==="roll"||S.phase==="end"))return "";
-  const p=cur(S),os=others(S,p);if(!os.length)return "";
+  const S=app.S,T=S&&S.trade,ctr=!!(app.counterOpen&&T&&S.phase==="trade"&&mayAct([T.to]));
+  if(!ctr&&(!app.tradeOpen||!canAct()||!(S.phase==="roll"||S.phase==="end")))return "";
+  const p=ctr?S.players[T.to]:cur(S),os=ctr?[S.players[T.from]]:others(S,p);if(!os.length)return "";
   if(!os.some(o=>o.id===app.tradeTo))app.tradeTo=os[0].id;const to=app.tradeTo;
+  /* Beim Gegenangebot ist das bisherige Angebot schon eingetragen, nur umgedreht. */
+  const pre=ctr?{g:T.get,t:T.give}:null,chk=(k,i)=>pre&&pre[k].props.includes(i)?"checked":"";
   const list=(pid,pre)=>{const ids=Object.keys(S.props).filter(i=>S.props[i].owner===pid).map(Number).sort((a,b)=>a-b);
-    return ids.length?ids.map(i=>`<label class="chk"><input type="checkbox" id="${pre}${i}" ${S.props[i].h?"disabled":""}><span class="sw" style="background:${BOARD[i].g?GROUPS[BOARD[i].g].c:"var(--paper-2)"}"></span>${esc(BOARD[i].n)}${S.props[i].h?" (bebaut)":""}</label>`).join(""):`<p class="note">Keine Grundstücke.</p>`;};
+    return ids.length?ids.map(i=>`<label class="chk"><input type="checkbox" id="${pre}${i}" ${S.props[i].h?"disabled":""} ${chk(pre==="tg"?"g":"t",i)}><span class="sw" style="background:${BOARD[i].g?GROUPS[BOARD[i].g].c:"var(--paper-2)"}"></span>${esc(BOARD[i].n)}${S.props[i].h?" (bebaut)":""}</label>`).join(""):`<p class="note">Keine Grundstücke.</p>`;};
+  const sel=(id,v)=>`<select id="${id}">${[0,1,2,3,4,5].map(n=>`<option value="${n}" ${n===(v||0)?"selected":""}>${n?n+"×":"keine"}</option>`).join("")}</select>`;
+  if(ctr)return `<section class="panel"><h2>🔁 Gegenangebot an ${esc(os[0].name)}</h2><p class="note">${esc(p.name)}, ändere das Angebot so, wie es für dich passt. Danach ist ${esc(os[0].name)} dran: annehmen, ablehnen oder wieder ein Gegenangebot. Die 10 € Gebühr zahlt, wessen Angebot am Ende angenommen wird.</p><input type="hidden" id="t-to" value="${os[0].id}">
+  <div class="trade"><div class="stack"><h3>Du gibst</h3>${list(p.id,"tg")}<label>Geld (€)<input id="t-gm" type="number" min="0" inputmode="numeric" value="${pre.g.money||0}"></label><label>Mietfrei (Besuche)${sel("t-gf",pre.g.free)}</label></div>
+  <div class="stack"><h3>Du bekommst</h3>${list(to,"tt")}<label>Geld (€)<input id="t-tm" type="number" min="0" inputmode="numeric" value="${pre.t.money||0}"></label><label>Mietfrei (Besuche)${sel("t-tf",pre.t.free)}</label></div></div>
+  <div class="row"><button class="primary" data-a="trade-counter">Gegenangebot abgeben</button><button class="ghost" data-a="trade-counter-close">Zurück</button></div></section>`;
   return `<section class="panel"><h2>🏛️ Tauschen bei Kilian</h2><p class="note">Bürgermeister Kilian beglaubigt jeden Tausch und nimmt 10 € Gebühr vom Anbieter. Bebaute Grundstücke kann man nicht tauschen. Mietfrei heißt: Der andere zahlt so oft keine Miete, wenn er auf deinen Straßen landet.</p>
   <label>Tauschen mit<select id="t-to">${os.map(o=>`<option value="${o.id}" ${o.id===to?"selected":""}>${esc(o.name)}</option>`).join("")}</select></label>
   <div class="trade"><div class="stack"><h3>Du gibst</h3>${list(p.id,"tg")}<label>Geld (€)<input id="t-gm" type="number" min="0" inputmode="numeric" value="0"></label><label>Mietfrei (Besuche)<select id="t-gf">${[0,1,2,3,4,5].map(n=>`<option value="${n}">${n?n+"×":"keine"}</option>`).join("")}</select></label></div>
@@ -2276,7 +2304,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v43";
+const BUILD="rbm-v44";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -2464,8 +2492,15 @@ document.addEventListener("click",async ev=>{
       if(!give.props.length&&!get.props.length&&!give.money&&!get.money&&!give.free&&!get.free){toast("Wähle etwas zum Tauschen aus.");break;}
       if(give.money>cur(app.S).money||get.money>app.S.players[to].money){toast("So viel Geld hat da jemand nicht.");break;}
       app.tradeOpen=false;commit(S=>actTradeStart(S,to,give,get));break;}
-    case "trade-yes":commitLeased(S=>actTradeAnswer(S,true),[app.S.trade.to]);break;
-    case "trade-no":commitLeased(S=>actTradeAnswer(S,false),[app.S.trade.to]);break;
+    case "trade-counter-open":app.counterOpen=true;render();setTimeout(()=>{const el=document.getElementById("t-gm");if(el)el.closest("section").scrollIntoView({behavior:"smooth",block:"start"});},50);break;
+    case "trade-counter-close":app.counterOpen=false;render();break;
+    case "trade-counter":{const T=app.S.trade;if(!T)break;const ids=pre=>[...document.querySelectorAll(`input[id^="${pre}"]:checked`)].map(el=>+el.id.slice(2));
+      const give={props:ids("tg"),money:+document.getElementById("t-gm").value||0,free:+document.getElementById("t-gf").value||0},get={props:ids("tt"),money:+document.getElementById("t-tm").value||0,free:+document.getElementById("t-tf").value||0};
+      if(!give.props.length&&!get.props.length&&!give.money&&!get.money&&!give.free&&!get.free){toast("Wähle etwas zum Tauschen aus.");break;}
+      if(give.money>app.S.players[T.to].money||get.money>app.S.players[T.from].money){toast("So viel Geld hat da jemand nicht.");break;}
+      app.counterOpen=false;const me=T.to;commitLeased(S=>actTradeCounter(S,me,give,get),[me]);break;}
+    case "trade-yes":app.counterOpen=false;commitLeased(S=>actTradeAnswer(S,true),[app.S.trade.to]);break;
+    case "trade-no":app.counterOpen=false;commitLeased(S=>actTradeAnswer(S,false),[app.S.trade.to]);break;
     case "duel-open":app.duelOpen=true;render();setTimeout(()=>{const el=document.getElementById("d-to");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});},50);break;
     case "duel-close":app.duelOpen=false;render();break;
     case "duel-go":{const to=+document.getElementById("d-to").value,k=document.getElementById("d-kind").value,st=+document.getElementById("d-stake").value;app.duelOpen=false;commit(S=>actDuelStart(S,to,st,k));break;}
