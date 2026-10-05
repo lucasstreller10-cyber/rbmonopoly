@@ -629,7 +629,7 @@ function land(S,p,depth){
     const o=S.props[p.pos];
     if(!o){if(p.money>=f.p)canBuy=true;else log(S,p.name+" kann sich "+f.n+" nicht leisten.");}
     else if(o.owner!==p.id&&o.m){log(S,f.n+" hat eine Hypothek, "+p.name+" zahlt keine Miete.");}
-    else if(o.owner!==p.id){const ow=S.players[o.owner];let r=rent(S,p.pos);if(ow.bonus){r*=2;ow.bonus=false;log(S,"Waldfest-Zuschlag! Doppelte Miete.");}log(S,p.name+" zahlt "+r+" Miete an "+ow.name+".");{const a=st(S,p.id),b=st(S,ow.id);a.rp+=r;b.rg+=r;b.rgMax=Math.max(b.rgMax,r);if(evNow(S)&&evNow(S).k==="kerwa")b.wf=(b.wf||0)+r;if(r>a.mx){a.mx=r;a.mxf=p.pos;a.mxto=ow.id;}}pay(S,p,ow,r);if(r>=RACHE_MIN&&!p.bankrupt&&!ow.bankrupt){p.rache={to:ow.id,amt:r};log(S,"🔥 "+p.name+" schwört Rache an "+ow.name+"!");}}
+    else if(o.owner!==p.id){const ow=S.players[o.owner];let r=rent(S,p.pos);if(ow.bonus){r*=2;ow.bonus=false;log(S,"Waldfest-Zuschlag! Doppelte Miete.");}log(S,p.name+" zahlt "+r+" Miete an "+ow.name+".");{const a=st(S,p.id),b=st(S,ow.id);a.rp+=r;b.rg+=r;b.rgMax=Math.max(b.rgMax,r);if(evNow(S)&&evNow(S).k==="kerwa")b.wf=(b.wf||0)+r;if(r>a.mx){a.mx=r;a.mxf=p.pos;a.mxto=ow.id;}}pay(S,p,ow,r);if(r>=RACHE_MIN&&!p.bankrupt&&!ow.bankrupt&&!p.rache&&(st(S,p.id).rv||0)<RACHE_MAX&&Math.random()<RACHE_P){p.rache={to:ow.id,amt:r};st(S,p.id).rv=(st(S,p.id).rv||0)+1;log(S,"🔥 "+p.name+" schwört Rache an "+ow.name+"!");}}
   }else if(f.t==="tax"){log(S,p.name+" zahlt "+f.a+" ("+f.n+") in die Kasse im Biergarten.");pay(S,p,null,f.a);}
   else if(f.t==="pot"){if(S.pot>0){log(S,p.name+" räumt die Kasse im Biergarten ab: +"+S.pot+" €!");{const a=st(S,p.id);a.pot+=S.pot;a.potMax=Math.max(a.potMax,S.pot);}p.money+=S.pot;S.pot=0;}else log(S,p.name+" parkt am Dorfplatz. Die Kasse ist leer.");}
   else if(f.t==="gojail"){sendJail(S,p);}
@@ -837,9 +837,9 @@ function actDuelInput(S,pid,val){
   S.card={deck:"duel",t:"⚔ "+W.name+" gewinnt!",x:detail+" "+L.name+" zahlt "+d.stake+" €."};
   duelStat(S,W,L);pay(S,L,W,d.stake);return endDuel(S);
 }
-/* Rache-Duell: Wer mindestens RACHE_MIN Miete zahlen musste, darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern.
+/* Rache-Duell (nur manchmal): Wer mindestens RACHE_MIN Miete zahlen musste, bekommt mit 30 % Chance ein Rache-Ticket (höchstens 2 pro Partie) und darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern.
    Zufälliges Minispiel, der Besitzer kann nicht kneifen. Gewinnt der Rächer, bekommt er die halbe Miete zurück, verliert er, kostet es nichts. */
-const RACHE_MIN=150;
+const RACHE_MIN=150,RACHE_P=.3,RACHE_MAX=2;
 function canRevenge(S){const p=cur(S),r=p&&p.rache,o=r&&S.players[r.to];return S.status==="playing"&&S.phase==="roll"&&!S.duel&&!p.jail&&!!o&&!o.bankrupt&&o.id!==p.id;}
 function actRevenge(S){
   if(!canRevenge(S))return S;const p=cur(S),o=S.players[p.rache.to],amt=p.rache.amt;p.rache=null;
@@ -1348,7 +1348,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Die Mieten sind wie im Original, mit 4 Häusern und Hotel etwas günstiger. Die billigste Miete sind 10 €.</li>
 <li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Waldfest (Mieten +50 %), Sommerloch (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
 <li><b>📜 Spielbericht und 🏅 Erfolge:</b> Am Ende gibt es Auszeichnungen wie Miethai oder Duellkönig und den Verlauf aller Vermögen. Auf jedem Handy sammelst du 37 Erfolge.</li>
-<li><b>🔥 Rache-Duell:</b> Wer mindestens 150 € Miete zahlen muss, darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern. Zufälliges Minispiel, kneifen gilt nicht. Gewinnst du, zahlt er dir die halbe Miete zurück. Verlierst du, kostet es nichts.</li>
+<li><b>🔥 Rache-Duell:</b> Wer mindestens 150 € Miete zahlen muss, schwört manchmal Rache (etwa jedes dritte Mal, höchstens zweimal pro Partie) und darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern. Zufälliges Minispiel, kneifen gilt nicht. Gewinnst du, zahlt er dir die halbe Miete zurück. Verlierst du, kostet es nichts.</li>
 <li><b>🏦 Hypothek:</b> Tippe auf ein eigenes unbebautes Grundstück und nimm eine Hypothek auf: du bekommst den halben Kaufpreis, dafür gibt es dort keine Miete und in der Gruppe wird nicht gebaut. Ablösen kostet 10 % mehr. Wer pleite zu gehen droht, beleiht automatisch, bevor er aufgeben muss.</li>
 <li><b>🏦 Dorfbank:</b> Ab und zu macht die Dorfbank vor dem Würfeln ein verlockendes Angebot: ein schneller Kredit (in 5 Runden mit Zinsen zurück), ein Ankauf eines deiner Grundstücke weit über Wert oder eine freie Straße zum Sonderpreis. Annehmen oder ablehnen.</li>
 <li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, wählt einen Einsatz (50, 100 oder 200 €) und spielt Glücksrad (bis zum Dreifachen, die Kasse, eine Gratis-Straße, aber auch der Bunker) oder eine Hand Blackjack gegen die Bank (Bank zieht bis 17, Blackjack zahlt 3:2). Man kann auch einfach weitergehen.</li>
@@ -1879,7 +1879,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v25";
+const BUILD="rbm-v26";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
