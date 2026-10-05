@@ -659,21 +659,23 @@ function loanRate(S,p){
   log(S,"🏦 "+p.name+" zahlt "+p.loan.rate+" € Kreditrate"+(p.loan.left?" (noch "+p.loan.left+")":", Kredit abbezahlt")+".");
   if(!p.loan.left)p.loan=null;if(p.money<0)settle(S,p,null);
 }
-/* Kredithai: Haifisch-Harry leiht sofort Geld, ohne Fragen. Nach 3 Runden kommt er und will das Anderthalbfache zurück. */
-const HAI=[200,400,600],HAI_X=1.5,HAI_N=3;
+/* Kredithai: Haifisch-Harry leiht sofort Geld, ohne Fragen, und will das Anderthalbfache zurück. Wann er kommt, weiß keiner:
+   zu Beginn jedes eigenen Zugs steigt die Chance (15, 25, 40, 60 %), spätestens beim fünften Zug steht er vor der Tür. */
+const HAI=[200,400,600],HAI_X=1.5,HAI_N=3,HAI_P=[0,.15,.25,.4,.6,1];
 function canHai(S){const p=cur(S);return S.status==="playing"&&(S.phase==="roll"||S.phase==="end")&&!!p&&!p.bankrupt&&!p.hai;}
 function actHai(S,amt){amt=+amt;if(!canHai(S)||!HAI.includes(amt))return S;const p=cur(S);
-  p.hai={amt,owe:r5(amt*HAI_X),due:S.round+HAI_N};p.money+=amt;st(S,p.id).hai=(st(S,p.id).hai||0)+1;
-  log(S,"🦈 "+p.name+" leiht sich "+amt+" € beim Kredithai. Haifisch-Harry will in "+HAI_N+" Runden "+p.hai.owe+" € sehen.");
-  S.card={deck:"hai",t:"🦈 Haifisch-Harry",x:"„Kein Problem, Kumpel. "+amt+" € bar auf die Kralle. In "+HAI_N+" Runden komm ich vorbei und krieg "+p.hai.owe+" €. Und ich komm immer vorbei.“"};return S;}
+  p.hai={amt,owe:r5(amt*HAI_X),k:0};p.money+=amt;st(S,p.id).hai=(st(S,p.id).hai||0)+1;
+  log(S,"🦈 "+p.name+" leiht sich "+amt+" € beim Kredithai. Haifisch-Harry will "+p.hai.owe+" € sehen, wann es ihm passt.");
+  S.card={deck:"hai",t:"🦈 Haifisch-Harry",x:"„Kein Problem, Kumpel. "+amt+" € bar auf die Kralle. Irgendwann klingel ich und krieg "+p.hai.owe+" €. Wann? Das merkst du dann.“"};return S;}
 function actHaiPay(S){const p=cur(S);if(S.status!=="playing"||!p||!p.hai||p.money<p.hai.owe||!(S.phase==="roll"||S.phase==="end"))return S;
   const o=p.hai.owe;p.money-=o;p.hai=null;log(S,"🦈 "+p.name+" zahlt dem Kredithai freiwillig "+o+" € zurück. Harry nickt anerkennend.");return S;}
-/* Fälligkeit am Rundenwechsel: Harry nimmt, was da ist. Reicht das Geld nicht, werden Hypotheken aufgenommen, notfalls ist man pleite. */
-function haiDue(S,p){if(!p.hai||p.bankrupt)return;const h=p.hai;
-  if(S.round<h.due){if(h.due-S.round===1)log(S,"🦈 Haifisch-Harry lässt "+p.name+" grüßen: Nächste Runde will er "+h.owe+" €.");return;}
-  p.hai=null;const cash=p.money>=h.owe;p.money-=h.owe;
-  log(S,"🦈 Der Kredithai kommt kassieren! "+p.name+" muss "+h.owe+" € zahlen"+(cash?".":", und das Geld reicht nicht."));
-  if(p.money<0){settle(S,p,null);if(!p.bankrupt)log(S,"🦈 Harry hat sich das Fehlende über die Dorfbank geholt.");}}
+/* Harry kommt unangekündigt zu Beginn eines Zugs des Schuldners. Reicht das Geld nicht, werden Hypotheken aufgenommen, notfalls ist man pleite. */
+function haiVisit(S,p){if(!p||!p.hai||p.bankrupt)return false;const h=p.hai;h.k=(h.k||0)+1;
+  if(Math.random()>=(HAI_P[Math.min(h.k,HAI_P.length-1)]))return false;
+  p.hai=null;const cash=p.money>=h.owe;p.money-=h.owe;st(S,p.id).haiv=(st(S,p.id).haiv||0)+1;
+  log(S,"🦈 Der Kredithai kommt kassieren! Ohne Vorwarnung steht Harry vor "+p.name+"s Tür und will "+h.owe+" €"+(cash?".":", aber das Geld reicht nicht."));
+  S.card={deck:"hai",t:"🦈 Ding-dong! Haifisch-Harry",x:"„Na, Kumpel, Zahltag.“ "+p.name+" zahlt "+h.owe+" €"+(cash?".":", das Geld reicht nicht, Harry holt sich den Rest über die Dorfbank.")};
+  if(p.money<0)settle(S,p,null);return true;}
 /* Sportwette: Alle paar Runden spielt die Rottenberger Elf gegen ein Nachbardorf. Bis zum Anpfiff darf jeder einmal auf Sieg, Unentschieden oder Niederlage setzen.
    Quoten wie beim Wettbüro (aus den Torchancen berechnet, rund 8 % Marge). Das Ergebnis wird ausgewürfelt (Poisson-Tore) und am Spieltag ausgezahlt. */
 const BET_OPP=["SV Hösbach","Feldkahl","Wenighösbach","Goldbach","Laufach","Schöllkrippen","Sailauf","Haibach","Bessenbach","Mömbris"],BET_STAKES=[20,50,100],BET_T={h:"Sieg",d:"Remis",a:"Niederlage"};
@@ -944,9 +946,10 @@ function actEnd(S){
     if(q.sleep>0){q.sleep--;if(q.sleep){log(S,q.name+" pennt im Bunker weiter (noch "+q.sleep+").");continue;}q.jail=false;q.jailTurns=0;log(S,q.name+" wacht im Bunker auf, reibt sich die Augen und darf raus.");continue;}
     if(q.skip>0){q.skip--;log(S,q.name+(q.skipWhy==="glaab"?" muss bei Bernd Glaab nachsitzen und setzt aus":" hängt in Hermann Pfeufers eiserner Kralle und setzt aus")+(q.skip?" (noch "+q.skip+")":" (jetzt frei)")+".");continue;}break;}
   S.turn=t;
-  if(S.round!==r0&&!(S.maxRounds&&S.round>S.maxRounds)){alive(S).forEach(q=>{bausparRate(S,q);loanRate(S,q);haiDue(S,q);});S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));if(S.round%3===0||(S.maxRounds&&S.round===S.maxRounds))roundEvent(S);matchTick(S);}
+  if(S.round!==r0&&!(S.maxRounds&&S.round>S.maxRounds)){alive(S).forEach(q=>{bausparRate(S,q);loanRate(S,q);});S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));if(S.round%3===0||(S.maxRounds&&S.round===S.maxRounds))roundEvent(S);matchTick(S);}
   if(S.maxRounds&&S.round>S.maxRounds){S.round=S.maxRounds;finish(S);return S;}
-  S.phase="roll";if(S.round!==r0&&S.round%10===0&&alive(S).length>1)tourStart(S);else bankOffer(S);return S;
+  S.phase="roll";if(haiVisit(S,S.players[t])){if(S.status!=="playing")return S;if(cur(S).bankrupt)S.phase="end";return S;}
+  if(S.round!==r0&&S.round%10===0&&alive(S).length>1)tourStart(S);else bankOffer(S);return S;
 }
 /* Hypothek: unbebaute Grundstücke bei der Dorfbank beleihen. Man bekommt den halben Kaufpreis, solange gibt es keine Miete. Auslösen kostet 10 % mehr. */
 const mortVal=f=>r5(f.p/2),unmortCost=f=>r5(f.p*.55);
@@ -1573,7 +1576,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>⚽ Torwandschießen:</b> Neues Minispiel: 6 Schüsse auf die Torwand, dreimal unten links, dreimal oben rechts. Wisch den Ball Richtung Loch.</li>
 <li><b>🎲 Livewette:</b> Läuft ein Duell, dürfen alle, die nicht mitspielen, vor dem ersten Ergebnis 50 € auf einen der beiden setzen. Richtig getippt zahlt das 1,9-fache.</li>
 <li><b>⚽ Sportwette:</b> Alle paar Runden spielt die Rottenberger Elf gegen ein Nachbardorf. Bis zum Anpfiff kann jeder in seinem Zug einmal 20, 50 oder 100 € auf Sieg, Unentschieden oder Niederlage setzen. Die Quoten stehen auf den Knöpfen, am Spieltag wird ausgezahlt.</li>
-<li><b>🦈 Kredithai:</b> In deinem Zug leiht dir Haifisch-Harry sofort 200, 400 oder 600 €, ohne Fragen. Nach 3 Runden kommt er kassieren und will das Anderthalbfache zurück. Reicht dein Geld nicht, holt er es sich über Hypotheken, notfalls bist du pleite. Du kannst ihn auch vorher auszahlen. Immer nur ein Hai-Kredit gleichzeitig.</li>
+<li><b>🦈 Kredithai:</b> In deinem Zug leiht dir Haifisch-Harry sofort 200, 400 oder 600 €, ohne Fragen. Er will das Anderthalbfache zurück und kommt ohne Vorwarnung zu Beginn eines deiner Züge kassieren, spätestens beim fünften. Reicht dein Geld nicht, holt er es sich über Hypotheken, notfalls bist du pleite. Du kannst ihn auch vorher auszahlen. Immer nur ein Hai-Kredit gleichzeitig.</li>
 <li><b>🤫 Geheimauftrag:</b> Zu Beginn bekommt jeder ein geheimes Ziel, zum Beispiel 3 Bushaltestellen besitzen oder zweimal im Bunker sitzen. Unten im Konto unter „🤫 Auftrag“ siehst du deins und wie weit du bist. Wer es schafft, bekommt sofort 200 bis 450 € Bonus. Am Spielende werden alle Aufträge aufgedeckt.</li>
 <li><b>🔥 Rache-Duell:</b> Wer mindestens 150 € Miete zahlen muss, schwört manchmal Rache (etwa jedes dritte Mal, höchstens zweimal pro Partie) und darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern. Zufälliges Minispiel, kneifen gilt nicht. Gewinnst du, zahlt er dir die halbe Miete zurück. Verlierst du, kostet es nichts.</li>
 <li><b>🏦 Hypothek:</b> Tippe auf ein eigenes unbebautes Grundstück und nimm eine Hypothek auf: du bekommst den halben Kaufpreis, dafür gibt es dort keine Miete und in der Gruppe wird nicht gebaut. Ablösen kostet 10 % mehr. Wer pleite zu gehen droht, beleiht automatisch, bevor er aufgeben muss.</li>
@@ -1707,7 +1710,7 @@ function centerHTML(){
     if((S.phase==="roll"||S.phase==="end")&&others(S,p).length)acts+=`<button class="ghost" data-a="trade-open">🏛️ Tauschen</button>`;
     if(canBet(S)){const m=S.match;acts+=app.betOpen?`<div class="betbox"><div class="note">⚽ ${esc(m.home?"Rottenberg – "+m.opp:m.opp+" – Rottenberg")} · Runde ${m.ko}</div><div class="stakes">${BET_STAKES.map(v=>`<button class="chip ${v===(app.betStake||20)?"on":""}" data-a="bet-stake" data-v="${v}" ${p.money<v?"disabled":""}>${v} €</button>`).join("")}</div><div class="stakes">${["h","d","a"].map(t=>`<button class="chip odd" data-a="bet" data-t="${t}" ${p.money<(app.betStake||20)?"disabled":""}>${BET_T[t]}<br><b>${m.o[t].toFixed(2).replace(".",",")}</b></button>`).join("")}<button class="chip" data-a="bet-close">✕</button></div></div>`:`<button class="ghost" data-a="bet-open">⚽ Sportwette</button>`;}
     if(app.betOpen&&canBet(S)){}
-    else if(canHai(S))acts+=app.haiOpen?`<div class="stakes">🦈 Leihen: ${HAI.map(v=>`<button class="chip" data-a="hai" data-v="${v}">${v} €</button>`).join("")}<button class="chip" data-a="hai-close">✕</button></div><p class="note">Zurück in ${HAI_N} Runden: das Anderthalbfache.</p>`:`<button class="ghost" data-a="hai-open">🦈 Kredithai</button>`;
+    else if(canHai(S))acts+=app.haiOpen?`<div class="stakes">🦈 Leihen: ${HAI.map(v=>`<button class="chip" data-a="hai" data-v="${v}">${v} €</button>`).join("")}<button class="chip" data-a="hai-close">✕</button></div><p class="note">Zurück: das Anderthalbfache. Wann Harry kommt, weiß keiner.</p>`:`<button class="ghost" data-a="hai-open">🦈 Kredithai</button>`;
     else if(p.hai&&(S.phase==="roll"||S.phase==="end"))acts+=`<button class="ghost" data-a="hai-pay" ${p.money<p.hai.owe?"disabled":""}>🦈 Harry auszahlen (${fmt(p.hai.owe)} €)</button>`;
   }else if(S.phase==="trade"&&S.trade){
     const B=S.players[S.trade.to];
@@ -1970,7 +1973,7 @@ function renderBar(){
   if(!p){bar.hidden=true;document.body.classList.remove("has-bar");app.barPid=null;return;}
   app.barPid=p.id;const n=Object.values(S.props).filter(o=>o.owner===p.id).length;
   const place=1+S.players.filter(q=>!q.bankrupt&&worth(S,q)>worth(S,p)).length;
-  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.bs?` · 🏦 ${p.bs.paid/BS_RATE}/${BS_N}`:""}${p.loan?` · Kredit noch ${p.loan.left}×${p.loan.rate} €`:""}${p.hai?` · 🦈 ${fmt(p.hai.owe)} € fällig Runde ${p.hai.due}`:""}${S.match&&!S.match.res&&S.match.bets[p.id]?` · ⚽ ${BET_T[S.match.bets[p.id].t]} ${S.match.bets[p.id].st} € (Runde ${S.match.ko})`:""}${Object.entries(p.free||{}).filter(([o,n])=>n&&S.players[o]&&!S.players[o].bankrupt).map(([o,n])=>` · 🎟️ ${n}× mietfrei bei ${esc(S.players[o].name)}`).join("")}${p.rache&&S.players[p.rache.to]&&!S.players[p.rache.to].bankrupt?` · 🔥 Rache an ${esc(S.players[p.rache.to].name)}`:""}${p.id===S.turn?" · du bist dran":""}</span>${p.quest&&QUESTS[p.quest.k]?`<button class="ghost small qbtn" data-a="quest">${p.quest.done?"✅":"🤫"} Auftrag</button>`:""}</div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
+  bar.innerHTML=`<span class="avatar big" style="background:${p.color}">${tokSvg(tokOf(p))}</span><div class="who"><b>${app.mode==="local"&&!S.vsCpu?"Am Zug: ":"Dein Konto · "}${esc(p.name)}</b><span>${n} Grundstück${n===1?"":"e"} · Platz ${place}${p.bs?` · 🏦 ${p.bs.paid/BS_RATE}/${BS_N}`:""}${p.loan?` · Kredit noch ${p.loan.left}×${p.loan.rate} €`:""}${p.hai?` · 🦈 ${fmt(p.hai.owe)} € bei Harry offen`:""}${S.match&&!S.match.res&&S.match.bets[p.id]?` · ⚽ ${BET_T[S.match.bets[p.id].t]} ${S.match.bets[p.id].st} € (Runde ${S.match.ko})`:""}${Object.entries(p.free||{}).filter(([o,n])=>n&&S.players[o]&&!S.players[o].bankrupt).map(([o,n])=>` · 🎟️ ${n}× mietfrei bei ${esc(S.players[o].name)}`).join("")}${p.rache&&S.players[p.rache.to]&&!S.players[p.rache.to].bankrupt?` · 🔥 Rache an ${esc(S.players[p.rache.to].name)}`:""}${p.id===S.turn?" · du bist dran":""}</span>${p.quest&&QUESTS[p.quest.k]?`<button class="ghost small qbtn" data-a="quest">${p.quest.done?"✅":"🤫"} Auftrag</button>`:""}</div><div class="bal">${p.bankrupt?"pleite":fmt(p.money)+" €"}</div>`;
 }
 /* Flüssiger Spielerwechsel: ist im Zug nichts mehr zu entscheiden, geht es nach kurzer Pause automatisch weiter. */
 const AUTO_MS=2600;
@@ -2150,7 +2153,7 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v34";
+const BUILD="rbm-v35";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
