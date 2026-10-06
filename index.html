@@ -310,6 +310,7 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .rball.r{background:#c0392b}.rball.s{background:#1b1b1b}.rball.g{background:#1e8449}
 .cashd{font-weight:800;color:#ffcf6e;text-align:center;font-size:.95rem;margin:2px 0}
 .center .stakes .chip{padding:3px 9px;font-size:12px}
+.center .acts .allinb{border-color:#ff6b4a;color:#ffb199}
 .center .stakes .chip.allin{border-color:#ff6b4a;color:#ffb199;font-weight:900}.center .stakes .chip.allin.on{background:#ff6b4a;color:#fff}
 .casgames{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;width:100%}
 .casg{padding:5px 2px!important;font-size:11px!important;min-width:0;white-space:normal;line-height:1.15}
@@ -1317,6 +1318,19 @@ function actRevenge(S){
   S.card={deck:"duel",t:"🔥 Rache-Duell: "+KIND_N(kind),x:p.name+" rächt sich an "+o.name+". Gewinnt "+p.name+", zahlt "+o.name+" "+stake+" € zurück. Verliert "+p.name+", kostet es nichts. "+(kind==="schaetz"?"Die Frage kommt erst, wenn du startest, dann hast du "+SCH_S+" Sekunden. ":kind==="ttt"?TTT_PVP:MINI[kind])};
   log(S,"🔥 "+p.name+" fordert "+o.name+" zum Rache-Duell: "+KIND_N(kind)+" um "+stake+" €.");return S;
 }
+/* All-in-Duell (Lucas, 06.10.): ab Runde 100 darf man einmal pro Zug vor dem Würfeln einen Mitspieler herausfordern.
+   Beide setzen ihr ganzes Bargeld (gedeckelt auf das Bargeld des Ärmeren), ein Zufalls-Minigame entscheidet. Kneifen kostet die Hälfte. */
+function allInDuelTargets(S){const p=cur(S);return others(S,p).filter(o=>!o.bankrupt&&o.money>=50);}
+function canAllInDuel(S){const p=cur(S);return S.status==="playing"&&allInOk(S)&&S.phase==="roll"&&!S.duel&&!S.duelUsed&&!p.jail&&p.money>=50&&allInDuelTargets(S).length>0;}
+function actAllInDuel(S,to){
+  if(!canAllInDuel(S))return S;const p=cur(S),o=S.players[to];if(!o||!allInDuelTargets(S).includes(o))return S;
+  const kind=pick(OFFER.filter(k=>k!=="glocken")),stake=Math.min(p.money,o.money);
+  const d={from:p.id,to:o.id,stake,kind,state:"ask",prev:"roll",allin:true};
+  if(kind==="schaetz")d.q=schQ(S);
+  S.duel=d;S.duelUsed=true;S.phase="duel";st(S,p.id).allin=(st(S,p.id).allin||0)+1;
+  S.card={deck:"duel",t:"💥 All-in-Duell!",x:p.name+" fordert "+o.name+" zum All-in: "+KIND_N(kind)+" um "+fmt(stake)+" €. Wer kneift, zahlt die Hälfte ("+fmt(kneifCost(d))+" €)."};
+  log(S,"💥 "+p.name+" fordert "+o.name+" zum All-in-Duell: "+KIND_N(kind)+" um "+fmt(stake)+" €!");return S;
+}
 function canDuel(S){const p=cur(S);return !S.duelUsed&&!!S.miniHere&&BOARD[p.pos].t==="mini"&&(S.phase==="roll"||S.phase==="end")&&others(S,p).length>0;}
 function actDuelStart(S,to,stake,kind){
   const p=cur(S),o=S.players[to];
@@ -1601,7 +1615,7 @@ function cpuValue(S,i){const f=BOARD[i];let v=f.p;if(f.g){const grp=BOARD.map((b
 function cpuMove(S,id){
   const me=S.players[id],lvl=S.cpuLvl||2,reserve=[0,90,150,220][lvl];
   if(S.phase==="duel"&&S.duel){const d=S.duel;
-    if(d.state==="ask")return actDuelAnswer(S,Math.random()<(d.stake>me.money*.4?.45:.85));
+    if(d.state==="ask")return actDuelAnswer(S,Math.random()<(d.allin?(worth(S,me)<worth(S,S.players[d.from])?.6:.4):d.stake>me.money*.4?.45:.85));
     if(d.state==="play"&&d.tb)return actTttPvp(S,id,cpuTtt(d,id,lvl));
     if(d.state==="play")return actDuelInput(S,id,cpuScore(d.kind,lvl,d.q));
     return S;}
@@ -1620,6 +1634,7 @@ function cpuMove(S,id){
   if(id!==S.turn)return S;
   if(S.phase==="roll"){
     if(canRevenge(S))return actRevenge(S);
+    if(canAllInDuel(S)&&me.money>=200&&Math.random()<.1){const t=allInDuelTargets(S).sort((a,b)=>b.money-a.money)[0];if(t)return actAllInDuel(S,t.id);}
     if(canBet(S)&&me.money>reserve+200&&Math.random()<.35){const o=S.match.o,t=["h","d","a"].sort((x,y)=>o[x]-o[y])[0];actBet(S,t,me.money>900?50:20);}
     if(canHai(S)&&me.money<200&&(!S.maxRounds||S.round+HAI_N<S.maxRounds)&&Math.random()<.5)actHai(S,me.money<0?400:200);
     if(me.hai&&me.money-me.hai.owe>reserve+150)actHaiPay(S);
@@ -1993,13 +2008,14 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>★ Zum Grünen Tal und Schwimmbad:</b> Charlys mobiler Casinotisch. Du spielst ein zufälliges Casinospiel (Glücksrad, Blackjack, Bandit oder Höher/Tiefer) mit Einsatz oder gehst weiter.</li><li><b>Karte „Challenge-Zeit!“:</b> Du spielst ein Handy-Minigame mit Ziel, zum Beispiel mindestens 12 Punkte bei der Wildsau-Jagd oder genau bei 5 Sekunden stoppen. Geschafft gibt Geld, verpasst kostet.</li>
 <li><b>! Ereignis-Felder</b>: Tadan bei der Marry (10 € für Freddy), Brezel in der Bäckerei Rosel, Wurstprobe in der Metzgerei, Feuerwehrfest, Matschpfütze am Wiesenweg, abfahrende Busse, Klosterglocken (alle frei aus dem Bunker), Gipfelglück am Hofberg und mehr.</li>
 <li><b>🏛️ Tauschen bei Kilian:</b> In deinem Zug kannst du anderen Grundstücke und Geld zum Tausch anbieten. Du kannst auch Mietfreiheit anbieten oder verlangen (bis zu 5 mietfreie Besuche auf allen Straßen des anderen). Bürgermeister Kilian beglaubigt und nimmt 10 € Gebühr. Tippe auf ein Feld, um zu sehen, was dort passiert.</li>
+<li><b>💥 All-in:</b> Ab Runde 100 (also nur in Spielen „Bis zur Pleite“) darfst du im Casino dein ganzes Bargeld setzen. Außerdem darfst du einmal pro Zug vor dem Würfeln einen Mitspieler zum All-in-Duell herausfordern: Beide setzen ihr ganzes Bargeld (höchstens so viel, wie der Ärmere hat), ein Zufalls-Minigame entscheidet, und wer kneift, zahlt die Hälfte.</li>
 <li><b>⚔ Herausfordern:</b> Einmal pro Zug darfst du einen Mitspieler zu einem Minigame um 20 bis 200 € herausfordern: Wildsau-Jagd, Wildsau-Rennen, Äppler-Fangen, Klosterglocken, Stopp bei 5 Sekunden, Kopfrechen-Sprint, Farb-Chaos, Schätzen, Tic-Tac-Toe gegen die Wildsau oder Zufall. Alle Minigames laufen am Handy. Wer kneift, zahlt die Hälfte des Einsatzes an den Herausforderer.</li>
 <li><b>Dorfchat</b> im Online-Spiel: Nachrichten, Sticker wie Tadan!, Wildsau! oder Rollmisch! und Zufallssprüche.</li>
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==31?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
-   <li>💥 All-in im Casino: ab Runde 100 alles auf eine Karte</li>
+  const news=store.get("rbm-news")!==32?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>💥 All-in ab Runde 100: im Casino und als Duell gegen einen Mitspieler</li>
    <li>🔴 Roulette bei der Marry im Casino, und Einsätze jetzt bis 1.000 €</li>
    <li>🍺 Bierbrunnen ist jetzt schwerer: Gegenhalten! Die Rekordliste startet neu</li>
    <li>🍺 Stammtisch: alle 5 Runden stimmt ihr über eine verrückte Sonderregel ab</li>
@@ -2121,6 +2137,7 @@ function centerHTML(){
     else if(S.phase==="penalty")acts+=["links","Mitte","rechts"].map(d=>`<button class="${d==="Mitte"?"gold":"ghost"}" data-a="pen" data-d="${d}">${d[0].toUpperCase()+d.slice(1)}</button>`).join("");
     else if(S.phase==="end")acts+=`<button class="primary ${autoEndOk()?"autoend":""}" data-a="end">${autoEndOk()?"Weiter ▸":"Zug beenden"}</button>`;
     if(canDuel(S))acts+=`<button class="gold" data-a="duel-open">⚔ Herausfordern</button>`;
+    if(canAllInDuel(S))acts+=`<button class="ghost allinb" data-a="allin-open">💥 All-in-Duell</button>`;
     if(canRevenge(S))acts+=`<button class="gold" data-a="revenge">🔥 Rache an ${esc(S.players[p.rache.to].name)}</button>`;
     if((S.phase==="roll"||S.phase==="end")&&others(S,p).length)acts+=`<button class="ghost" data-a="trade-open">🏛️ Tauschen</button>`;
     if(canBet(S)){const m=S.match;acts+=app.betOpen?`<div class="betbox"><div class="note">⚽ ${esc(m.home?"Rottenberg – "+m.opp:m.opp+" – Rottenberg")} · Runde ${m.ko}</div><div class="stakes">${BET_STAKES.map(v=>`<button class="chip ${v===(app.betStake||20)?"on":""}" data-a="bet-stake" data-v="${v}" ${p.money<v?"disabled":""}>${v} €</button>`).join("")}</div><div class="stakes">${["h","d","a"].map(t=>`<button class="chip odd" data-a="bet" data-t="${t}" ${p.money<(app.betStake||20)?"disabled":""}>${BET_T[t]}<br><b>${m.o[t].toFixed(2).replace(".",",")}</b></button>`).join("")}<button class="chip" data-a="bet-close">✕</button></div></div>`:`<button class="ghost" data-a="bet-open">⚽ Sportwette</button>`;}
@@ -2628,6 +2645,12 @@ function quitPanel(){
     <button class="${voted?"ghost":"primary"}" data-a="abort-vote" data-v="${voted?0:1}">${voted?"Zustimmung zurückziehen":"Alle sollen aufhören"}</button>
     <button class="ghost small" data-a="quit-close">Weiterspielen</button></section>`;
 }
+function allInPanel(){
+  const S=app.S;if(!app.allinOpen||!canAct()||!canAllInDuel(S))return "";
+  const p=cur(S);
+  return `<section class="panel"><h2>💥 All-in-Duell</h2><p class="note">Ihr setzt beide euer ganzes Bargeld (höchstens so viel, wie der Ärmere hat). Ein Zufalls-Minigame entscheidet. Wer kneift, zahlt dir die Hälfte.</p>
+  <div class="row">${allInDuelTargets(S).map(o=>`<button class="primary" data-a="allin-go" data-to="${o.id}">${esc(o.name)} · ${fmt(Math.min(p.money,o.money))} €</button>`).join("")}<button class="ghost" data-a="allin-close">Abbrechen</button></div></section>`;
+}
 function duelPanel(){
   const S=app.S;if(!app.duelOpen||!canAct()||!canDuel(S))return "";
   const p=cur(S),os=others(S,p);
@@ -2653,7 +2676,7 @@ function renderGame(){
   const over=S.status==="over"?`<section class="panel"><h2>Endstand</h2><div class="podium">${S.ranking.map(r=>`<div><span class="pl-place">${r.place}.</span><span class="dot" style="background:${r.color}"></span><b>${esc(r.name)}</b><span class="w">${r.left?"ausgestiegen":r.bankrupt?"pleite":fmt(r.worth)+" €"}</span></div>`).join("")}</div>${reportHTML(S)}<p class="note">${S.unranked?"Das Spiel wurde abgebrochen und zählt nicht für die Rangliste.":"Das Ergebnis steht jetzt in der Rangliste."}</p><h2>Rangliste</h2>${lbHTML()}</section>`:"";
   const top=`<div class="gtop"><div class="eyebrow">${isSpect()?"👀 ":""}${app.mode==="online"?esc(app.code)+" · ":""}Runde ${S.round}${S.maxRounds?"/"+S.maxRounds:""}</div><div class="gbtns">${app.mode==="online"?`<button class="ghost small" data-a="tochat" aria-label="Chat">💬</button>`:""}<button class="ghost small" data-a="snd" aria-label="${SND.on?"Ton aus":"Ton an"}">${SND.on?"🔊":"🔇"}</button><button class="ghost small" data-a="zoom" aria-label="${app.zoom?"Brett verkleinern":"Brett vergrößern"}">${app.zoom?"🔍−":"🔍+"}</button>${app.mode==="online"&&S.status==="playing"&&!isSpect()?`<button class="ghost small" data-a="push-open" aria-label="Bescheid, wenn du dran bist">${store.get("rbm-ntfy-on")||(("Notification" in window)&&Notification.permission==="granted")?"🔔":"🔕"}</button>`:""}${S.status==="playing"&&!isSpect()?`<button class="ghost small" data-a="quit-open">⏻ Beenden</button>`:""}${isSpect()?`<button class="ghost small" data-a="leave">👀 Verlassen</button>`:""}<button class="ghost small" data-a="home" aria-label="Menü">☰</button></div></div>${evNow(S)&&S.status==="playing"?`<div class="evbar">${evNow(S).ic} <b>${evNow(S).n}</b> · ${esc(evNow(S).x)}</div>`:""}`;
   const abortNote=S.status==="playing"&&S.abort&&Object.keys(S.abort).length&&!app.quitOpen?`<button class="ghost small abortnote" data-a="quit-open">⏻ ${Object.keys(S.abort).length} von ${alive(S).length} wollen aufhören. Tippen zum Abstimmen</button>`:"";
-  const center=centerHTML(),below=`${questPanel()}${pushPanel()}${quitPanel()}${abortNote}${app.sel!=null?fieldSheet(app.sel):""}${duelPanel()}${tradePanel()}${over}<div class="players">${players}</div>${rulesHTML()}`;
+  const center=centerHTML(),below=`${questPanel()}${pushPanel()}${quitPanel()}${abortNote}${app.sel!=null?fieldSheet(app.sel):""}${allInPanel()}${duelPanel()}${tradePanel()}${over}<div class="players">${players}</div>${rulesHTML()}`;
   app.gp={top,cells:cellArr,center,below,zoom:!!app.zoom};
   return `<div id="g-top">${top}</div><div class="boardwrap"><div class="board ${app.zoom?"zoom":""}">${cellArr.join("")}<div class="center" id="g-center">${center}</div></div></div><div id="g-below">${below}</div>`;
 }
@@ -2750,7 +2773,7 @@ function applyGame(d){
 const HAUS_SVG='<svg viewBox="0 0 10 11"><path d="M5 .9 9.3 5V10.2H.7V5Z" fill="#1d8a3a" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>';
 const HOTEL_SVG='<svg viewBox="0 0 22 11"><path d="M1 3.2 11 .8 21 3.2V10.2H1Z" fill="#c8102e" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/><text x="11" y="9.2" text-anchor="middle" font-size="6.6" font-weight="800" fill="#fff" font-family="Arial,sans-serif">HOTEL</text></svg>';
 setInterval(()=>{const n=isNight()&&store.get("rbm-night")!==false;if(n!==document.body.classList.contains("night")){document.body.classList.toggle("night",n);if(n)toast("🌙 Nachtmodus: Die Laternen gehen an.");}},60000);
-const BUILD="rbm-v65";
+const BUILD="rbm-v66";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -2836,7 +2859,7 @@ document.addEventListener("click",async ev=>{
     case "passtog":break;
     case "toklock":{const k=+b.dataset.k;toast("🔒 "+TOKENS[k].n+" freischalten: "+tokHint(k));break;}
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",31);render();break;
+    case "news-ok":store.set("rbm-news",32);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
@@ -2953,6 +2976,9 @@ document.addEventListener("click",async ev=>{
     case "trade-no":app.counterOpen=false;commitLeased(S=>actTradeAnswer(S,false),[app.S.trade.to]);break;
     case "duel-open":app.duelOpen=true;render();setTimeout(()=>{const el=document.getElementById("d-to");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});},50);break;
     case "duel-close":app.duelOpen=false;render();break;
+    case "allin-open":app.allinOpen=true;render();setTimeout(()=>{const el=document.querySelector("[data-a=allin-go]");if(el)el.scrollIntoView({behavior:"smooth",block:"center"});},50);break;
+    case "allin-close":app.allinOpen=false;render();break;
+    case "allin-go":{const to=+b.dataset.to;app.allinOpen=false;commit(S=>actAllInDuel(S,to));break;}
     case "duel-go":{const to=+document.getElementById("d-to").value,k=document.getElementById("d-kind").value,st=+document.getElementById("d-stake").value;app.duelOpen=false;commit(S=>actDuelStart(S,to,st,k));break;}
     case "duel-yes":commitLeased(S=>actDuelAnswer(S,true),[app.S.duel.to]);break;
     case "duel-no":commitLeased(S=>actDuelAnswer(S,false),[app.S.duel.to]);break;
