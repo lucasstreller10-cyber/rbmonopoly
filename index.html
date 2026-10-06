@@ -70,9 +70,9 @@ label{font-size:13px;color:var(--dim-on-forest);display:flex;flex-direction:colu
 /* board */
 .board{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(9,minmax(0,1fr));aspect-ratio:10/9;width:100%;max-width:100%;gap:2px;background:var(--forest-3);padding:2px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .cell{background:var(--paper);color:var(--ink);position:relative;overflow:hidden;display:flex;flex-direction:column;font-family:var(--f-board);border-radius:3px;cursor:pointer;min-width:0;min-height:0;padding:0}
-.cell .strip{height:20%;min-height:6px;display:flex;gap:2px;align-items:center;justify-content:center}
-.cell .strip i.hotel{width:12px;background:#c8102e}
-.cell .strip i{width:5px;height:5px;background:#fff;border:1px solid rgba(0,0,0,.5);display:block}
+.cell .strip{height:20%;min-height:6px;display:flex;flex-direction:row;gap:1px;align-items:center;justify-content:center}
+.cell .strip.bau{height:32%;min-height:12px;padding:1px 0}
+.cell .strip svg{height:100%;max-height:15px;width:auto;flex:0 1 auto;min-width:0;display:block;filter:drop-shadow(0 1px 0 rgba(0,0,0,.45))}
 .cell .nm{font-weight:700;font-size:clamp(7.5px,2.05vw,11.5px);line-height:1.02;padding:2px 2px 0;hyphens:manual;overflow-wrap:anywhere;text-align:center}
 .cell .pr{font-size:clamp(7px,1.8vw,10.5px);color:var(--muted);text-align:center;margin-top:auto;padding-bottom:2px;font-variant-numeric:tabular-nums}
 .cell .ic{text-align:center;font-size:clamp(13px,4.2vw,22px);line-height:1.15;margin-top:1px;filter:drop-shadow(0 1px 0 rgba(0,0,0,.15))}
@@ -2258,7 +2258,7 @@ function renderGame(){
   const S=app.S;if(!S)return header()+`<p>Lade Spiel …</p>`;
   const cellArr=BOARD.map((f,i)=>{
     const [r,c]=cellPos(i),o=S.props[i],corner=CORNERS.includes(i);
-    const strip=f.g?`<div class="strip" style="background:${GROUPS[f.g].c}">${o&&o.h?(o.h===MAXH?'<i class="hotel"></i>':"<i></i>".repeat(o.h)):""}</div>`:"";
+    const strip=f.g?`<div class="strip${o&&o.h?" bau":""}" style="background:${GROUPS[f.g].c}">${o&&o.h?(o.h===MAXH?HOTEL_SVG:HAUS_SVG.repeat(o.h)):""}</div>`:"";
     return `<button class="cell ${corner?"corner":""} ${o?"owned":""} ${o&&o.m?"mort":""} ${app.sel===i?"sel":""}" style="grid-row:${r};grid-column:${c};${o?"--own:"+S.players[o.owner].color:""}" data-a="sel" data-i="${i}" aria-label="${esc(f.n)}">${strip}${f.fx?`<span class="fxb">${f.fx==="challenge"?"★":"!"}</span>`:""}${f.ic?`<div class="ic">${f.ic}</div>`:""}<div class="nm">${esc(S_(f.s))}</div>${ownable(f)?`<div class="pr">${f.p}</div>`:f.t==="tax"?`<div class="pr">−${f.a}</div>`:f.t==="pot"?`<div class="pr">${fmt(S.pot)}</div>`:f.t==="loewe"?`<div class="pr">−10</div>`:""}<div class="tok" id="t${i}"></div></button>`;
   });
   const players=S.players.map(p=>{
@@ -2361,7 +2361,10 @@ function applyGame(d){
   app.S=JSON.parse(JSON.stringify(d));if(mg&&document.getElementById("mg-area")){app.deferRender=true;renderBar();}else render();
 }
 /* Neue App-Version erkennen: Auf dem Startbildschirm wird still neu geladen, im Spiel erscheint ein Knopf. */
-const BUILD="rbm-v49";
+/* Häuser grün, Hotel rot, mit weißem Rand, damit man sie auf jeder Gruppenfarbe sieht (Lucas, 06.10.). */
+const HAUS_SVG='<svg viewBox="0 0 10 11"><path d="M5 .9 9.3 5V10.2H.7V5Z" fill="#1d8a3a" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+const HOTEL_SVG='<svg viewBox="0 0 22 11"><path d="M1 3.2 11 .8 21 3.2V10.2H1Z" fill="#c8102e" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/><text x="11" y="9.2" text-anchor="middle" font-size="6.6" font-weight="800" fill="#fff" font-family="Arial,sans-serif">HOTEL</text></svg>';
+const BUILD="rbm-v50";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
