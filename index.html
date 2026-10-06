@@ -240,6 +240,8 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .lever{position:absolute;right:5px;top:34px;width:6px;height:46px;background:linear-gradient(90deg,#999,#eee,#999);border-radius:3px;transform-origin:bottom center}.lever i{position:absolute;top:-10px;left:-6px;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ff7a6a,#b0150c)}
 .lever.pull{animation:lever .7s ease-in-out}@keyframes lever{40%{transform:scaleY(-.6)}100%{transform:none}}
 .slotmsg{font-weight:800;font-size:13px;min-height:16px}.paytab{font-size:9.5px;opacity:.8;margin-top:2px}
+.sroad{display:flex;margin:8px 0 4px;border-radius:6px;overflow:hidden;width:100%}.sroad .sl{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;background:#3d4247;border-left:2px dashed rgba(255,255,255,.45);padding:3px 0}.sroad .sl:nth-child(2){border-left:none}.sroad .sl.side{background:#8a7a5c;border-left:none;flex:1.15 1 0}.sroad .sl.ok{background:#2f5b3b}.sroad .sl.boom{background:#7a2a20}.sroad small{font-size:clamp(7.5px,2.4vw,10px);color:#e8e1cf;white-space:nowrap;letter-spacing:-.03em;font-variant-numeric:tabular-nums}.sroad span{height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:clamp(17px,6vw,24px);position:relative}.sroad .hop{animation:sauhop .35s ease}.sroad .car{font-style:normal;animation:saucar .45s ease-out}.sroad .boom b{font-size:14px;position:absolute;bottom:0}
+@keyframes sauhop{0%{transform:translate(-120%,0)}50%{transform:translate(-60%,-10px)}to{transform:none}}@keyframes saucar{from{transform:translateY(-60px)}}
 .hlrow{display:flex;align-items:center;justify-content:center;gap:10px;margin:6px 0}.hlhist{display:flex}.hlhist .pc{width:24px;height:34px;opacity:.75}.hlhist .pc b{font-size:12px}.hlhist .pc+.pc{margin-left:-10px}
 .pc.big{width:52px;height:74px}.pc.big b{font-size:26px}.pc.big i{font-size:13px}
 @media (prefers-reduced-motion:reduce){.strip.spin,.lever.pull,.slotm.won{animation:none}}
@@ -486,7 +488,7 @@ const SOLO_ALL={kegeln:{g:"Wirf mit 3 Würfen mindestens 17 Kegel um.",ok:v=>v>=
 const SOLO=Object.fromEntries(OFFER.map(k=>[k,SOLO_ALL[k]]));
 function valText(k,v,c){if(k==="reflex")return v>=5000?"zu früh getippt":(v/1000).toFixed(2).replace(".",",")+" s";if(k==="stopp")return (v/1000).toFixed(2).replace(".",",")+" s";if(k==="tap")return v+"× gepumpt";if(k==="rennen")return v+" Schritte";if(k==="faengt")return v+" Äppler";if(k==="glocken")return v+" Runden";if(k==="whack")return v+" Punkte";if(k==="rechnen"||k==="farben"||k==="ttt")return v+" Punkte";if(k==="torwand")return v+" von 6 Treffern";if(k==="bier")return v+" % im Krug";if(k==="kegeln")return v+" Kegel";if(k==="kilhau")return v+" Punkte";if(k==="bembel")return (v/10).toFixed(1).replace(".",",")+" s gehalten";if(k==="schaetz")return (v<0?"Zeit abgelaufen":Number(v).toLocaleString("de-DE")+" getippt")+", richtig: "+SCHAETZ[c.q].a.toLocaleString("de-DE");return "Bembel "+v;}
 /* Auf den Challenge-Feldern kommt immer ein zufälliges Casinospiel statt des Minigames (Lucas, 05.10.). */
-const CH_CAS=1,CAS_G={wheel:"🎡 Glücksrad",bj:"🃏 Blackjack",slot:"🎰 Bandit",hl:"⬆⬇ Höher/Tiefer"};
+const CH_CAS=1,CAS_G={wheel:"🎡 Glücksrad",bj:"🃏 Blackjack",slot:"🎰 Bandit",hl:"⬆⬇ Höher/Tiefer",sau:"🐗 Sau über die Straße"};
 function casPop(S,p){const g=pick(Object.keys(CAS_G));S.phase="casino";S.casOnly=g;
   S.card={deck:"ch",t:"🎰 Spontane Casino-Runde: "+CAS_G[g].replace(/^\S+\s/,""),x:"Charly hat seinen Tisch mitgebracht. Wähl deinen Einsatz und spiel eine Runde "+CAS_G[g].replace(/^\S+\s/,"")+", oder geh einfach weiter."};
   log(S,p.name+" landet bei Charlys mobilem Casinotisch: "+CAS_G[g].replace(/^\S+\s/,"")+".");}
@@ -759,7 +761,7 @@ function land(S,p,depth){
   }else if(f.t==="tax"){log(S,p.name+" zahlt "+f.a+" ("+f.n+") in die Kasse im Biergarten.");pay(S,p,null,f.a);}
   else if(f.t==="pot"){if(S.pot>0){log(S,p.name+" räumt die Kasse im Biergarten ab: +"+S.pot+" €!");{const a=st(S,p.id);a.pot+=S.pot;a.potMax=Math.max(a.potMax,S.pot);}p.money+=S.pot;S.pot=0;}else log(S,p.name+" parkt am Dorfplatz. Die Kasse ist leer.");if(S.status==="playing"&&!p.bankrupt&&Math.random()<BRUNNEN_P)brunnen(S,p);}
   else if(f.t==="gojail"){sendJail(S,p);}
-  else if(f.t==="casino"){S.phase="casino";S.card={deck:"ch",t:"🎰 Rottenberger Casino",x:"Wähl deinen Einsatz und spiel: Glücksrad (bis zum Dreifachen, die Kasse oder eine Gratis-Straße, aber auch der Bunker, und ganz selten der goldene Jackpot) Blackjack bei Croupier Charly, den Wildsau-Automaten oder Höher oder Tiefer. Du kannst auch einfach weitergehen."};log(S,p.name+" betritt das Rottenberger Casino.");}
+  else if(f.t==="casino"){S.phase="casino";S.card={deck:"ch",t:"🎰 Rottenberger Casino",x:"Wähl deinen Einsatz und spiel: Glücksrad (bis zum Dreifachen, die Kasse oder eine Gratis-Straße, aber auch der Bunker, und ganz selten der goldene Jackpot) Blackjack bei Croupier Charly, den Wildsau-Automaten, Höher oder Tiefer oder die Sau über die Straße. Du kannst auch einfach weitergehen."};log(S,p.name+" betritt das Rottenberger Casino.");}
   else if(f.t==="mini"){S.miniHere=true;S.card={deck:"wahn",t:"🐗 Wildsau-Wahnsinn",x:others(S,p).length?"Minigame-Feld! Nur hier darfst du jemanden um Geld herausfordern.":"Minigame-Feld, aber es ist niemand mehr da zum Herausfordern."};log(S,p.name+" landet auf dem Minigame-Feld und darf herausfordern.");}
   else if(f.t==="klatsch"){
     if(!S.decks[f.t].length)S.decks[f.t]=shuffle(CARDS[f.t].map((_,i)=>i));
@@ -797,14 +799,15 @@ const WHEEL=[{l:"×3",c:"#3f9b5f",m:3},{l:"Weg",c:"#c2402b",m:0},{l:"×2",c:"#e6
 /* Glücksrad-Jackpot (Lucas, 05.10.): ein ganz schmales goldenes Feld, das nur etwa bei jedem 200. Dreh kommt. Zahlt das 20-Fache. */
 function wheelGeo(){const w=WHEEL.map(x=>x.jp?WHEEL_JPW:(360-WHEEL_JPW)/(WHEEL.length-1));let a=0;return w.map(d=>{const r={a,d};a+=d;return r;});}
 function wheelPick(){return Math.random()<WHEEL_JP?WHEEL.length-1:Math.floor(Math.random()*(WHEEL.length-1));}
-function casDone(S){S.bj=null;S.hl=null;S.casOnly=null;return resume(S);}
-function actCasinoSkip(S){const p=cur(S);if(S.phase!=="casino"||S.bj||S.hl)return S;log(S,p.name+" schaut nur kurz rein und geht weiter.");S.card=null;return casDone(S);}
+function casDone(S){S.bj=null;S.hl=null;S.cr=null;S.casOnly=null;return resume(S);}
+function actCasinoSkip(S){const p=cur(S);if(S.phase!=="casino"||S.bj||S.hl||S.cr)return S;log(S,p.name+" schaut nur kurz rein und geht weiter.");S.card=null;return casDone(S);}
 function actCasino(S,game,stake){
-  const p=cur(S);if(S.phase!=="casino"||S.status!=="playing"||S.bj||S.hl)return S;
+  const p=cur(S);if(S.phase!=="casino"||S.status!=="playing"||S.bj||S.hl||S.cr)return S;
   stake=CAS_STAKES.includes(stake)?stake:CAS_STAKES[0];if(p.money<stake)return S;if(S.casOnly&&game!==S.casOnly)game=S.casOnly;
   if(game==="bj")return bjDeal(S,p,stake);
   if(game==="slot")return slotPull(S,p,stake);
   if(game==="hl")return hlDeal(S,p,stake);
+  if(game==="sau")return sauDeal(S,p,stake);
   p.money-=stake;const k=wheelPick(),w=WHEEL[k];S.wheel={seg:k,k:(S.wheel?S.wheel.k:0)+1,who:p.id};
   const back=stake*w.m;p.money+=back;let x=w.jp?"JACKPOT! Einsatz "+stake+" € wird zu "+back+" €!":w.m>1?"Einsatz "+stake+" € wird zu "+back+" €!":w.m===1?"Einsatz "+stake+" € zurück.":"Einsatz "+stake+" € ist weg.";
   if(k===3){const g=S.pot;p.money+=g;S.pot=0;x+=g?" Dazu die ganze Kasse im Biergarten: +"+g+" €!":" Die Kasse ist leider leer.";}
@@ -827,6 +830,19 @@ function slotPull(S,p,stake){
   log(S,"Einarmiger Bandit: "+p.name+" zieht den Hebel ("+stake+" €). "+r.map(i=>SLOT[i].n).join(" · ")+". "+t);
   S.card={deck:"ch",t:"🎰 "+t,x:"Walzen: "+r.map(i=>SLOT[i].n).join(" · ")+".",slot:{r,k:S.slot.k,back,stake}};return casDone(S);
 }
+/* Sau über die Straße (Lucas, 06.10., wie „Chicken Road“): Die Wildsau quert Spur für Spur die Hauptstraße.
+   Jede Spur ist gefährlicher, der Faktor steigt. Jederzeit kassieren, wird sie erwischt, ist der Einsatz weg.
+   Faktor = 0,95 / Überlebenswahrscheinlichkeit, also 95 % Auszahlungsquote, egal wann man aufhört. */
+const SAU_P=[.08,.10,.13,.16,.20,.25,.32,.40],SAU_V=["🚲","🛵","🚗","🚐","🚜","🚌","🚒","🚛"];
+const SAU_M=(()=>{let q=1;return SAU_P.map(x=>{q*=1-x;return Math.floor(95/q)/100;});})();
+const sauPot=c=>c.n?Math.floor(c.stake*SAU_M[c.n-1]):c.stake;
+function sauDeal(S,p,stake){p.money-=stake;S.cr={id:Math.floor(Math.random()*1e9),stake,n:0};log(S,p.name+" setzt "+stake+" € auf die Sau über die Straße.");S.card=null;return S;}
+function actSau(S){const c=S.cr;if(S.phase!=="casino"||!c)return S;if(Math.random()<SAU_P[c.n]){c.hit=c.n;return sauEnd(S,false);}c.n++;if(c.n>=SAU_P.length)return sauEnd(S,true);return S;}
+function actSauCash(S){if(S.phase!=="casino"||!S.cr||!S.cr.n)return S;return sauEnd(S,true);}
+function sauEnd(S,won){const c=S.cr,p=cur(S),back=won?sauPot(c):0;p.money+=back;
+  const t=won?(c.n>=SAU_P.length?"Drüben! Freibier im Biergarten: ":"Kassiert! ")+fmt(back)+" € (×"+SAU_M[c.n-1].toFixed(2).replace(".",",")+")":"Erwischt vom "+["Fahrrad","Roller","Auto","Bulli","Traktor","Bus","Feuerwehrauto","Laster"][c.hit]+"! −"+c.stake+" €";
+  log(S,"Sau über die Straße: "+p.name+(won?" kassiert "+back+" € nach "+c.n+" Spuren.":" wird auf Spur "+(c.hit+1)+" erwischt und verliert "+c.stake+" €."));
+  S.card={deck:"ch",t:"🐗 "+t,x:"",cr:{id:c.id,stake:c.stake,n:c.n,hit:c.hit,won,t}};return casDone(S);}
 /* Höher oder Tiefer: echtes 52er-Blatt, Ass ist hoch. Die Quote richtet sich nach den restlichen Karten (Haus behält 3 %), gleiche Karte zählt nicht.
    Nach jedem Treffer kassieren oder weiterspielen, nach 6 Treffern wird automatisch ausgezahlt. */
 const HL_MAX=6,hlR=c=>BJ_R.indexOf(c.slice(0,-1))===0?14:BJ_R.indexOf(c.slice(0,-1))+1;
@@ -1436,7 +1452,7 @@ function cpuMove(S,id){
   if(S.phase==="challenge"&&S.challenge)return actChallenge(S,cpuScore(S.challenge.kind,lvl,S.challenge.q));
   if(S.phase==="penalty")return actPenalty(S,pick(["links","Mitte","rechts"]));
   if(S.phase==="bank"&&S.offer){const o=S.offer;return actBank(S,o.k==="kredit"?me.money<250:o.k==="ankauf"?!BOARD[o.i].g||BOARD.filter((f,j)=>f.g===BOARD[o.i].g&&S.props[j]&&S.props[j].owner===me.id).length<2:me.money-o.amt>=reserve);}
-  if(S.phase==="casino"){if(S.bj)return cpuBj(S);if(S.hl){const h=S.hl,o=hlOdds(h);if(h.n>=2||(h.n&&Math.max(o.hi,o.lo)>1.8))return actHlCash(S);return actHl(S,o.hi&&(o.hi<=o.lo||!o.lo)?"hi":"lo");}if(me.money<250)return actCasinoSkip(S);return actCasino(S,S.casOnly||pick(["bj","wheel","slot","hl"]),me.money>900?100:50);}
+  if(S.phase==="casino"){if(S.bj)return cpuBj(S);if(S.cr){const c=S.cr;return c.n>=4||(c.n>=2&&Math.random()<.45)?actSauCash(S):actSau(S);}if(S.hl){const h=S.hl,o=hlOdds(h);if(h.n>=2||(h.n&&Math.max(o.hi,o.lo)>1.8))return actHlCash(S);return actHl(S,o.hi&&(o.hi<=o.lo||!o.lo)?"hi":"lo");}if(me.money<250)return actCasinoSkip(S);return actCasino(S,S.casOnly||pick(["bj","wheel","slot","hl","sau"]),me.money>900?100:50);}
   if(S.phase==="end"){cpuBuild(S,me,reserve);if(canDuel(S)&&cpuDuel(S,me,lvl))return S;return actEnd(S);}
   return S;
 }
@@ -1717,7 +1733,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>🔥 Rache-Duell:</b> Wer mindestens 150 € Miete zahlen muss, schwört selten Rache (etwa jedes achte Mal, höchstens einmal pro Partie) und darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern. Zufälliges Minispiel, kneifen gilt nicht. Gewinnst du, zahlt er dir die halbe Miete zurück. Verlierst du, kostet es nichts.</li>
 <li><b>🏦 Hypothek:</b> Tippe auf ein eigenes unbebautes Grundstück und nimm eine Hypothek auf: du bekommst den halben Kaufpreis, dafür gibt es dort keine Miete und in der Gruppe wird nicht gebaut. Ablösen kostet 10 % mehr. Wer pleite zu gehen droht, beleiht automatisch, bevor er aufgeben muss.</li>
 <li><b>🏦 Dorfbank:</b> Selten (ab Runde 3) macht die Dorfbank vor dem Würfeln ein verlockendes Angebot: ein schneller Kredit (in 5 Runden mit Zinsen zurück), ein Ankauf eines deiner Grundstücke weit über Wert oder eine freie Straße zum Sonderpreis. Annehmen oder ablehnen.</li>
-<li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, wählt einen Einsatz (50, 100 oder 200 €) und spielt Glücksrad (bis zum Dreifachen, die Kasse, eine Gratis-Straße, aber auch der Bunker; ganz selten, etwa bei jedem 200. Dreh, trifft man den goldenen Jackpot und bekommt das 20-Fache) oder Blackjack am Tisch von Croupier Charly (echtes Kartenblatt, Bank zieht bis 17, Blackjack zahlt 3:2, du kannst verdoppeln, teilen oder aufgeben), den einarmigen Banditen „Wildsau-Automat“ (drei gleiche Symbole zahlen bis zum 100-fachen) oder Höher oder Tiefer (Quote nach den restlichen Karten, kassieren wann du willst, höchstens 6 Treffer). Man kann auch einfach weitergehen.</li>
+<li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, wählt einen Einsatz (50, 100 oder 200 €) und spielt Glücksrad (bis zum Dreifachen, die Kasse, eine Gratis-Straße, aber auch der Bunker; ganz selten, etwa bei jedem 200. Dreh, trifft man den goldenen Jackpot und bekommt das 20-Fache) oder Blackjack am Tisch von Croupier Charly (echtes Kartenblatt, Bank zieht bis 17, Blackjack zahlt 3:2, du kannst verdoppeln, teilen oder aufgeben), den einarmigen Banditen „Wildsau-Automat“ (drei gleiche Symbole zahlen bis zum 100-fachen) oder Höher oder Tiefer (Quote nach den restlichen Karten, kassieren wann du willst, höchstens 6 Treffer) oder 🐗 Sau über die Straße: Die Wildsau quert Spur für Spur die Hauptstraße, jede Spur erhöht den Faktor (bis ×6,41) und ist gefährlicher, kassieren wann du willst, wird sie erwischt, ist der Einsatz weg. Man kann auch einfach weitergehen.</li>
 <li><b>🏆 Dorfmeisterschaft:</b> Jede 10. Runde spielen alle dasselbe Minispiel. Platz 2 bekommt 150 €, Platz 3 75 €. Platz 1 bekommt 300 €, bei jeder zweiten Meisterschaft stattdessen eine Straße vom Letzten.</li>
 <li><b>💤 Alle offline:</b> Ist bei einer Online-Partie 15 Minuten lang niemand mehr im Spiel, endet sie mit dem aktuellen Stand und kommt nach Vermögen in die Rangliste (ab Runde 3).</li><li><b>👀 Zuschauen:</b> Bei Online-Spielen kann jeder mit dem Code oder über „Laufende Spiele“ zuschauen, ohne mitzuspielen, und im Chat mitreden.</li>
 <li>Pasch heißt nochmal würfeln. Drei Pasche hintereinander: ab in den Bunker bei Big A, dort wird erstmal gemeinsam einer geraucht. Raus kommst du mit Pasch, 50 € oder Freikarte.</li>
@@ -1733,6 +1749,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
   const news=store.get("rbm-news")!==23?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>🐗 Neu im Casino: Sau über die Straße, kassieren bevor der Traktor kommt</li>
    <li>🎳 Neue Minispiele Wildsau-Bowling und 🏛️ Hau den Kilian</li>
    <li>🏺 Neues Minispiel Bembel-Balance: Handy neigen, Bembel nicht umkippen lassen</li>
    <li>🏠 Häuser und Hotels auf dem Brett viel besser zu sehen</li>
@@ -1839,7 +1856,7 @@ function centerHTML(){
     }else if(S.phase==="buy"){const f=BOARD[p.pos];acts+=`<button class="gold" data-a="buy">${esc(f.s.replace(/\|/g,""))} kaufen (${f.p})</button><button class="ghost" data-a="skip">Nein</button>`;}
     else if(S.phase==="challenge"&&S.challenge)acts+=soloHTML(S.challenge);
     else if(S.phase==="bank"&&S.offer){const o=S.offer;acts+=`<button class="gold" data-a="bank-yes" ${o.k==="rabatt"&&p.money<o.amt?"disabled":""}>Annehmen</button><button class="ghost" data-a="bank-no">Ablehnen</button>`;}
-    else if(S.phase==="casino"){if(S.hl){const o=hlOdds(S.hl);acts+=`<button class="gold" data-a="hl" data-d="hi" ${o.hi?"":"disabled"}>⬆ Höher${o.hi?" ×"+o.hi.toFixed(2).replace(".",","):""}</button><button class="gold" data-a="hl" data-d="lo" ${o.lo?"":"disabled"}>⬇ Tiefer${o.lo?" ×"+o.lo.toFixed(2).replace(".",","):""}</button>${S.hl.n?`<button class="primary" data-a="hl-cash">💰 Kassieren ${fmt(S.hl.pot)} €</button>`:""}`;}else if(S.bj)acts+=`<button class="gold" data-a="bj-hit">Karte</button><button class="primary" data-a="bj-stand">Stehen</button>${bjCanDbl(S)?`<button class="ghost" data-a="bj-dbl">Verdoppeln</button>`:""}${bjCanSplit(S)?`<button class="ghost" data-a="bj-split">Teilen</button>`:""}${bjCanSur(S)?`<button class="ghost" data-a="bj-sur">Aufgeben</button>`:""}`;
+    else if(S.phase==="casino"){if(S.cr){const c=S.cr;acts+=`<button class="gold" data-a="sau-go">🐗 Weiter ×${SAU_M[c.n].toFixed(2).replace(".",",")}</button>${c.n?`<button class="primary" data-a="sau-cash">💰 Kassieren ${fmt(sauPot(c))} €</button>`:""}`;}else if(S.hl){const o=hlOdds(S.hl);acts+=`<button class="gold" data-a="hl" data-d="hi" ${o.hi?"":"disabled"}>⬆ Höher${o.hi?" ×"+o.hi.toFixed(2).replace(".",","):""}</button><button class="gold" data-a="hl" data-d="lo" ${o.lo?"":"disabled"}>⬇ Tiefer${o.lo?" ×"+o.lo.toFixed(2).replace(".",","):""}</button>${S.hl.n?`<button class="primary" data-a="hl-cash">💰 Kassieren ${fmt(S.hl.pot)} €</button>`:""}`;}else if(S.bj)acts+=`<button class="gold" data-a="bj-hit">Karte</button><button class="primary" data-a="bj-stand">Stehen</button>${bjCanDbl(S)?`<button class="ghost" data-a="bj-dbl">Verdoppeln</button>`:""}${bjCanSplit(S)?`<button class="ghost" data-a="bj-split">Teilen</button>`:""}${bjCanSur(S)?`<button class="ghost" data-a="bj-sur">Aufgeben</button>`:""}`;
       else{const sk=CAS_STAKES.includes(app.casStake)?app.casStake:50,ok=p.money>=sk;
         acts+=`<div class="stakes">Einsatz: ${CAS_STAKES.map(v=>`<button class="chip ${v===sk?"on":""}" data-a="cas-stake" data-v="${v}" ${p.money<v?"disabled":""}>${v} €</button>`).join("")}</div>${Object.keys(CAS_G).filter(g=>!S.casOnly||g===S.casOnly).map(g=>`<button class="gold" data-a="casino" data-g="${g}" ${ok?"":"disabled"}>${CAS_G[g]}</button>`).join("")}<button class="ghost" data-a="cas-skip">Weitergehen</button>`;}}
     else if(S.phase==="penalty")acts+=["links","Mitte","rechts"].map(d=>`<button class="${d==="Mitte"?"gold":"ghost"}" data-a="pen" data-d="${d}">${d[0].toUpperCase()+d.slice(1)}</button>`).join("");
@@ -1868,7 +1885,7 @@ function centerHTML(){
   const sspin=!!S.slot&&S.slot.k!==app.slotSeen;
   if(sspin&&!app.slotT){const k=S.slot.k;app.slotStart=Date.now();app.slotT=setTimeout(()=>{app.slotT=null;app.slotSeen=k;render();},SLOT_MS+400);}
   if(spin&&!app.wheelT){const k=S.wheel.k;app.wheelT=setTimeout(()=>{app.wheelT=null;app.wheelSeen=k;render();},4300);}
-  const q=S.card?"":quipFor(S),card=spin?wheelHTML(S.wheel):sspin?slotHTML(S.slot,true):S.hl&&S.phase==="casino"?hlHTML(S.hl):S.card&&S.card.hl?hlHTML(S.card.hl,true):S.card&&S.card.slot?slotHTML(S.card.slot,false,S.card.t):S.bj&&S.phase==="casino"?bjHTML(S.bj):S.card&&S.card.bj?bjHTML(S.card.bj,true):S.card?`<div class="card ${S.card.deck}"><b>${esc(S.card.t)}</b>${esc(S.card.x)}</div>`:`<div class="msg">${esc(S.log[0]||"")}</div>${q?`<div class="quip">„${esc(q)}“</div>`:""}`;
+  const q=S.card?"":quipFor(S),card=spin?wheelHTML(S.wheel):sspin?slotHTML(S.slot,true):S.cr&&S.phase==="casino"?sauHTML(S.cr):S.card&&S.card.cr?sauHTML(S.card.cr,true):S.hl&&S.phase==="casino"?hlHTML(S.hl):S.card&&S.card.hl?hlHTML(S.card.hl,true):S.card&&S.card.slot?slotHTML(S.card.slot,false,S.card.t):S.bj&&S.phase==="casino"?bjHTML(S.bj):S.card&&S.card.bj?bjHTML(S.card.bj,true):S.card?`<div class="card ${S.card.deck}"><b>${esc(S.card.t)}</b>${esc(S.card.x)}</div>`:`<div class="msg">${esc(S.log[0]||"")}</div>${q?`<div class="quip">„${esc(q)}“</div>`:""}`;
   return `<div class="wm" aria-hidden="true">${WAPPEN}</div><div class="crest">${WAPPEN}</div><div class="mark">Rottenberg<small>Runde ${S.round}${S.maxRounds?" von "+S.maxRounds:""} · Kasse ${fmt(S.pot)} €</small></div>
    <div class="turnchip"><span class="avatar" style="background:${p.color}">${tokSvg(tokOf(p))}</span>${esc(p.name)}${p.jail?" · Bunker":""}</div>
    ${S.dice[0]?`<div class="dice" id="dice"><span>${DICE[S.dice[0]]}</span><span>${DICE[S.dice[1]]}</span></div>`:""}
@@ -2116,6 +2133,13 @@ function slotHTML(sl,spin,title){
   const won=!spin&&sl.back>sl.stake;
   return `<div class="card slotm ${won?"won":""}"><div class="slottop">🐗 WILDSAU-AUTOMAT 🐗</div><div class="slotwin">${reels}<div class="payline"></div></div><div class="lever ${spin?"pull":""}"><i></i></div>
   <div class="slotmsg">${spin?`Einsatz ${sl.stake} € · die Walzen laufen …`:esc(title||"")}</div><div class="paytab">3× Wappen 100× · 3× 🐗 50× · 3× 🍺 25× · 3× 🔔 15× · 3× 🌲 10× · 3× 🍏 6× · 2 gleiche links ab 1,5× · Wappen links 1×</div></div>`;
+}
+function sauHTML(c,fin){
+  const seen=app.crSeen&&app.crSeen.id===c.id?app.crSeen:{id:c.id,n:-1};const moved=c.n!==seen.n;app.crSeen={id:c.id,n:c.n};
+  const lane=i=>{const ok=i<c.n,boom=c.hit===i,here=c.n-1===i&&!boom;
+    return `<div class="sl ${ok?"ok":""} ${boom?"boom":""}"><small>${SAU_M[i].toFixed(SAU_M[i]>=10?1:2).replace(".",",")}</small><span>${boom?`<i class="car">${SAU_V[i]}</i><b>💥</b>`:here?`<b class="${moved?"hop":""}">🐗</b>`:""}</span></div>`;};
+  return `<div class="card bjt saut"><b>${fin?esc(c.t):"🐗 Sau über die Straße · Einsatz "+c.stake+" €"}</b><div class="sroad"><div class="sl side"><small>Start</small><span>${c.n===0&&c.hit==null?`<b>🐗</b>`:"🏠"}</span></div>${SAU_P.map((_,i)=>lane(i)).join("")}<div class="sl side"><small>Ziel</small><span>${c.n>=SAU_P.length?`<b class="hop">🐗</b>`:"🍺"}</span></div></div>
+  <div class="bjv">${fin?(c.won?`${c.n} Spuren geschafft`:`Auf Spur ${c.hit+1} erwischt`):`Topf: ${fmt(sauPot(c))} € · Spur ${c.n}/${SAU_P.length}`}</div><div class="bjlbl">Faktor steht über der Spur · jederzeit kassieren</div></div>`;
 }
 function hlHTML(h,fin){
   const seen=app.hlSeen&&app.hlSeen.id===h.id?app.hlSeen:{id:h.id,n:0};const last=h.c.length-1;
@@ -2404,7 +2428,7 @@ function endIdle(S){
   if(!S||S.status!=="playing")return null;
   if(S.round<MIN_ROUNDS)S.unranked=true;
   log(S,"💤 Alle sind offline. Das Spiel endet mit dem aktuellen Stand"+(S.unranked?", zählt aber nicht, weil es noch keine "+MIN_ROUNDS+" Runden hatte.":"."));
-  S.duel=null;S.trade=null;S.bj=null;S.hl=null;finish(S);S.idleEnd=true;S.rev=(S.rev||0)+1;return S;
+  S.duel=null;S.trade=null;S.bj=null;S.hl=null;S.cr=null;finish(S);S.idleEnd=true;S.rev=(S.rev||0)+1;return S;
 }
 async function sweepIdle(){
   if(!app.db||(app.swept&&Date.now()-app.swept<120000))return;app.swept=Date.now();
@@ -2447,7 +2471,7 @@ function applyGame(d){
 /* Häuser grün, Hotel rot, mit weißem Rand, damit man sie auf jeder Gruppenfarbe sieht (Lucas, 06.10.). */
 const HAUS_SVG='<svg viewBox="0 0 10 11"><path d="M5 .9 9.3 5V10.2H.7V5Z" fill="#1d8a3a" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>';
 const HOTEL_SVG='<svg viewBox="0 0 22 11"><path d="M1 3.2 11 .8 21 3.2V10.2H1Z" fill="#c8102e" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/><text x="11" y="9.2" text-anchor="middle" font-size="6.6" font-weight="800" fill="#fff" font-family="Arial,sans-serif">HOTEL</text></svg>';
-const BUILD="rbm-v52";
+const BUILD="rbm-v53";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -2665,6 +2689,8 @@ document.addEventListener("click",async ev=>{
     case "bj-dbl":commit(actBjDouble);break;
     case "hl":{const d=b.dataset.d;commit(S=>actHl(S,d));break;}
     case "hl-cash":commit(actHlCash);break;
+    case "sau-go":commit(actSau);break;
+    case "sau-cash":commit(actSauCash);break;
     case "bj-split":commit(actBjSplit);break;
     case "bj-sur":commit(actBjSurrender);break;
     case "mg-solo":{const c=app.S.challenge;if(c)motionPerm(c.kind);if(c)mgBegin("solo",app.S.turn,c.kind,c.q);break;}
@@ -2717,6 +2743,7 @@ const QUIPS=[
  [/⚽ /,["Wetten, dass?","Die Elf gibt alles. Zumindest bis zur Halbzeit.","Tipp abgegeben, Daumen drücken."]],
  [/Einarmiger Bandit/,["Ratter, ratter, nix.","Der Automat frisst wieder Geld.","Noch einmal ziehen, dann hör ich auf. Ehrlich."]],
  [/Blackjack/,["Charly mischt schon wieder.","Bei 16 ziehen oder beten?","Die Bank gewinnt. Meistens."]],
+ [/Sau über die Straße/,["Erst links schauen, dann rechts, dann rennen!","Die Sau hat mehr Mut als Verstand.","Der Peck sein Traktor bremst für niemand.","Gierig wird überfahren."]],
  [/Höher oder Tiefer/,["Höher! Nein, tiefer! Ach, egal.","Gierig wird bestraft.","Man soll aufhören, wenn's am schönsten is."]],
  [/Glücksrad/,["Rad dreht sich, Geld dreht sich mit.","Charly hat das Rad frisch geölt.","Wer nicht dreht, kann nicht gewinnen."]],
  [/betritt das Rottenberger Casino/,["Willkommen im Rottenberger Las Vegas.","Nur kurz gucken, gell?","Charly hat schon auf dich gewartet."]],
