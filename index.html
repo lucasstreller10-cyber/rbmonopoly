@@ -310,6 +310,7 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .rball.r{background:#c0392b}.rball.s{background:#1b1b1b}.rball.g{background:#1e8449}
 .cashd{font-weight:800;color:#ffcf6e;text-align:center;font-size:.95rem;margin:2px 0}
 .center .stakes .chip{padding:3px 9px;font-size:12px}
+.center .stakes .chip.allin{border-color:#ff6b4a;color:#ffb199;font-weight:900}.center .stakes .chip.allin.on{background:#ff6b4a;color:#fff}
 .casgames{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;width:100%}
 .casg{padding:5px 2px!important;font-size:11px!important;min-width:0;white-space:normal;line-height:1.15}
 .wheelbox{position:relative;width:min(86%,232px);aspect-ratio:1;margin:12px auto 4px;container-type:inline-size}
@@ -940,6 +941,9 @@ function actPenalty(S,dir){
 }
 /* Casino: Einsatz wählen, dann Glücksrad oder eine Hand Blackjack. Verlorene Einsätze behält das Casino. */
 const CAS_STAKES=[50,100,200,500,1000];
+/* All-in (Lucas, 06.10.): im letzten Drittel des Spiels (ohne Rundenlimit ab Runde 20) darf man im Casino das ganze Bargeld setzen. Macht Spiele schneller. */
+const allInFrom=S=>S.maxRounds?Math.ceil(S.maxRounds*2/3):20;
+const allInOk=S=>S.round>=allInFrom(S);
 /* Roulette bei der Marry (Lucas, 06.10.): europäischer Kessel 0–36. Rot/Schwarz, Gerade/Ungerade, 1–18/19–36 zahlen 2×,
    Dutzend 3×, eine einzelne Zahl 36×. Die Null nimmt alle einfachen Chancen mit (Auszahlungsquote 97,3 %). */
 const ROU_O=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
@@ -974,7 +978,7 @@ function casDone(S){S.bj=null;S.hl=null;S.cr=null;S.rou=null;S.casOnly=null;retu
 function actCasinoSkip(S){const p=cur(S);if(S.phase!=="casino"||S.bj||S.hl||S.cr||S.rou)return S;log(S,p.name+" schaut nur kurz rein und geht weiter.");S.card=null;return casDone(S);}
 function actCasino(S,game,stake){
   const p=cur(S);if(S.phase!=="casino"||S.status!=="playing"||S.bj||S.hl||S.cr||S.rou)return S;
-  stake=CAS_STAKES.includes(stake)?stake:CAS_STAKES[0];if(p.money<stake)return S;st(S,p.id).cas=(st(S,p.id).cas||0)+1;if(S.casOnly&&game!==S.casOnly)game=S.casOnly;
+  const allin=stake==="all"&&allInOk(S)&&p.money>=50;stake=allin?p.money:CAS_STAKES.includes(stake)?stake:CAS_STAKES[0];if(p.money<stake)return S;if(allin){log(S,"💥 "+p.name+" geht ALL-IN mit "+fmt(stake)+" €!");st(S,p.id).allin=(st(S,p.id).allin||0)+1;}st(S,p.id).cas=(st(S,p.id).cas||0)+1;if(S.casOnly&&game!==S.casOnly)game=S.casOnly;
   if(game==="bj")return bjDeal(S,p,stake);
   if(game==="slot")return slotPull(S,p,stake);
   if(game==="hl")return hlDeal(S,p,stake);
@@ -1629,7 +1633,7 @@ function cpuMove(S,id){
   if(S.phase==="challenge"&&S.challenge)return actChallenge(S,cpuScore(S.challenge.kind,lvl,S.challenge.q));
   if(S.phase==="penalty")return actPenalty(S,pick(["links","Mitte","rechts"]));
   if(S.phase==="bank"&&S.offer){const o=S.offer;return actBank(S,o.k==="kredit"?me.money<250:o.k==="ankauf"?!BOARD[o.i].g||BOARD.filter((f,j)=>f.g===BOARD[o.i].g&&S.props[j]&&S.props[j].owner===me.id).length<2:me.money-o.amt>=reserve);}
-  if(S.phase==="casino"){if(S.bj)return cpuBj(S);if(S.rou)return actRou(S,Math.random()<.12?"n"+Math.floor(Math.random()*37):pick(Object.keys(ROU_B)));if(S.cr){const c=S.cr;return c.n>=4||(c.n>=2&&Math.random()<.45)?actSauCash(S):actSau(S);}if(S.hl){const h=S.hl,o=hlOdds(h);if(h.n>=2||(h.n&&Math.max(o.hi,o.lo)>1.8))return actHlCash(S);return actHl(S,o.hi&&(o.hi<=o.lo||!o.lo)?"hi":"lo");}if(me.money<250)return actCasinoSkip(S);return actCasino(S,S.casOnly||pick(["bj","wheel","slot","hl","sau","rou"]),me.money>5000?500:me.money>2500?200:me.money>900?100:50);}
+  if(S.phase==="casino"){if(S.bj)return cpuBj(S);if(S.rou)return actRou(S,Math.random()<.12?"n"+Math.floor(Math.random()*37):pick(Object.keys(ROU_B)));if(S.cr){const c=S.cr;return c.n>=4||(c.n>=2&&Math.random()<.45)?actSauCash(S):actSau(S);}if(S.hl){const h=S.hl,o=hlOdds(h);if(h.n>=2||(h.n&&Math.max(o.hi,o.lo)>1.8))return actHlCash(S);return actHl(S,o.hi&&(o.hi<=o.lo||!o.lo)?"hi":"lo");}if(me.money<250)return actCasinoSkip(S);return actCasino(S,S.casOnly||pick(["bj","wheel","slot","hl","sau","rou"]),allInOk(S)&&me.money>=50&&Math.random()<.12&&worth(S,me)<Math.max(...alive(S).map(q=>worth(S,q)))*.6?"all":me.money>5000?500:me.money>2500?200:me.money>900?100:50);}
   if(S.phase==="end"){cpuBuild(S,me,reserve);if(canDuel(S)&&cpuDuel(S,me,lvl))return S;return actEnd(S);}
   return S;
 }
@@ -1979,7 +1983,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>🔥 Rache-Duell:</b> Wer mindestens 150 € Miete zahlen muss, schwört selten Rache (etwa jedes achte Mal, höchstens einmal pro Partie) und darf den Besitzer zu Beginn eines späteren Zugs gratis herausfordern. Zufälliges Minispiel, kneifen gilt nicht. Gewinnst du, zahlt er dir die halbe Miete zurück. Verlierst du, kostet es nichts.</li>
 <li><b>🏦 Hypothek:</b> Tippe auf ein eigenes unbebautes Grundstück und nimm eine Hypothek auf: du bekommst den halben Kaufpreis, dafür gibt es dort keine Miete und in der Gruppe wird nicht gebaut. Ablösen kostet 10 % mehr. Wer pleite zu gehen droht, beleiht automatisch, bevor er aufgeben muss.</li>
 <li><b>🏦 Dorfbank:</b> Selten (ab Runde 3) macht die Dorfbank vor dem Würfeln ein verlockendes Angebot: ein schneller Kredit (in 5 Runden mit Zinsen zurück), ein Ankauf eines deiner Grundstücke weit über Wert oder eine freie Straße zum Sonderpreis. Annehmen oder ablehnen.</li>
-<li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, wählt einen Einsatz (50, 100, 200, 500 oder 1.000 €) und spielt Glücksrad (bis zum Dreifachen, die Kasse, eine Gratis-Straße, aber auch der Bunker; ganz selten, etwa bei jedem 200. Dreh, trifft man den goldenen Jackpot und bekommt das 20-Fache) oder Blackjack am Tisch von Croupier Charly (echtes Kartenblatt, Bank zieht bis 17, Blackjack zahlt 3:2, du kannst verdoppeln, teilen oder aufgeben), den einarmigen Banditen „Wildsau-Automat“ (drei gleiche Symbole zahlen bis zum 100-fachen) oder Höher oder Tiefer (Quote nach den restlichen Karten, kassieren wann du willst, höchstens 6 Treffer) oder 🐗 Sau über die Straße: Die Wildsau quert Spur für Spur die Hauptstraße, jede Spur erhöht den Faktor (bis ×6,41) und ist gefährlicher, kassieren wann du willst, wird sie erwischt, ist der Einsatz weg. Oder 🔴 Roulette bei der Marry: Rot/Schwarz, Gerade/Ungerade und 1–18/19–36 zahlen das Doppelte, ein Dutzend das Dreifache, eine einzelne Zahl das 36-Fache. Man kann auch einfach weitergehen.</li>
+<li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, wählt einen Einsatz (50, 100, 200, 500 oder 1.000 €, im letzten Drittel des Spiels auch 💥 All-in mit dem ganzen Bargeld) und spielt Glücksrad (bis zum Dreifachen, die Kasse, eine Gratis-Straße, aber auch der Bunker; ganz selten, etwa bei jedem 200. Dreh, trifft man den goldenen Jackpot und bekommt das 20-Fache) oder Blackjack am Tisch von Croupier Charly (echtes Kartenblatt, Bank zieht bis 17, Blackjack zahlt 3:2, du kannst verdoppeln, teilen oder aufgeben), den einarmigen Banditen „Wildsau-Automat“ (drei gleiche Symbole zahlen bis zum 100-fachen) oder Höher oder Tiefer (Quote nach den restlichen Karten, kassieren wann du willst, höchstens 6 Treffer) oder 🐗 Sau über die Straße: Die Wildsau quert Spur für Spur die Hauptstraße, jede Spur erhöht den Faktor (bis ×6,41) und ist gefährlicher, kassieren wann du willst, wird sie erwischt, ist der Einsatz weg. Oder 🔴 Roulette bei der Marry: Rot/Schwarz, Gerade/Ungerade und 1–18/19–36 zahlen das Doppelte, ein Dutzend das Dreifache, eine einzelne Zahl das 36-Fache. Man kann auch einfach weitergehen.</li>
 <li><b>🏆 Dorfmeisterschaft:</b> Jede 15. Runde spielen alle dasselbe Minispiel. Platz 2 bekommt 150 €, Platz 3 75 €. Platz 1 bekommt 300 €, bei jeder zweiten Meisterschaft stattdessen eine Straße vom Letzten.</li>
 <li><b>💤 Alle offline:</b> Ist bei einer Online-Partie 15 Minuten lang niemand mehr im Spiel, endet sie mit dem aktuellen Stand und kommt nach Vermögen in die Rangliste (ab Runde 3).</li><li><b>👀 Zuschauen:</b> Bei Online-Spielen kann jeder mit dem Code oder über „Laufende Spiele“ zuschauen, ohne mitzuspielen, und im Chat mitreden.</li>
 <li>Pasch heißt nochmal würfeln. Drei Pasche hintereinander: ab in den Bunker bei Big A, dort wird erstmal gemeinsam einer geraucht. Raus kommst du mit Pasch, 50 € oder Freikarte.</li>
@@ -1994,7 +1998,8 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==30?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+  const news=store.get("rbm-news")!==31?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>💥 All-in im Casino: im letzten Drittel des Spiels alles auf eine Karte</li>
    <li>🔴 Roulette bei der Marry im Casino, und Einsätze jetzt bis 1.000 €</li>
    <li>🍺 Bierbrunnen ist jetzt schwerer: Gegenhalten! Die Rekordliste startet neu</li>
    <li>🍺 Stammtisch: alle 5 Runden stimmt ihr über eine verrückte Sonderregel ab</li>
@@ -2111,8 +2116,8 @@ function centerHTML(){
     else if(S.phase==="challenge"&&S.challenge)acts+=soloHTML(S.challenge);
     else if(S.phase==="bank"&&S.offer){const o=S.offer;acts+=`<button class="gold" data-a="bank-yes" ${o.k==="rabatt"&&p.money<o.amt?"disabled":""}>Annehmen</button><button class="ghost" data-a="bank-no">Ablehnen</button>`;}
     else if(S.phase==="casino"){if(S.cr){const c=S.cr;acts+=`<button class="gold" data-a="sau-go">🐗 Weiter ×${SAU_M[c.n].toFixed(2).replace(".",",")}</button>${c.n?`<button class="primary" data-a="sau-cash">💰 Kassieren ${fmt(sauPot(c))} €</button>`:""}`;}else if(S.hl){const o=hlOdds(S.hl);acts+=`<button class="gold" data-a="hl" data-d="hi" ${o.hi?"":"disabled"}>⬆ Höher${o.hi?" ×"+o.hi.toFixed(2).replace(".",","):""}</button><button class="gold" data-a="hl" data-d="lo" ${o.lo?"":"disabled"}>⬇ Tiefer${o.lo?" ×"+o.lo.toFixed(2).replace(".",","):""}</button>${S.hl.n?`<button class="primary" data-a="hl-cash">💰 Kassieren ${fmt(S.hl.pot)} €</button>`:""}`;}else if(S.rou)acts+=`<div class="note">Tippe auf dem Tisch, worauf du setzt.</div>`;else if(S.bj)acts+=`<button class="gold" data-a="bj-hit">Karte</button><button class="primary" data-a="bj-stand">Stehen</button>${bjCanDbl(S)?`<button class="ghost" data-a="bj-dbl">Verdoppeln</button>`:""}${bjCanSplit(S)?`<button class="ghost" data-a="bj-split">Teilen</button>`:""}${bjCanSur(S)?`<button class="ghost" data-a="bj-sur">Aufgeben</button>`:""}`;
-      else{const sk=CAS_STAKES.includes(app.casStake)?app.casStake:50,ok=p.money>=sk;
-        acts+=`<div class="stakes">Einsatz in €: ${CAS_STAKES.map(v=>`<button class="chip ${v===sk?"on":""}" data-a="cas-stake" data-v="${v}" ${p.money<v?"disabled":""}>${v}</button>`).join("")}</div><div class="casgames">${Object.keys(CAS_G).filter(g=>!S.casOnly||g===S.casOnly).map(g=>`<button class="gold casg" data-a="casino" data-g="${g}" ${ok?"":"disabled"}>${CAS_S[g]}</button>`).join("")}<button class="ghost casg" data-a="cas-skip">Weiter ▸</button></div>`;}}
+      else{const ai=allInOk(S)&&p.money>=50,sk=CAS_STAKES.includes(app.casStake)||(app.casStake==="all"&&ai)?app.casStake:50,ok=sk==="all"||p.money>=sk;
+        acts+=`<div class="stakes">Einsatz in €: ${CAS_STAKES.map(v=>`<button class="chip ${v===sk?"on":""}" data-a="cas-stake" data-v="${v}" ${p.money<v?"disabled":""}>${v}</button>`).join("")}${ai?`<button class="chip allin ${sk==="all"?"on":""}" data-a="cas-stake" data-v="all">💥 All-in ${fmt(p.money)}</button>`:""}</div><div class="casgames">${Object.keys(CAS_G).filter(g=>!S.casOnly||g===S.casOnly).map(g=>`<button class="gold casg" data-a="casino" data-g="${g}" ${ok?"":"disabled"}>${CAS_S[g]}</button>`).join("")}<button class="ghost casg" data-a="cas-skip">Weiter ▸</button></div>`;}}
     else if(S.phase==="penalty")acts+=["links","Mitte","rechts"].map(d=>`<button class="${d==="Mitte"?"gold":"ghost"}" data-a="pen" data-d="${d}">${d[0].toUpperCase()+d.slice(1)}</button>`).join("");
     else if(S.phase==="end")acts+=`<button class="primary ${autoEndOk()?"autoend":""}" data-a="end">${autoEndOk()?"Weiter ▸":"Zug beenden"}</button>`;
     if(canDuel(S))acts+=`<button class="gold" data-a="duel-open">⚔ Herausfordern</button>`;
@@ -2745,7 +2750,7 @@ function applyGame(d){
 const HAUS_SVG='<svg viewBox="0 0 10 11"><path d="M5 .9 9.3 5V10.2H.7V5Z" fill="#1d8a3a" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>';
 const HOTEL_SVG='<svg viewBox="0 0 22 11"><path d="M1 3.2 11 .8 21 3.2V10.2H1Z" fill="#c8102e" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/><text x="11" y="9.2" text-anchor="middle" font-size="6.6" font-weight="800" fill="#fff" font-family="Arial,sans-serif">HOTEL</text></svg>';
 setInterval(()=>{const n=isNight()&&store.get("rbm-night")!==false;if(n!==document.body.classList.contains("night")){document.body.classList.toggle("night",n);if(n)toast("🌙 Nachtmodus: Die Laternen gehen an.");}},60000);
-const BUILD="rbm-v63";
+const BUILD="rbm-v64";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -2831,7 +2836,7 @@ document.addEventListener("click",async ev=>{
     case "passtog":break;
     case "toklock":{const k=+b.dataset.k;toast("🔒 "+TOKENS[k].n+" freischalten: "+tokHint(k));break;}
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",30);render();break;
+    case "news-ok":store.set("rbm-news",31);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
@@ -2955,8 +2960,8 @@ document.addEventListener("click",async ev=>{
     case "mg-start":{const d=app.S.duel;motionPerm(d.kind);mgBegin("duel",+b.dataset.p,d.kind,d.q);break;}
     case "stamm-vote":{const pid=+b.dataset.p,o=+b.dataset.o;commitLeased(S=>actStammVote(S,pid,o),[pid]);break;}
     case "tour-start":{const t=app.S.tour;if(t){motionPerm(t.kind);mgBegin("tour",+b.dataset.p,t.kind,t.q);}break;}
-    case "casino":{const g=b.dataset.g,v=CAS_STAKES.includes(app.casStake)?app.casStake:50;commit(S=>actCasino(S,g,v));break;}
-    case "cas-stake":app.casStake=+b.dataset.v;render();break;
+    case "casino":{const g=b.dataset.g,v=CAS_STAKES.includes(app.casStake)||app.casStake==="all"?app.casStake:50;if(v==="all")app.casStake=50;commit(S=>actCasino(S,g,v));break;}
+    case "cas-stake":app.casStake=b.dataset.v==="all"?"all":+b.dataset.v;render();break;
     case "rou":app.rouNum=false;commit(S=>actRou(S,b.dataset.b));break;
     case "rou-num":app.rouNum=!app.rouNum;render();break;
     case "cas-skip":commit(actCasinoSkip);break;
