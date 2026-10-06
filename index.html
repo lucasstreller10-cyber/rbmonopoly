@@ -90,6 +90,7 @@ label{font-size:13px;color:var(--dim-on-forest);display:flex;flex-direction:colu
 .toks button{width:46px;height:46px;padding:5px;border-radius:12px;background:var(--forest);border:2px solid transparent}
 .toks button.on{border-color:var(--gold);background:var(--forest-3)}
 .toks button:disabled{opacity:.25}
+.toks button.lock{position:relative;opacity:1}.toks button.lock svg{filter:grayscale(1) brightness(.45);opacity:.6}.toks button.lock i{position:absolute;right:-3px;bottom:-3px;font-size:14px;font-style:normal}
 .toks svg{width:100%;height:100%}
 .tokname{font-size:12px;color:var(--dim-on-forest)}
 @keyframes ember{50%{opacity:.45}}@keyframes smoke{0%{transform:translateY(0);opacity:.9}100%{transform:translateY(-2px);opacity:.2}}
@@ -204,6 +205,7 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .achp summary h2{display:flex;justify-content:space-between;align-items:center;margin:0}.achn{font-size:14px;color:var(--gold)}
 .achgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:12px}
 .achi{display:flex;flex-direction:column;gap:2px;background:var(--forest);border-radius:12px;padding:10px;opacity:.55}
+.achtok{display:flex;align-items:center;gap:4px;color:var(--gold)!important}.achtok svg{width:16px;height:16px;flex:none}
 .achi.on{opacity:1;box-shadow:inset 0 0 0 1px var(--gold)}.achi span{font-size:24px}.achi b{font-size:13px}.achi small{font-size:11px;color:var(--dim-on-forest)}
 .achtoast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%);z-index:30;display:flex;gap:10px;align-items:center;background:var(--paper);color:var(--ink);padding:10px 16px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.45);border:2px solid var(--gold);animation:achin .45s cubic-bezier(.2,1.4,.4,1);transition:opacity .5s,transform .5s}
 .achtoast span{font-size:30px}.achtoast small{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.achtoast b{font-size:15px}
@@ -451,11 +453,28 @@ const TOKENS=[
  {n:"Schachpferd",svg:'<path d="M6 21.5h12.5v-2.6H6z" fill="#fbfaf6" stroke="#1d1d1b" stroke-width=".9"/><path d="M7.6 18.9c.3-3.4 3.6-4.6 4.4-7.2-1.6 1-3.3 1.2-4.4 2.4L6 12.4c.8-2.8 2.8-6.3 5.7-8l.5-2 1.6 1.5c3.6 1.2 5.6 5.3 5 9.5-.4 2.4-1 4-1 5.5z" fill="#fbfaf6" stroke="#1d1d1b" stroke-width=".9" stroke-linejoin="round"/><circle cx="11.6" cy="7.4" r=".8" fill="#1d1d1b"/>'},
  {n:"Brennender CBD-Joint",svg:'<path d="M2.8 20.6 16.2 7.2l2.4 2.4L5.2 23z" fill="#f3ead2" stroke="#7a6a48" stroke-width=".6"/><path d="M4.6 19.8l1 1M7 17.4l1 1M9.4 15l1 1" stroke="#cfc2a0" stroke-width=".5"/><path d="M16.2 7.2l2.4 2.4 1.3-1.3-2.4-2.4z" fill="#ff5a14"/><circle class="ember" cx="18.7" cy="6.8" r="1.2" fill="#ffd23a"/><path class="smoke" d="M19.4 5c1.2-1.6-.6-2.4.6-4M21.4 6.2c1-1.3-.2-2.1.8-3.2" stroke="#e8e8e8" fill="none" stroke-width=".9" stroke-linecap="round"/><path d="M6.5 12.5c-1.6-.4-2.6-1.6-2.8-3 1.4.2 2.6 1.2 2.8 3zm0 0c.4-1.6 1.6-2.6 3-2.8-.2 1.4-1.2 2.6-3 2.8zm0 0c-.8-1.8-.6-3.6.6-4.8.6 1.6.2 3.4-.6 4.8z" fill="#3fae5a"/>'},
  {n:"Bembel",svg:'<path d="M7.5 4.5h8.5v2.2c2.2 1.6 3.2 4.4 3.2 7.6 0 4-2.8 7.2-7.4 7.2S4.4 18.3 4.4 14.3c0-3.2 1-6 3.1-7.6z" fill="#c9ccd1" stroke="#2f343c" stroke-width=".8"/><path d="M5 13h14.1M5.6 17h12.9" stroke="#1f4fa8" stroke-width="1.6"/><circle cx="11.8" cy="15" r="1" fill="#1f4fa8"/><circle cx="8.2" cy="15" r=".8" fill="#1f4fa8"/><circle cx="15.4" cy="15" r=".8" fill="#1f4fa8"/><path d="M7.5 4.5 5.2 3.4l.6 2.2" fill="#c9ccd1" stroke="#2f343c" stroke-width=".8" stroke-linejoin="round"/><path d="M17.8 8.4c3.6-.4 4 6 .4 6.6" stroke="#2f343c" stroke-width="1.7" fill="none" stroke-linecap="round"/>'},
- {n:"Heylands-Bierflasche",svg:'<path d="M10.2 1.8h3.6v5c2 1 3.2 2.6 3.2 4.6v9.6c0 .6-.5 1.1-1.1 1.1H8.1c-.6 0-1.1-.5-1.1-1.1v-9.6c0-2 1.2-3.6 3.2-4.6z" fill="#6b3a12" stroke="#241204" stroke-width=".6"/><rect x="7" y="12" width="10" height="6.4" fill="#f2e3b3"/><text x="12" y="16.7" font-size="4.6" text-anchor="middle" font-weight="800" font-family="Georgia,serif" fill="#9b1b1b">H</text><rect x="10.2" y="1.8" width="3.6" height="1.6" fill="#d4a017"/><path d="M8.6 10.5v8" stroke="rgba(255,255,255,.35)" stroke-width=".9"/>'}
+ {n:"Heylands-Bierflasche",svg:'<path d="M10.2 1.8h3.6v5c2 1 3.2 2.6 3.2 4.6v9.6c0 .6-.5 1.1-1.1 1.1H8.1c-.6 0-1.1-.5-1.1-1.1v-9.6c0-2 1.2-3.6 3.2-4.6z" fill="#6b3a12" stroke="#241204" stroke-width=".6"/><rect x="7" y="12" width="10" height="6.4" fill="#f2e3b3"/><text x="12" y="16.7" font-size="4.6" text-anchor="middle" font-weight="800" font-family="Georgia,serif" fill="#9b1b1b">H</text><rect x="10.2" y="1.8" width="3.6" height="1.6" fill="#d4a017"/><path d="M8.6 10.5v8" stroke="rgba(255,255,255,.35)" stroke-width=".9"/>'},
+ {n:"Traktor",u:"erst",svg:'<rect x="3" y="11" width="12" height="6" rx="1" fill="#3a8a3a" stroke="#14311a" stroke-width=".7"/><path d="M8.5 11V5h5.2l1.6 6z" fill="#9fd0ff" stroke="#14311a" stroke-width=".7"/><rect x="14" y="9" width="6.5" height="8" rx="1" fill="#3a8a3a" stroke="#14311a" stroke-width=".7"/><rect x="17.4" y="4" width="1.5" height="5" fill="#333"/><circle cx="7" cy="18" r="4" fill="#222" stroke="#f2c230" stroke-width="1.3"/><circle cx="18.2" cy="19" r="2.7" fill="#222" stroke="#f2c230" stroke-width="1.1"/>'},
+ {n:"Wildsau",u:"sieg",svg:'<ellipse cx="11" cy="13" rx="8" ry="5.5" fill="#6b4423" stroke="#2a1608" stroke-width=".8"/><path d="M17 10.6l4.6 1.9v2.8L17 16.4" fill="#8a5a33" stroke="#2a1608" stroke-width=".8" stroke-linejoin="round"/><ellipse cx="21.4" cy="13.9" rx=".7" ry="1.1" fill="#2a1608"/><path d="M18.4 15.8l1.3 1.7" stroke="#fff" stroke-width="1.1" stroke-linecap="round"/><circle cx="16.4" cy="11.3" r=".85" fill="#000"/><path d="M14.3 8.2l1.3-2.8 1.5 3.2" fill="#6b4423" stroke="#2a1608" stroke-width=".7" stroke-linejoin="round"/><path d="M6 17.6v3.6M9 18.2v3.4M13 18.2v3.4M16 17.6v3.6" stroke="#2a1608" stroke-width="1.7" stroke-linecap="round"/><path d="M4 9.6c1.6-1.5 4.2-2.1 6.2-1.6" stroke="#2a1608" stroke-width="1.3" fill="none"/><path d="M3.2 12.2c-1.5-.2-1.9 1.5-.8 2.1" stroke="#2a1608" stroke-width=".8" fill="none"/>'},
+ {n:"Klosterglocke",u:"glocke",svg:'<path d="M12 2.5c-1 0-1.6.7-1.6 1.6V5C7 6 6 9 6 12.5v3.5l-2 2.5h16l-2-2.5v-3.5C18 9 17 6 13.6 5v-.9c0-.9-.6-1.6-1.6-1.6z" fill="#d4a017" stroke="#5a3d0a" stroke-width=".8"/><circle cx="12" cy="20.6" r="1.9" fill="#8a6a10"/><path d="M8.5 10.5c.4-1.7 1.3-2.8 2.5-3.4" stroke="#fff3b0" stroke-width="1.1" fill="none" stroke-linecap="round"/>'},
+ {n:"Fußball",u:"tor3",svg:'<circle cx="12" cy="12" r="9.5" fill="#fff" stroke="#222" stroke-width=".9"/><path d="M12 7.5l3.4 2.5-1.3 4h-4.2l-1.3-4z" fill="#222"/><path d="M12 7.5V2.6M15.4 10l4.6-1.6M14.1 14l2.8 4.2M9.9 14l-2.8 4.2M8.6 10 4 8.4" stroke="#222" stroke-width=".9"/>'},
+ {n:"Geripptes",u:"kasse",svg:'<path d="M6 3h12l-1.3 18.5H7.3z" fill="#f2d873" stroke="#6b5a2a" stroke-width=".8" stroke-linejoin="round"/><path d="M6.2 6.4h11.6" stroke="#fffbe6" stroke-width="2"/><path d="M7.2 9.5l1.6 2-1.4 2 1.4 2-1.2 2M10.4 9.5l1.6 2-1.6 2 1.6 2-1.6 2 1.6 2M13.6 9.5l-1.6 2M16.8 9.5l-1.6 2 1.4 2-1.4 2 1.2 2M12 11.5l1.6 2-1.6 2 1.6 2-1.6 2" stroke="#b8902a" stroke-width=".6" fill="none"/>'},
+ {n:"Waldfest-Tanne",u:"waldfest",svg:'<path d="M12 2 6 9h3l-4 5h3.5L4 19.5h16L15.5 14H19l-4-5h3z" fill="#2f7a3a" stroke="#123a18" stroke-width=".8" stroke-linejoin="round"/><rect x="10.6" y="19.5" width="2.8" height="3" fill="#6b4423"/><circle cx="9" cy="12.4" r="1" fill="#e0453a"/><circle cx="14.6" cy="16.2" r="1" fill="#f2c230"/><circle cx="13" cy="8.4" r=".9" fill="#4a8bf0"/><circle cx="8.6" cy="17" r=".9" fill="#f2c230"/>'},
+ {n:"Bunkerschlüssel",u:"bunker3",svg:'<circle cx="7.5" cy="12" r="4.6" fill="none" stroke="#8a8f96" stroke-width="2.4"/><circle cx="7.5" cy="12" r="4.6" fill="none" stroke="#c9ced4" stroke-width=".8"/><path d="M12 12h9.5M17.2 12v3.8M20.4 12v2.8" stroke="#8a8f96" stroke-width="2.4" stroke-linecap="round"/>'},
+ {n:"Goldener Würfel",u:"roll",svg:'<rect x="4" y="4" width="16" height="16" rx="3.5" fill="#f2c230" stroke="#7a5a08" stroke-width=".9"/><g fill="#5a3d0a"><circle cx="8.5" cy="8.5" r="1.5"/><circle cx="15.5" cy="15.5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="15.5" cy="8.5" r="1.5"/><circle cx="8.5" cy="15.5" r="1.5"/></g><path d="M6.6 6.4h3.6" stroke="#fff6c8" stroke-width="1.1" stroke-linecap="round"/>'},
+ {n:"Pik-Ass",u:"bjbj",svg:'<rect x="5" y="2.5" width="14" height="19" rx="2" fill="#fff" stroke="#222" stroke-width=".8"/><path d="M12 7.2c-2 2.6-4 4-4 5.8a2 2 0 0 0 3.4 1.4L10.6 17.4h2.8l-.8-3A2 2 0 0 0 16 13C16 11.2 14 9.8 12 7.2z" fill="#111"/><text x="6.6" y="7.2" font-size="4.2" font-weight="800" font-family="Arial,sans-serif" fill="#111">A</text>'},
+ {n:"Hotel",u:"hotels3",svg:'<rect x="5" y="5.5" width="14" height="16.5" fill="#c8102e" stroke="#5a0010" stroke-width=".8"/><rect x="4" y="3" width="16" height="3" fill="#8a0a1e"/><g fill="#ffe08a"><rect x="7" y="8.4" width="2.5" height="2.5"/><rect x="10.8" y="8.4" width="2.5" height="2.5"/><rect x="14.5" y="8.4" width="2.5" height="2.5"/><rect x="7" y="12.8" width="2.5" height="2.5"/><rect x="10.8" y="12.8" width="2.5" height="2.5"/><rect x="14.5" y="12.8" width="2.5" height="2.5"/></g><rect x="10.3" y="17.2" width="3.4" height="4.8" fill="#3a1a10"/>'},
+ {n:"Dorfkrone",u:"serie3",svg:'<path d="M3 8l4.5 4L12 4l4.5 8L21 8l-2 11H5z" fill="#f2c230" stroke="#7a5a08" stroke-width=".9" stroke-linejoin="round"/><rect x="5" y="19" width="14" height="2.5" fill="#d4a017" stroke="#7a5a08" stroke-width=".7"/><circle cx="12" cy="15" r="1.5" fill="#c8102e"/><circle cx="8" cy="15.5" r="1.05" fill="#1f4fa8"/><circle cx="16" cy="15.5" r="1.05" fill="#1f4fa8"/>'},
+ {n:"Goldener Bembel",un:30,svg:'<path d="M7.5 4.5h8.5v2.2c2.2 1.6 3.2 4.4 3.2 7.6 0 4-2.8 7.2-7.4 7.2S4.4 18.3 4.4 14.3c0-3.2 1-6 3.1-7.6z" fill="#efc84a" stroke="#6b4a08" stroke-width=".8"/><path d="M5 13h14.1M5.6 17h12.9" stroke="#a06a08" stroke-width="1.6"/><circle cx="11.8" cy="15" r="1" fill="#a06a08"/><path d="M7.5 4.5 5.2 3.4l.6 2.2" fill="#efc84a" stroke="#6b4a08" stroke-width=".8" stroke-linejoin="round"/><path d="M17.8 8.4c3.6-.4 4 6 .4 6.6" stroke="#6b4a08" stroke-width="1.7" fill="none" stroke-linecap="round"/><path d="M8.4 8.6c.3-1 .9-1.6 1.7-2" stroke="#fff6c8" stroke-width="1" fill="none" stroke-linecap="round"/>'}
+
 ];
 const tokSvg=k=>`<svg viewBox="0 0 24 24" aria-hidden="true">${TOKENS[k].svg}</svg>`;
 const tokOf=p=>p.tok??p.id;
-function freeTok(used){for(let k=0;k<TOKENS.length;k++)if(!used.includes(k))return k;return 0;}
+function freeTok(used){for(let k=0;k<TOKENS.length;k++)if(!TOKENS[k].u&&!TOKENS[k].un&&!used.includes(k))return k;return 0;}
+/* Freischaltbare Figuren (Lucas, 06.10.): u = nötiger Erfolg, un = Anzahl Erfolge. Gilt pro Handy. */
+const achCount=a=>ACH.filter(x=>a[x[0]]).length;
+function tokOk(k,a){const t=TOKENS[k];if(!t||(!t.u&&!t.un))return true;a=a||store.get("rbm-ach")||{};return t.u?!!a[t.u]:achCount(a)>=t.un;}
+function tokHint(k){const t=TOKENS[k];if(t.un)return t.un+" Erfolge sammeln";const d=ACH.find(x=>x[0]===t.u);return d?"Erfolg „"+d[2]+"“: "+d[3]:"";}
 const CORNERS=[0,9,17,26];
 function cellPos(i){if(i<=9)return[9,10-i];if(i<=17)return[9-(i-9),1];if(i<=26)return[1,1+(i-17)];return[1+(i-26),10];}
 
@@ -803,7 +822,7 @@ function casDone(S){S.bj=null;S.hl=null;S.cr=null;S.casOnly=null;return resume(S
 function actCasinoSkip(S){const p=cur(S);if(S.phase!=="casino"||S.bj||S.hl||S.cr)return S;log(S,p.name+" schaut nur kurz rein und geht weiter.");S.card=null;return casDone(S);}
 function actCasino(S,game,stake){
   const p=cur(S);if(S.phase!=="casino"||S.status!=="playing"||S.bj||S.hl||S.cr)return S;
-  stake=CAS_STAKES.includes(stake)?stake:CAS_STAKES[0];if(p.money<stake)return S;if(S.casOnly&&game!==S.casOnly)game=S.casOnly;
+  stake=CAS_STAKES.includes(stake)?stake:CAS_STAKES[0];if(p.money<stake)return S;st(S,p.id).cas=(st(S,p.id).cas||0)+1;if(S.casOnly&&game!==S.casOnly)game=S.casOnly;
   if(game==="bj")return bjDeal(S,p,stake);
   if(game==="slot")return slotPull(S,p,stake);
   if(game==="hl")return hlDeal(S,p,stake);
@@ -825,7 +844,7 @@ function slotSpinIdx(){let r=Math.random()*SLOT.reduce((a,x)=>a+x.w,0);for(let i
 function slotPay(r){const [a,b,c]=r;if(a===b&&b===c)return {m:SLOT[a].p3,t:"3× "+SLOT[a].n};if(a===b)return {m:SLOT[a].p2,t:"2× "+SLOT[a].n};if(a===0)return {m:1,t:"Wappen"};return {m:0,t:""};}
 function slotPull(S,p,stake){
   p.money-=stake;const r=[slotSpinIdx(),slotSpinIdx(),slotSpinIdx()],w=slotPay(r),back=Math.round(stake*w.m);p.money+=back;
-  S.slot={r,k:(S.slot?S.slot.k:0)+1,who:p.id,stake,back};st(S,p.id).slot=(st(S,p.id).slot||0)+1;
+  S.slot={r,k:(S.slot?S.slot.k:0)+1,who:p.id,stake,back};if(w.m>=50)st(S,p.id).slotj=1;st(S,p.id).slot=(st(S,p.id).slot||0)+1;
   const t=w.m>=50?"JACKPOT! "+w.t+": +"+(back-stake)+" €":back>stake?w.t+"! +"+(back-stake)+" €":back===stake?w.t+": Einsatz zurück.":"Nichts. −"+stake+" €";
   log(S,"Einarmiger Bandit: "+p.name+" zieht den Hebel ("+stake+" €). "+r.map(i=>SLOT[i].n).join(" · ")+". "+t);
   S.card={deck:"ch",t:"🎰 "+t,x:"Walzen: "+r.map(i=>SLOT[i].n).join(" · ")+".",slot:{r,k:S.slot.k,back,stake}};return casDone(S);
@@ -839,7 +858,7 @@ const sauPot=c=>c.n?Math.floor(c.stake*SAU_M[c.n-1]):c.stake;
 function sauDeal(S,p,stake){p.money-=stake;S.cr={id:Math.floor(Math.random()*1e9),stake,n:0};log(S,p.name+" setzt "+stake+" € auf die Sau über die Straße.");S.card=null;return S;}
 function actSau(S){const c=S.cr;if(S.phase!=="casino"||!c)return S;if(Math.random()<SAU_P[c.n]){c.hit=c.n;return sauEnd(S,false);}c.n++;if(c.n>=SAU_P.length)return sauEnd(S,true);return S;}
 function actSauCash(S){if(S.phase!=="casino"||!S.cr||!S.cr.n)return S;return sauEnd(S,true);}
-function sauEnd(S,won){const c=S.cr,p=cur(S),back=won?sauPot(c):0;p.money+=back;
+function sauEnd(S,won){const c=S.cr,p=cur(S),back=won?sauPot(c):0;p.money+=back;if(won&&c.n>=SAU_P.length)st(S,p.id).sau8=1;
   const t=won?(c.n>=SAU_P.length?"Drüben! Freibier im Biergarten: ":"Kassiert! ")+fmt(back)+" € (×"+SAU_M[c.n-1].toFixed(2).replace(".",",")+")":"Erwischt vom "+["Fahrrad","Roller","Auto","Bulli","Traktor","Bus","Feuerwehrauto","Laster"][c.hit]+"! −"+c.stake+" €";
   log(S,"Sau über die Straße: "+p.name+(won?" kassiert "+back+" € nach "+c.n+" Spuren.":" wird auf Spur "+(c.hit+1)+" erwischt und verliert "+c.stake+" €."));
   S.card={deck:"ch",t:"🐗 "+t,x:"",cr:{id:c.id,stake:c.stake,n:c.n,hit:c.hit,won,t}};return casDone(S);}
@@ -856,7 +875,7 @@ function actHl(S,dir){const h=S.hl,p=cur(S);if(S.phase!=="casino"||!h||(dir!=="h
   if((dir==="hi")===(b>a)){h.pot=Math.floor(h.pot*f);h.n++;if(h.n>=HL_MAX)return hlEnd(S,true);return S;}
   return hlEnd(S,false);}
 function actHlCash(S){if(S.phase!=="casino"||!S.hl||!S.hl.n)return S;return hlEnd(S,true);}
-function hlEnd(S,won){const h=S.hl,p=cur(S);const back=won?h.pot:0;p.money+=back;
+function hlEnd(S,won){const h=S.hl,p=cur(S);const back=won?h.pot:0;p.money+=back;if(won&&h.n>=HL_MAX)st(S,p.id).hl6=1;
   const t=won?"Kassiert! "+fmt(back)+" € (+"+fmt(back-h.stake)+" €)":"Daneben! −"+h.stake+" €";
   log(S,"Höher oder Tiefer: "+p.name+(won?" kassiert "+back+" € nach "+h.n+" Treffern.":" liegt nach "+h.n+" Treffern daneben und verliert "+h.stake+" €."));
   S.card={deck:"ch",t:"🃏 "+t,x:"Karten: "+h.c.join(" "),hl:{id:h.id,c:h.c,pot:h.pot,n:h.n,stake:h.stake,won,t}};return casDone(S);}
@@ -898,7 +917,7 @@ function bjEnd(S){
   b.h.forEach(h=>{const v=bjVal(h.c);let r,x=0;tot+=h.st;
     if(h.sur){x=h.st/2;r="aufgegeben";}
     else if(v>21){r="überkauft";}
-    else if(bjNat(h,b)&&!dn){x=Math.round(h.st*2.5);r="Blackjack!";}
+    else if(bjNat(h,b)&&!dn){x=Math.round(h.st*2.5);r="Blackjack!";st(S,p.id).bjn=1;}
     else if(dn){r=bjNat(h,b)?"Gleichstand":"Bank hat Blackjack";if(bjNat(h,b))x=h.st;}
     else if(dv>21){x=h.st*2;r="Bank überkauft";}
     else if(v>dv){x=h.st*2;r="gewonnen";}
@@ -1552,7 +1571,7 @@ const ACH=[
  ["bunker3","🚬","Stammgast bei Big A","Sitz 3-mal in einer Partie im Bunker."],
  ["reich","💰","Rottenberger Geldadel","Erreiche ein Vermögen von 10.000 €."],
  ["knapp","😅","Mit dem letzten Euro","Gewinne mit weniger als 100 € Bargeld."],
- ["alle8","🎮","Allrounder","Spiele alle 9 Minispiele."],
+ ["alle8","🎮","Allrounder","Spiele alle "+OFFER.length+" Minispiele."],
  ["sau25","🐗","Wildsau-Schreck","Hol 25 Punkte bei der Wildsau-Jagd."],
  ["glocke","🔔","Glöckner vom Rottenberg","Schaffe 10 Runden Klosterglocken."],
  ["stopp","⏱️","Atomuhr","Stoppe höchstens 0,02 Sekunden neben 5,00."],
@@ -1575,9 +1594,41 @@ const ACH=[
  ["marathon","🏃","Marathon","Spiele eine Partie mit 40 oder mehr Runden."],
  ["stamm","🍺","Stammspieler","Spiele 10 Partien zu Ende."],
  ["serie3","👑","Dynastie","Gewinne 3 Partien hintereinander."],
- ["kiebitz","👀","Kiebitz","Schau bei einem Online-Spiel zu."]
+ ["kiebitz","👀","Kiebitz","Schau bei einem Online-Spiel zu."],
+ ["rekord","🏅","Dorfrekord","Stell bei einem Minispiel einen persönlichen Rekord auf."],
+ ["bem20","🏺","Ruhige Hand","Halte den Bembel 20 Sekunden lang."],
+ ["bem30","🧘","Zen-Meister","Halte den Bembel die vollen 30 Sekunden."],
+ ["kegel25","🎳","Kegelkönig","Wirf 25 Kegel beim Wildsau-Bowling."],
+ ["kegel30","💯","Perfekte Bahn","Wirf 3 Strikes in einem Wildsau-Bowling."],
+ ["kil25","🏛️","Kilian-Jäger","Hol 25 Punkte bei Hau den Kilian."],
+ ["tw6","🥅","Torwandkönig","Triff 6 von 6 an der Torwand."],
+ ["ttt9","⭕","Sau-Bezwinger","Gewinne alle 3 Tic-Tac-Toe-Partien gegen die Wildsau."],
+ ["renn60","🏁","Sprinter","Schaffe 60 Schritte beim Wildsau-Rennen."],
+ ["apfel25","🍏","Äppler-Ernte","Fange 25 Äppler."],
+ ["rech15","🧮","Rechenkünstler","Hol 15 Punkte beim Kopfrechnen."],
+ ["genau","🎯","Volltreffer","Schätze eine Frage exakt richtig."],
+ ["reflex","⚡","Blitzmerker","Reagiere schneller als 0,25 Sekunden."],
+ ["pump50","💪","Pumpmeister","Pumpe 50-mal in 5 Sekunden."],
+ ["bier95","🍺","Ruhige Maß","Behalte beim Bierbrunnen 95 % im Krug."],
+ ["bjbj","🃏","Black Jack","Zieh beim Blackjack einen echten Blackjack."],
+ ["hl6","⬆️","Hellseher","Schaffe 6 Treffer bei Höher oder Tiefer."],
+ ["sau8","🐗","Über alle Berge","Bring die Sau über alle 8 Spuren."],
+ ["slotj","🎰","Einarmiger Held","Hol am Wildsau-Automaten mindestens das 50-Fache."],
+ ["wheeljp","💰","Goldrausch","Triff den goldenen Jackpot am Glücksrad."],
+ ["zocker","🎲","Zocker","Spiel 10-mal im Casino in einer Partie."],
+ ["haus10","🏗️","Bauherr","Baue 10 Häuser in einer Partie."],
+ ["reich20","💎","Millionär vom Rottenberg","Erreiche ein Vermögen von 20.000 €."],
+ ["pleite","💸","Pleitegeier","Geh in einer Partie bankrott."],
+ ["kredit","🦈","Schuldenmacher","Leih dir Geld beim Kredithai."],
+ ["quest","🤫","Geheimagent","Erfülle deinen Geheimauftrag."],
+ ["sieg10","🏆","Dorflegende","Gewinne 10 Partien."],
+ ["stamm50","🍻","Inventar","Spiele 50 Partien zu Ende."],
+ ["online","📱","Online-Champion","Gewinne ein Online-Spiel."],
+ ["figur","🎁","Sammler","Schalte 5 neue Figuren frei."]
 ];
-function unlock(k){const a=store.get("rbm-ach")||{};if(a[k])return;a[k]=Date.now();store.set("rbm-ach",a);const d=ACH.find(x=>x[0]===k);if(!d)return;
+function unlock(k){const a=store.get("rbm-ach")||{};if(a[k])return;const before=TOKENS.map((t,i)=>tokOk(i,a));a[k]=Date.now();store.set("rbm-ach",a);const d=ACH.find(x=>x[0]===k);if(!d)return;
+  const fresh=TOKENS.filter((t,i)=>!before[i]&&tokOk(i,a));if(fresh.length)setTimeout(()=>{toast("🎁 Neue Figur freigeschaltet: "+fresh.map(t=>t.n).join(", ")+"!");sfx("ach");},1800);
+  if(TOKENS.filter((t,i)=>(t.u||t.un)&&tokOk(i,a)).length>=5)setTimeout(()=>unlock("figur"),3900);
   const el=document.createElement("div");el.className="achtoast";el.innerHTML=`<span>${d[1]}</span><div><small>Erfolg freigeschaltet</small><b>${esc(d[2])}</b></div>`;document.body.appendChild(el);setTimeout(()=>el.classList.add("out"),3200);setTimeout(()=>el.remove(),3800);sfx("ach");}
 function meIds(S){return S.players.filter(p=>app.mode==="online"?p.uid===app.uid:!p.cpu).map(p=>p.id);}
 function achCheck(S){
@@ -1588,25 +1639,32 @@ function achCheck(S){
     if(!p.bankrupt){const own=Object.keys(S.props).filter(i=>S.props[i].owner===id);
       if(Object.keys(GROUPS).filter(g=>ownsGroup(S,id,g)).length>=3)unlock("monopol");if(own.filter(i=>S.props[i].h===MAXH).length>=3)unlock("hotels3");
       const bus=BOARD.map((f,i)=>f.t==="bus"?i:-1).filter(i=>i>=0);if(bus.length&&bus.every(i=>S.props[i]&&S.props[i].owner===id))unlock("bus4");}
+    if(a.bjn)unlock("bjbj");if(a.hl6)unlock("hl6");if(a.sau8)unlock("sau8");if(a.slotj)unlock("slotj");if(a.wj)unlock("wheeljp");if((a.cas||0)>=10)unlock("zocker");if((a.hs||0)>=10)unlock("haus10");
+    if(p.bankrupt&&S.players.length>1)unlock("pleite");if(p.hai)unlock("kredit");if(p.quest&&p.quest.done)unlock("quest");if(!p.bankrupt&&worth(S,p)>=20000)unlock("reich20");
     if(a.rm)unlock("roll");if((a.potMax||0)>=300)unlock("kasse");if((a.rgMax||0)>=1000)unlock("hai");if((a.dw||0)>=5)unlock("duell5");if((a.jail||0)>=3)unlock("bunker3");
     if(!p.bankrupt){if(Object.values(S.props).some(o=>o.owner===id&&o.h===MAXH))unlock("hotel");if(Object.keys(GROUPS).some(g=>ownsGroup(S,id,g)))unlock("gruppe");if(worth(S,p)>=10000)unlock("reich");}}
   if(S.status==="over"&&!S.unranked&&S.ranking&&S.ranking[0].id!=null){unlock("erst");const w=S.ranking[0];
     if(app.achGame!==S.finishedAt){app.achGame=S.finishedAt;const won=me.includes(w.id);
       const seen=store.get("rbm-gdone")||[];if(!seen.includes(S.finishedAt)){seen.push(S.finishedAt);store.set("rbm-gdone",seen.slice(-50));
-        const n=(store.get("rbm-gcount")||0)+1;store.set("rbm-gcount",n);if(n>=10)unlock("stamm");
+        const n=(store.get("rbm-gcount")||0)+1;store.set("rbm-gcount",n);if(n>=10)unlock("stamm");if(n>=50)unlock("stamm50");
+        if(won){const nw=(store.get("rbm-wins")||0)+1;store.set("rbm-wins",nw);if(nw>=10)unlock("sieg10");if(app.mode==="online")unlock("online");}
         const k=won?(store.get("rbm-wstreak")||0)+1:0;store.set("rbm-wstreak",k);if(k>=3)unlock("serie3");}
       if(S.round>=40)unlock("marathon");
       if(won){const a=(S.st&&S.st[w.id])||{};if(a.low!=null&&a.low<100)unlock("phoenix");if(!a.jail)unlock("sauber");if(!S.maxRounds&&S.round<=15)unlock("blitz");}}
     if(me.includes(w.id)){unlock("sieg");if(S.vsCpu&&S.players.length===4)unlock("cpu3");if(S.vsCpu&&S.cpuLvl===3)unlock("schwer");if(S.players[w.id].money<100)unlock("knapp");}}
 }
-function achMini(k,v){
+function achMini(k,v,q){
   const pl=store.get("rbm-played")||[];if(!pl.includes(k)){pl.push(k);store.set("rbm-played",pl);}
   if(OFFER.every(x=>pl.includes(x)))unlock("alle8");
+  if(k==="bembel"){if(v>=200)unlock("bem20");if(v>=300)unlock("bem30");}if(k==="kegeln"){if(v>=25)unlock("kegel25");if(v>=30)unlock("kegel30");}
+  if(k==="kilhau"&&v>=25)unlock("kil25");if(k==="torwand"&&v>=6)unlock("tw6");if(k==="ttt"&&v>=9)unlock("ttt9");if(k==="rennen"&&v>=60)unlock("renn60");if(k==="faengt"&&v>=25)unlock("apfel25");
+  if(k==="rechnen"&&v>=15)unlock("rech15");if(k==="reflex"&&v<250)unlock("reflex");if(k==="tap"&&v>=50)unlock("pump50");if(k==="bier"&&v>=95)unlock("bier95");
+  if(k==="schaetz"&&SCHAETZ[q]&&v===SCHAETZ[q].a)unlock("genau");
   if(k==="whack"&&v>=25)unlock("sau25");if(k==="glocken"&&v>=10)unlock("glocke");if(k==="stopp"&&Math.abs(v-5000)<=20)unlock("stopp");
 }
 function achHTML(){
   const a=store.get("rbm-ach")||{},n=ACH.filter(x=>a[x[0]]).length;
-  return `<details class="panel achp"><summary><h2>🏅 Erfolge <span class="achn">${n}/${ACH.length}</span></h2></summary><div class="achgrid">${ACH.map(([k,ic,t,d])=>`<div class="achi ${a[k]?"on":""}"><span>${a[k]?ic:"🔒"}</span><b>${esc(t)}</b><small>${esc(d)}</small></div>`).join("")}</div><p class="note">Erfolge werden auf diesem Handy gespeichert.</p></details>`;
+  return `<details class="panel achp"><summary><h2>🏅 Erfolge <span class="achn">${n}/${ACH.length}</span></h2></summary><div class="achgrid">${ACH.map(([k,ic,t,d])=>`<div class="achi ${a[k]?"on":""}"><span>${a[k]?ic:"🔒"}</span><b>${esc(t)}</b><small>${esc(d)}</small>${(tk=>tk>=0?`<small class="achtok">${tokSvg(tk)} Figur: ${esc(TOKENS[tk].n)}</small>`:"")(TOKENS.findIndex(x=>x.u===k))}</div>`).join("")}</div><p class="note">🎁 Figuren: ${TOKENS.filter((t,i)=>(t.u||t.un)&&tokOk(i,a)).length} von ${TOKENS.filter(t=>t.u||t.un).length} freigespielt. Der Goldene Bembel kommt bei ${TOKENS.find(t=>t.un).un} Erfolgen.</p><p class="note">Erfolge werden auf diesem Handy gespeichert.</p></details>`;
 }
 
 /* ---------- Sound (komplett im Handy erzeugt, keine Dateien) ---------- */
@@ -1748,7 +1806,8 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==23?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+  const news=store.get("rbm-news")!==24?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>🎁 12 neue Figuren zum Freispielen und 30 neue Erfolge</li>
    <li>🐗 Neu im Casino: Sau über die Straße, kassieren bevor der Traktor kommt</li>
    <li>🎳 Neue Minispiele Wildsau-Bowling und 🏛️ Hau den Kilian</li>
    <li>🏺 Neues Minispiel Bembel-Balance: Handy neigen, Bembel nicht umkippen lassen</li>
@@ -1784,7 +1843,7 @@ function renderHome(){
   <section class="panel"><h2>Rangliste</h2>${lbHTML()}</section>${achHTML()}${rulesHTML()}`;
 }
 function roundsSelect(){return `<label>Spieldauer<select id="rounds"><option value="15">Kurz (15 Runden)</option><option value="25" selected>Normal (25 Runden)</option><option value="40">Lang (40 Runden)</option><option value="0">Bis zur Pleite</option></select></label>`;}
-function tokPicker(cur,used,act,i){return `<div class="toks" role="group" aria-label="Spielfigur wählen">${TOKENS.map((t,k)=>`<button type="button" class="${k===cur?"on":""}" data-a="${act}" data-i="${i}" data-k="${k}" title="${t.n}" aria-label="${t.n}" ${used.includes(k)?"disabled":""}>${tokSvg(k)}</button>`).join("")}</div><div class="tokname">Figur: ${cur!=null&&TOKENS[cur]?TOKENS[cur].n:"–"}</div>`;}
+function tokPicker(cur,used,act,i){const a=store.get("rbm-ach")||{},nl=TOKENS.filter((t,k)=>!tokOk(k,a)).length;return `<div class="toks" role="group" aria-label="Spielfigur wählen">${TOKENS.map((t,k)=>tokOk(k,a)?`<button type="button" class="${k===cur?"on":""}" data-a="${act}" data-i="${i}" data-k="${k}" title="${t.n}" aria-label="${t.n}" ${used.includes(k)?"disabled":""}>${tokSvg(k)}</button>`:`<button type="button" class="lock" data-a="toklock" data-k="${k}" title="${esc(t.n)}: ${esc(tokHint(k))}" aria-label="${esc(t.n)}, gesperrt">${tokSvg(k)}<i>🔒</i></button>`).join("")}</div><div class="tokname">Figur: ${cur!=null&&TOKENS[cur]?TOKENS[cur].n:"–"}${nl?` · 🔒 ${nl} Figuren zum Freispielen, tipp drauf`:""}</div>`;}
 function renderLocal(){
   const last=store.get("rbm-names")||["","","",""];if(!app.ltok)app.ltok=store.get("rbm-ltok")||[0,1,2,3];
   return header()+`<section class="panel"><h2>Reihum-Spiel</h2><p class="note">Trage 2 bis 4 Namen ein. Leere Felder werden ignoriert.</p>
@@ -2165,7 +2224,7 @@ function bestText(k){const v=bestOf(k);return v==null?"noch keiner":valText(k,v,
 function noteBest(k,v){if(k==="schaetz"||typeof v!=="number")return false;const b=store.get("rbm-best")||{},cur=b[k];
   const sc=k==="stopp"?-Math.abs(v-5000):v,old=cur==null?null:(k==="stopp"?-Math.abs(cur-5000):cur);
   if(old==null||sc>old){b[k]=v;store.set("rbm-best",b);return old!=null;}return false;}
-function miniSubmit(val){const m=mg;if(!m)return;if(m.stage==="go"||m.stage==="input"||m.stage==="done"||m.stage==="ready"){{const pl=app.S&&app.S.players[m.pid],nm=pl&&!pl.cpu?pl.name:null;if(nm)recSubmit(m.kind,Number(val),nm);}if(noteBest(m.kind,val))setTimeout(()=>toast("🏆 Neuer Rekord: "+valText(m.kind,val,{q:0})),400);}if(m.kind!=="glocken"||m.stage!=="show")achMini(m.kind,Number(val));clearInterval(m.iv);clearTimeout(m.to);mg=null;app.deferRender=false;
+function miniSubmit(val){const m=mg;if(!m)return;if(m.stage==="go"||m.stage==="input"||m.stage==="done"||m.stage==="ready"){{const pl=app.S&&app.S.players[m.pid],nm=pl&&!pl.cpu?pl.name:null;if(nm)recSubmit(m.kind,Number(val),nm);}if(noteBest(m.kind,val))setTimeout(()=>unlock("rekord"),1200),setTimeout(()=>toast("🏆 Neuer Rekord: "+valText(m.kind,val,{q:0})),400);}if(m.kind!=="glocken"||m.stage!=="show")achMini(m.kind,Number(val),m.q);clearInterval(m.iv);clearTimeout(m.to);mg=null;app.deferRender=false;
   if(m.ctx==="solo")commit(S=>actChallenge(S,val));else if(m.ctx==="tour")commitLeased(S=>actTourInput(S,m.pid,val),[m.pid]);else commitLeased(S=>actDuelInput(S,m.pid,val),[m.pid]);}
 async function commitLeased(fn,ids){
   if(!mayAct(ids))return;
@@ -2471,7 +2530,7 @@ function applyGame(d){
 /* Häuser grün, Hotel rot, mit weißem Rand, damit man sie auf jeder Gruppenfarbe sieht (Lucas, 06.10.). */
 const HAUS_SVG='<svg viewBox="0 0 10 11"><path d="M5 .9 9.3 5V10.2H.7V5Z" fill="#1d8a3a" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>';
 const HOTEL_SVG='<svg viewBox="0 0 22 11"><path d="M1 3.2 11 .8 21 3.2V10.2H1Z" fill="#c8102e" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/><text x="11" y="9.2" text-anchor="middle" font-size="6.6" font-weight="800" fill="#fff" font-family="Arial,sans-serif">HOTEL</text></svg>';
-const BUILD="rbm-v54";
+const BUILD="rbm-v55";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -2554,8 +2613,9 @@ document.addEventListener("click",async ev=>{
     case "home":if(unsubGame){unsubGame();unsubGame=null;}stopChat();app.code=null;app.duelOpen=false;app.sel=null;app.S=null;app.mode=null;go("home");break;
     case "go-local":go("local");break;
     case "go-cpu":go("cpu");break;
+    case "toklock":{const k=+b.dataset.k;toast("🔒 "+TOKENS[k].n+" freischalten: "+tokHint(k));break;}
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",23);render();break;
+    case "news-ok":store.set("rbm-news",24);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
