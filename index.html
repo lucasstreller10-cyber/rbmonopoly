@@ -205,6 +205,8 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .achp summary h2{display:flex;justify-content:space-between;align-items:center;margin:0}.achn{font-size:14px;color:var(--gold)}
 .achgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:12px}
 .achi{display:flex;flex-direction:column;gap:2px;background:var(--forest);border-radius:12px;padding:10px;opacity:.55}
+.passtop{display:flex;gap:12px;align-items:center;margin:4px 0 10px}.passtop>div{display:flex;flex-direction:column;gap:2px}.passtop small{font-size:12px;color:var(--dim-on-forest)}.passtok{width:58px;height:58px;flex:none;border-radius:14px;background:var(--forest);padding:6px;box-shadow:inset 0 0 0 2px var(--gold)}.passtok:not(.on) svg{filter:grayscale(.6) brightness(.8)}.passtok svg{width:100%;height:100%}
+.passl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}.passl li{display:flex;gap:8px;align-items:flex-start}.passl li>div{flex:1;display:flex;flex-direction:column;gap:3px}.passl b{font-size:13.5px}.passl small{font-size:11px;color:var(--dim-on-forest)}.passl i{display:block;height:6px;border-radius:3px;background:var(--forest);overflow:hidden}.passl em{display:block;height:100%;background:var(--gold)}.passl li.ok b{opacity:.7}
 .achtok{display:flex;align-items:center;gap:4px;color:var(--gold)!important}.achtok svg{width:16px;height:16px;flex:none}
 .achi.on{opacity:1;box-shadow:inset 0 0 0 1px var(--gold)}.achi span{font-size:24px}.achi b{font-size:13px}.achi small{font-size:11px;color:var(--dim-on-forest)}
 .achtoast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%);z-index:30;display:flex;gap:10px;align-items:center;background:var(--paper);color:var(--ink);padding:10px 16px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.45);border:2px solid var(--gold);animation:achin .45s cubic-bezier(.2,1.4,.4,1);transition:opacity .5s,transform .5s}
@@ -466,15 +468,28 @@ const TOKENS=[
  {n:"Hotel",u:"hotels3",svg:'<rect x="5" y="5.5" width="14" height="16.5" fill="#c8102e" stroke="#5a0010" stroke-width=".8"/><rect x="4" y="3" width="16" height="3" fill="#8a0a1e"/><g fill="#ffe08a"><rect x="7" y="8.4" width="2.5" height="2.5"/><rect x="10.8" y="8.4" width="2.5" height="2.5"/><rect x="14.5" y="8.4" width="2.5" height="2.5"/><rect x="7" y="12.8" width="2.5" height="2.5"/><rect x="10.8" y="12.8" width="2.5" height="2.5"/><rect x="14.5" y="12.8" width="2.5" height="2.5"/></g><rect x="10.3" y="17.2" width="3.4" height="4.8" fill="#3a1a10"/>'},
  {n:"Dorfkrone",u:"serie3",svg:'<path d="M3 8l4.5 4L12 4l4.5 8L21 8l-2 11H5z" fill="#f2c230" stroke="#7a5a08" stroke-width=".9" stroke-linejoin="round"/><rect x="5" y="19" width="14" height="2.5" fill="#d4a017" stroke="#7a5a08" stroke-width=".7"/><circle cx="12" cy="15" r="1.5" fill="#c8102e"/><circle cx="8" cy="15.5" r="1.05" fill="#1f4fa8"/><circle cx="16" cy="15.5" r="1.05" fill="#1f4fa8"/>'},
  {n:"Goldener Bembel",un:30,svg:'<path d="M7.5 4.5h8.5v2.2c2.2 1.6 3.2 4.4 3.2 7.6 0 4-2.8 7.2-7.4 7.2S4.4 18.3 4.4 14.3c0-3.2 1-6 3.1-7.6z" fill="#efc84a" stroke="#6b4a08" stroke-width=".8"/><path d="M5 13h14.1M5.6 17h12.9" stroke="#a06a08" stroke-width="1.6"/><circle cx="11.8" cy="15" r="1" fill="#a06a08"/><path d="M7.5 4.5 5.2 3.4l.6 2.2" fill="#efc84a" stroke="#6b4a08" stroke-width=".8" stroke-linejoin="round"/><path d="M17.8 8.4c3.6-.4 4 6 .4 6.6" stroke="#6b4a08" stroke-width="1.7" fill="none" stroke-linecap="round"/><path d="M8.4 8.6c.3-1 .9-1.6 1.7-2" stroke="#fff6c8" stroke-width="1" fill="none" stroke-linecap="round"/>'}
+,
+ {n:"Schneemann",season:0,svg:'<circle cx="12" cy="16.5" r="5.5" fill="#fff" stroke="#8aa3b8" stroke-width=".8"/><circle cx="12" cy="8.5" r="3.8" fill="#fff" stroke="#8aa3b8" stroke-width=".8"/><path d="M9 4.6h6M10 4.6V1.8h4v2.8" fill="#222" stroke="#222" stroke-width="1"/><path d="M12 9l2.8.6-2.8.6z" fill="#f07a1a"/><circle cx="10.7" cy="7.6" r=".55"/><circle cx="13.1" cy="7.6" r=".55"/><path d="M8.6 11.6c1.4 1 5.4 1 6.8 0" stroke="#c8102e" stroke-width="1.6" fill="none"/><circle cx="12" cy="15.4" r=".6"/><circle cx="12" cy="18" r=".6"/>'},
+ {n:"Narrenkappe",season:1,svg:'<path d="M4 17C4 10 7 6 10 4c0 4 1 7 2 9 1-2 2-5 2-9 3 2 6 6 6 13z" fill="#c8102e" stroke="#5a0010" stroke-width=".8" stroke-linejoin="round"/><path d="M12 13c-1-2-2-5-2-9 2 3 2 6 2 9zm0 0c1-2 2-5 2-9-2 3-2 6-2 9z" fill="#f2c230"/><rect x="3.5" y="16.5" width="17" height="3.5" rx="1.2" fill="#1f4fa8" stroke="#0d2550" stroke-width=".7"/><circle cx="4" cy="17" r="1.4" fill="#f2c230"/><circle cx="20" cy="17" r="1.4" fill="#f2c230"/><circle cx="10" cy="3.6" r="1.3" fill="#f2c230"/><circle cx="14" cy="3.6" r="1.3" fill="#f2c230"/>'},
+ {n:"Gießkanne",season:2,svg:'<path d="M6 9h10v10.5c0 .8-.6 1.5-1.4 1.5H7.4c-.8 0-1.4-.7-1.4-1.5z" fill="#3f9f5a" stroke="#14311a" stroke-width=".8"/><path d="M16 12.5l5-5.5" stroke="#3f9f5a" stroke-width="2.2" stroke-linecap="round"/><path d="M20 5.4l2.4 2.4" stroke="#14311a" stroke-width="1.6" stroke-linecap="round"/><path d="M6 11c-3 0-3.6 6 0 6" fill="none" stroke="#14311a" stroke-width="1.4"/><path d="M8 6.5c1-2 5-2 6 0" fill="none" stroke="#14311a" stroke-width="1.3"/><path d="M22 10.5v1.4M23 13v1.2M21 13.6v1.3" stroke="#4a8bf0" stroke-width="1.1" stroke-linecap="round"/>'},
+ {n:"Osterei",season:3,svg:'<path d="M12 2.5c-4 0-7 6.4-7 11.5 0 4.4 3 7.5 7 7.5s7-3.1 7-7.5C19 8.9 16 2.5 12 2.5z" fill="#f6a5c0" stroke="#8a3050" stroke-width=".8"/><path d="M5.6 11.5c2-1.4 4-1.4 6.4 0s4.4 1.4 6.4 0" stroke="#fff" stroke-width="1.6" fill="none"/><path d="M5.2 15.5c2.2 1.2 4.4 1.2 6.8 0s4.6-1.2 6.8 0" stroke="#4a8bf0" stroke-width="1.6" fill="none"/><circle cx="9" cy="7.6" r="1" fill="#f2c230"/><circle cx="14.6" cy="7.4" r="1" fill="#3fae5a"/><circle cx="12" cy="18.6" r="1" fill="#f2c230"/>'},
+ {n:"Maibaum",season:4,svg:'<path d="M12 4v18" stroke="#8a5a33" stroke-width="2"/><path d="M12 1.6 13.4 4h-2.8z" fill="#2f7a3a"/><ellipse cx="12" cy="7.6" rx="5" ry="1.8" fill="none" stroke="#2f7a3a" stroke-width="1.8"/><path d="M7.2 8.2c-.6 4-1.4 6-2.6 8.4M16.8 8.2c.6 4 1.4 6 2.6 8.4" stroke="#c8102e" stroke-width="1.1" fill="none"/><path d="M9.4 9.2c-.4 3-.6 5-1.4 7.6M14.6 9.2c.4 3 .6 5 1.4 7.6" stroke="#f2c230" stroke-width="1.1" fill="none"/><path d="M8 22h8" stroke="#6b4423" stroke-width="1.6"/><circle cx="7" cy="7.4" r=".9" fill="#f6a5c0"/><circle cx="17" cy="7.4" r=".9" fill="#4a8bf0"/>'},
+ {n:"Sonnenblume",season:5,svg:'<path d="M12 13v9" stroke="#2f7a3a" stroke-width="1.8"/><path d="M12 18c2-2.6 5-2.6 6-1.6-1.4 1.8-4 2.4-6 1.6z" fill="#3f9f5a"/><g fill="#f2c230" stroke="#b8860b" stroke-width=".5"><ellipse cx="12" cy="3.6" rx="1.8" ry="3"/><ellipse cx="12" cy="13.4" rx="1.8" ry="3"/><ellipse cx="7.1" cy="8.5" rx="3" ry="1.8"/><ellipse cx="16.9" cy="8.5" rx="3" ry="1.8"/><ellipse cx="8.5" cy="5" rx="1.8" ry="3" transform="rotate(-45 8.5 5)"/><ellipse cx="15.5" cy="5" rx="1.8" ry="3" transform="rotate(45 15.5 5)"/><ellipse cx="8.5" cy="12" rx="1.8" ry="3" transform="rotate(45 8.5 12)"/><ellipse cx="15.5" cy="12" rx="1.8" ry="3" transform="rotate(-45 15.5 12)"/></g><circle cx="12" cy="8.5" r="3.3" fill="#6b4423"/><circle cx="11" cy="7.6" r=".5" fill="#3a2410"/><circle cx="13" cy="9.2" r=".5" fill="#3a2410"/>'},
+ {n:"Badeente",season:6,svg:'<path d="M3 14c0 4 3.4 7 9 7s8.6-2.6 8.6-6c0-2-1.2-3-3-2.6-1.8.4-3 .6-4.6-.4.8-1 1.4-2.2 1.4-3.6 0-2.6-2-4.4-4.4-4.4S5.6 5.8 5.6 8.4c0 1.4.6 2.6 1.6 3.4C5.2 11.8 3 12.4 3 14z" fill="#f7d33a" stroke="#9a7a10" stroke-width=".8"/><path d="M5.8 9.2 2 9.8l3.6 1.6z" fill="#f07a1a" stroke="#9a4a10" stroke-width=".5"/><circle cx="8.4" cy="7.6" r=".9" fill="#222"/><path d="M11 15.5c2 1.4 4.6 1.4 6.6-.2" stroke="#9a7a10" stroke-width=".9" fill="none"/><path d="M1.5 21.5c2-1 3.5 1 5.5 0s3.5 1 5.5 0 3.5 1 5.5 0 3 1 4.5 0" stroke="#4a8bf0" stroke-width="1.1" fill="none"/>'},
+ {n:"Bratwurst",season:7,svg:'<path d="M3.5 20.5 20 4" stroke="#8a8f96" stroke-width="1.5" stroke-linecap="round"/><path d="M18 2.6l3.4 3.4" stroke="#8a8f96" stroke-width="1.2"/><rect x="5" y="9" width="15" height="5.4" rx="2.7" fill="#b5582a" stroke="#5a2410" stroke-width=".8" transform="rotate(-45 12.5 11.7)"/><path d="M9.6 13.4l1.6 1.6M12 11l1.6 1.6M14.4 8.6 16 10.2" stroke="#5a2410" stroke-width=".9" stroke-linecap="round"/>'},
+ {n:"Apfel",season:8,svg:'<path d="M12 7c-2-1.6-6.4-1.4-7.6 2.4-1.4 4.4 1.4 11.4 4.6 11.6 1.4.1 2-.6 3-.6s1.6.7 3 .6c3.2-.2 6-7.2 4.6-11.6C18.4 5.6 14 5.4 12 7z" fill="#d9302a" stroke="#6a1010" stroke-width=".8"/><path d="M12 7c0-2 .4-3.4 1.6-4.6" stroke="#5a3a1a" stroke-width="1.2" fill="none" stroke-linecap="round"/><path d="M13 4.6c1.6-1.6 4-1.6 5-.6-1.4 1.4-3.4 1.6-5 .6z" fill="#3fae5a"/><path d="M7.4 10.4c.4-1.4 1.4-2 2.4-2.2" stroke="#ffb0a0" stroke-width="1" fill="none" stroke-linecap="round"/>'},
+ {n:"Kürbis",season:9,svg:'<path d="M12 6.4c-1.4-1.2-4.8-1.4-6.8.6C2.4 9.8 2.6 17 5.6 19.6c1.6 1.4 4 1.2 6.4.6 2.4.6 4.8.8 6.4-.6 3-2.6 3.2-9.8.4-12.6-2-2-5.4-1.8-6.8-.6z" fill="#f07a1a" stroke="#8a3a08" stroke-width=".8"/><path d="M12 6.6v13.6M8 7.2c-1.6 3-1.6 9.6.4 12.6M16 7.2c1.6 3 1.6 9.6-.4 12.6" stroke="#b8520e" stroke-width=".8" fill="none"/><path d="M12 6.4c0-1.6.6-3 1.8-3.8" stroke="#3a6a1a" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M8.2 11.6l1.6-1.4 1 1.6zM15.8 11.6l-1.6-1.4-1 1.6zM8.4 15c1.6 1.6 5.6 1.6 7.2 0l-1.2.4-.6-.8-.8.8-.8-.8-.8.8-.8-.8-.6.8z" fill="#4a1a04"/>'},
+ {n:"Martinslaterne",season:10,svg:'<path d="M12 1.5v3" stroke="#6b4423" stroke-width="1.2"/><path d="M5 4.5h14" stroke="#6b4423" stroke-width="1.4" stroke-linecap="round"/><path d="M12 4.5v2" stroke="#222" stroke-width=".8"/><ellipse cx="12" cy="14" rx="7" ry="7.6" fill="#f2c230" stroke="#b8520e" stroke-width=".9"/><ellipse cx="12" cy="14" rx="4" ry="5" fill="#fff3b0"/><path d="M5 14h14M12 6.4v15.2" stroke="#e07a1a" stroke-width=".8"/><path d="M11 16.8c0-1.4 1-2.4 1-3.8.6 1 1.4 2 1.4 3.2 0 1-.6 1.6-1.2 1.6s-1.2-.4-1.2-1z" fill="#f07a1a"/>'},
+ {n:"Lebkuchenherz",season:11,svg:'<path d="M12 21.2C6 17 2.4 13.4 2.4 9 2.4 5.8 4.8 3.6 7.6 3.6c2 0 3.6 1.2 4.4 2.8.8-1.6 2.4-2.8 4.4-2.8 2.8 0 5.2 2.2 5.2 5.4 0 4.4-3.6 8-9.6 12.2z" fill="#a0581e" stroke="#5a2a08" stroke-width=".8"/><path d="M12 18.6C7.4 15.4 4.6 12.6 4.6 9.2c0-2 1.4-3.4 3.2-3.4" fill="none" stroke="#fff" stroke-width="1" stroke-dasharray="1.4 1"/><path d="M12 18.6c4.6-3.2 7.4-6 7.4-9.4 0-2-1.4-3.4-3.2-3.4" fill="none" stroke="#fff" stroke-width="1" stroke-dasharray="1.4 1"/><circle cx="9" cy="10.4" r="1.1" fill="#c8102e"/><circle cx="15" cy="10.4" r="1.1" fill="#3fae5a"/><circle cx="12" cy="13" r="1.1" fill="#4a8bf0"/>'}
 
 ];
 const tokSvg=k=>`<svg viewBox="0 0 24 24" aria-hidden="true">${TOKENS[k].svg}</svg>`;
 const tokOf=p=>p.tok??p.id;
-function freeTok(used){for(let k=0;k<TOKENS.length;k++)if(!TOKENS[k].u&&!TOKENS[k].un&&!used.includes(k))return k;return 0;}
+function freeTok(used){for(let k=0;k<TOKENS.length;k++)if(!TOKENS[k].u&&!TOKENS[k].un&&TOKENS[k].season==null&&!used.includes(k))return k;return 0;}
 /* Freischaltbare Figuren (Lucas, 06.10.): u = nötiger Erfolg, un = Anzahl Erfolge. Gilt pro Handy. */
 const achCount=a=>ACH.filter(x=>a[x[0]]).length;
-function tokOk(k,a){const t=TOKENS[k];if(!t||(!t.u&&!t.un))return true;a=a||store.get("rbm-ach")||{};return t.u?!!a[t.u]:achCount(a)>=t.un;}
-function tokHint(k){const t=TOKENS[k];if(t.un)return t.un+" Erfolge sammeln";const d=ACH.find(x=>x[0]===t.u);return d?"Erfolg „"+d[2]+"“: "+d[3]:"";}
+function tokOk(k,a){const t=TOKENS[k];if(t&&t.season!=null)return passWon().some(m=>+m.slice(5)-1===t.season);if(!t||(!t.u&&!t.un))return true;a=a||store.get("rbm-ach")||{};return t.u?!!a[t.u]:achCount(a)>=t.un;}
+function tokHint(k){const t=TOKENS[k];if(t.season!=null)return "Saison-Pass "+MONTHS[t.season]+" komplett schaffen (gibt es nur im "+MONTHS[t.season]+")";if(t.un)return t.un+" Erfolge sammeln";const d=ACH.find(x=>x[0]===t.u);return d?"Erfolg „"+d[2]+"“: "+d[3]:"";}
 const CORNERS=[0,9,17,26];
 function cellPos(i){if(i<=9)return[9,10-i];if(i<=17)return[9-(i-9),1];if(i<=26)return[1,1+(i-17)];return[1+(i-26),10];}
 
@@ -1626,7 +1641,7 @@ const ACH=[
  ["online","📱","Online-Champion","Gewinne ein Online-Spiel."],
  ["figur","🎁","Sammler","Schalte 5 neue Figuren frei."]
 ];
-function unlock(k){const a=store.get("rbm-ach")||{};if(a[k])return;const before=TOKENS.map((t,i)=>tokOk(i,a));a[k]=Date.now();store.set("rbm-ach",a);const d=ACH.find(x=>x[0]===k);if(!d)return;
+function unlock(k){const a=store.get("rbm-ach")||{};if(a[k])return;const before=TOKENS.map((t,i)=>tokOk(i,a));a[k]=Date.now();store.set("rbm-ach",a);const d=ACH.find(x=>x[0]===k);if(!d)return;passAdd("ach",1);
   const fresh=TOKENS.filter((t,i)=>!before[i]&&tokOk(i,a));if(fresh.length)setTimeout(()=>{toast("🎁 Neue Figur freigeschaltet: "+fresh.map(t=>t.n).join(", ")+"!");sfx("ach");},1800);
   if(TOKENS.filter((t,i)=>(t.u||t.un)&&tokOk(i,a)).length>=5)setTimeout(()=>unlock("figur"),3900);
   const el=document.createElement("div");el.className="achtoast";el.innerHTML=`<span>${d[1]}</span><div><small>Erfolg freigeschaltet</small><b>${esc(d[2])}</b></div>`;document.body.appendChild(el);setTimeout(()=>el.classList.add("out"),3200);setTimeout(()=>el.remove(),3800);sfx("ach");}
@@ -1647,13 +1662,15 @@ function achCheck(S){
     if(app.achGame!==S.finishedAt){app.achGame=S.finishedAt;const won=me.includes(w.id);
       const seen=store.get("rbm-gdone")||[];if(!seen.includes(S.finishedAt)){seen.push(S.finishedAt);store.set("rbm-gdone",seen.slice(-50));
         const n=(store.get("rbm-gcount")||0)+1;store.set("rbm-gcount",n);if(n>=10)unlock("stamm");if(n>=50)unlock("stamm50");
+        {const mine=me.map(id=>(S.st&&S.st[id])||{}),sum=f=>mine.reduce((x,a)=>x+(a[f]||0),0);passAdd("games",1);if(won)passAdd("wins",1);if(app.mode==="online")passAdd("online",1);
+          passAdd("rent",sum("rg"));passAdd("build",sum("hs"));passAdd("duel",sum("dw"));passAdd("casino",sum("cas"));passAdd("bunker",sum("jail"));passAdd("trade",sum("tr"));}
         if(won){const nw=(store.get("rbm-wins")||0)+1;store.set("rbm-wins",nw);if(nw>=10)unlock("sieg10");if(app.mode==="online")unlock("online");}
         const k=won?(store.get("rbm-wstreak")||0)+1:0;store.set("rbm-wstreak",k);if(k>=3)unlock("serie3");}
       if(S.round>=40)unlock("marathon");
       if(won){const a=(S.st&&S.st[w.id])||{};if(a.low!=null&&a.low<100)unlock("phoenix");if(!a.jail)unlock("sauber");if(!S.maxRounds&&S.round<=15)unlock("blitz");}}
     if(me.includes(w.id)){unlock("sieg");if(S.vsCpu&&S.players.length===4)unlock("cpu3");if(S.vsCpu&&S.cpuLvl===3)unlock("schwer");if(S.players[w.id].money<100)unlock("knapp");}}
 }
-function achMini(k,v,q){
+function achMini(k,v,q){passAdd("mini",1);passAdd("minik",1,k);
   const pl=store.get("rbm-played")||[];if(!pl.includes(k)){pl.push(k);store.set("rbm-played",pl);}
   if(OFFER.every(x=>pl.includes(x)))unlock("alle8");
   if(k==="bembel"){if(v>=200)unlock("bem20");if(v>=300)unlock("bem30");}if(k==="kegeln"){if(v>=25)unlock("kegel25");if(v>=30)unlock("kegel30");}
@@ -1661,6 +1678,33 @@ function achMini(k,v,q){
   if(k==="rechnen"&&v>=15)unlock("rech15");if(k==="reflex"&&v<250)unlock("reflex");if(k==="tap"&&v>=50)unlock("pump50");if(k==="bier"&&v>=95)unlock("bier95");
   if(k==="schaetz"&&SCHAETZ[q]&&v===SCHAETZ[q].a)unlock("genau");
   if(k==="whack"&&v>=25)unlock("sau25");if(k==="glocken"&&v>=10)unlock("glocke");if(k==="stopp"&&Math.abs(v-5000)<=20)unlock("stopp");
+}
+/* Saison-Pass (Lucas, 06.10.): jeden Monat 8 Aufgaben, alle geschafft = exklusive Monatsfigur, für immer.
+   Gilt pro Handy, kostenlos. Aufgaben werden aus dem Monat ausgewürfelt, damit jedes Handy dieselben hat. */
+const MONTHS=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const PASS_POOL=[
+ {s:"games",n:3,t:n=>`Spiel ${n} Partien zu Ende`},{s:"wins",n:2,t:n=>`Gewinne ${n} Partien`},{s:"online",n:1,t:()=>"Spiel ein Online-Spiel zu Ende"},
+ {s:"rent",n:4000,t:n=>`Kassiere insgesamt ${fmt(n)} € Miete`},{s:"build",n:12,t:n=>`Baue ${n} Häuser`},{s:"duel",n:4,t:n=>`Gewinne ${n} Duelle`},
+ {s:"casino",n:6,t:n=>`Spiel ${n}-mal im Casino`},{s:"bunker",n:3,t:n=>`Sitz ${n}-mal im Bunker bei Big A`},{s:"trade",n:2,t:n=>`Schließe ${n} Tauschgeschäfte ab`},
+ {s:"mini",n:15,t:n=>`Spiel ${n} Minispiele`},{s:"minik",n:3,t:(n,k)=>`Spiel ${n}-mal ${KIND_N(k)}`},{s:"record",n:2,t:n=>`Stell ${n} persönliche Rekorde auf`},{s:"ach",n:3,t:n=>`Schalte ${n} neue Erfolge frei`}];
+const passMonth=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");};
+function passTasks(m){let x=[...m].reduce((a,c)=>(a*31+c.charCodeAt(0))%2147483647,7)||1;const r=()=>(x=(x*16807)%2147483647)/2147483647;
+  const pool=PASS_POOL.map(q=>({...q})).sort(()=>0).map(q=>[r(),q]).sort((a,b)=>a[0]-b[0]).map(z=>z[1]).slice(0,8);
+  const ks=OFFER.filter(k=>k!=="schaetz");pool.forEach((q,i)=>{q.id=q.s+i;if(q.s==="minik")q.k=ks[Math.floor(r()*ks.length)];});return pool;}
+const passWon=()=>store.get("rbm-passwon")||[];
+function passState(){const m=passMonth();let p=store.get("rbm-pass");if(!p||p.m!==m)p={m,p:{}};return p;}
+function passAdd(src,amt,kind){if(!amt)return;const st0=passState(),T=passTasks(st0.m);let ch=false;
+  T.forEach(q=>{if(q.s!==src||(q.k&&q.k!==kind))return;const v=st0.p[q.id]||0;if(v>=q.n)return;st0.p[q.id]=Math.min(q.n,v+amt);ch=true;if(st0.p[q.id]>=q.n)setTimeout(()=>toast("🎟️ Saison-Aufgabe geschafft: "+q.t(q.n,q.k)),600);});
+  if(!ch)return;store.set("rbm-pass",st0);
+  if(T.every(q=>(st0.p[q.id]||0)>=q.n)&&!passWon().includes(st0.m)){store.set("rbm-passwon",[...passWon(),st0.m]);const t=TOKENS.find(t=>t.season===new Date().getMonth());
+    setTimeout(()=>{toast("🎟️ Saison-Pass "+MONTHS[new Date().getMonth()]+" geschafft! Neue Figur: "+(t?t.n:"")+"!");sfx("ach");},2400);}}
+function passHTML(){
+  const st0=passState(),T=passTasks(st0.m),mi=new Date().getMonth(),tk=TOKENS.findIndex(t=>t.season===mi),won=passWon().includes(st0.m),done=T.filter(q=>(st0.p[q.id]||0)>=q.n).length;
+  const d=new Date(),left=new Date(d.getFullYear(),d.getMonth()+1,1)-d,days=Math.ceil(left/864e5);
+  return `<details class="panel passp" ${store.get("rbm-passopen")===false?"":"open"}><summary><h2>🎟️ Saison-Pass ${MONTHS[mi]} <span class="achn">${done}/${T.length}</span></h2></summary>
+  <div class="passtop"><span class="passtok ${won?"on":""}">${tk>=0?tokSvg(tk):""}</span><div><b>${won?"Geschafft! "+(tk>=0?TOKENS[tk].n:"")+" gehört dir.":"Exklusive Figur: "+(tk>=0?TOKENS[tk].n:"")}</b><small>${won?"Die Figur bleibt für immer freigeschaltet.":"Schaff alle 8 Aufgaben bis Monatsende. Danach gibt es diese Figur nie wieder."} Noch ${days} ${days===1?"Tag":"Tage"}.</small></div></div>
+  <ul class="passl">${T.map(q=>{const v=st0.p[q.id]||0,ok=v>=q.n;return `<li class="${ok?"ok":""}"><span>${ok?"✅":"⬜"}</span><div><b>${esc(q.t(q.n,q.k))}</b><i><em style="width:${Math.round(v/q.n*100)}%"></em></i><small>${q.s==="rent"?fmt(v)+" / "+fmt(q.n)+" €":v+" / "+q.n}</small></div></li>`;}).join("")}</ul>
+  <p class="note">Partien zählen, wenn sie zu Ende gespielt sind. Gilt für dieses Handy, kostet nichts.</p></details>`;
 }
 function achHTML(){
   const a=store.get("rbm-ach")||{},n=ACH.filter(x=>a[x[0]]).length;
@@ -1806,7 +1850,8 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==24?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+  const news=store.get("rbm-news")!==25?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>🎟️ Saison-Pass: jeden Monat 8 Aufgaben und eine exklusive Figur</li>
    <li>🎁 12 neue Figuren zum Freispielen und 30 neue Erfolge</li>
    <li>🐗 Neu im Casino: Sau über die Straße, kassieren bevor der Traktor kommt</li>
    <li>🎳 Neue Minispiele Wildsau-Bowling und 🏛️ Hau den Kilian</li>
@@ -1840,10 +1885,10 @@ function renderHome(){
    <button data-a="go-create" ${app.db&&app.uid?"":"disabled"}>Online-Spiel eröffnen<small>Jeder spielt am eigenen Handy, du bekommst einen Code</small></button>
    <button data-a="go-join" ${app.db&&app.uid?"":"disabled"}>Online-Spiel beitreten<small>Mit dem Code deiner Mitspieler</small></button>
   </div>${app.db&&app.uid?"":`<p class="note">Online-Spiele brauchen eine Anmeldung bei Claude mit Bearbeitungsrecht für diese Seite. Reihum am Handy geht immer.</p>`}</section>
-  <section class="panel"><h2>Rangliste</h2>${lbHTML()}</section>${achHTML()}${rulesHTML()}`;
+  <section class="panel"><h2>Rangliste</h2>${lbHTML()}</section>${passHTML()}${achHTML()}${rulesHTML()}`;
 }
 function roundsSelect(){return `<label>Spieldauer<select id="rounds"><option value="15">Kurz (15 Runden)</option><option value="25" selected>Normal (25 Runden)</option><option value="40">Lang (40 Runden)</option><option value="0">Bis zur Pleite</option></select></label>`;}
-function tokPicker(cur,used,act,i){const a=store.get("rbm-ach")||{},nl=TOKENS.filter((t,k)=>!tokOk(k,a)).length;return `<div class="toks" role="group" aria-label="Spielfigur wählen">${TOKENS.map((t,k)=>tokOk(k,a)?`<button type="button" class="${k===cur?"on":""}" data-a="${act}" data-i="${i}" data-k="${k}" title="${t.n}" aria-label="${t.n}" ${used.includes(k)?"disabled":""}>${tokSvg(k)}</button>`:`<button type="button" class="lock" data-a="toklock" data-k="${k}" title="${esc(t.n)}: ${esc(tokHint(k))}" aria-label="${esc(t.n)}, gesperrt">${tokSvg(k)}<i>🔒</i></button>`).join("")}</div><div class="tokname">Figur: ${cur!=null&&TOKENS[cur]?TOKENS[cur].n:"–"}${nl?` · 🔒 ${nl} Figuren zum Freispielen, tipp drauf`:""}</div>`;}
+function tokPicker(cur,used,act,i){const a=store.get("rbm-ach")||{},nl=TOKENS.filter((t,k)=>!tokOk(k,a)&&(t.season==null||t.season===new Date().getMonth())).length;return `<div class="toks" role="group" aria-label="Spielfigur wählen">${TOKENS.map((t,k)=>t.season!=null&&!tokOk(k,a)&&t.season!==new Date().getMonth()?"":tokOk(k,a)?`<button type="button" class="${k===cur?"on":""}" data-a="${act}" data-i="${i}" data-k="${k}" title="${t.n}" aria-label="${t.n}" ${used.includes(k)?"disabled":""}>${tokSvg(k)}</button>`:`<button type="button" class="lock" data-a="toklock" data-k="${k}" title="${esc(t.n)}: ${esc(tokHint(k))}" aria-label="${esc(t.n)}, gesperrt">${tokSvg(k)}<i>🔒</i></button>`).join("")}</div><div class="tokname">Figur: ${cur!=null&&TOKENS[cur]?TOKENS[cur].n:"–"}${nl?` · 🔒 ${nl} Figuren zum Freispielen, tipp drauf`:""}</div>`;}
 function renderLocal(){
   const last=store.get("rbm-names")||["","","",""];if(!app.ltok)app.ltok=store.get("rbm-ltok")||[0,1,2,3];
   return header()+`<section class="panel"><h2>Reihum-Spiel</h2><p class="note">Trage 2 bis 4 Namen ein. Leere Felder werden ignoriert.</p>
@@ -2224,7 +2269,7 @@ function bestText(k){const v=bestOf(k);return v==null?"noch keiner":valText(k,v,
 function noteBest(k,v){if(k==="schaetz"||typeof v!=="number")return false;const b=store.get("rbm-best")||{},cur=b[k];
   const sc=k==="stopp"?-Math.abs(v-5000):v,old=cur==null?null:(k==="stopp"?-Math.abs(cur-5000):cur);
   if(old==null||sc>old){b[k]=v;store.set("rbm-best",b);return old!=null;}return false;}
-function miniSubmit(val){const m=mg;if(!m)return;if(m.stage==="go"||m.stage==="input"||m.stage==="done"||m.stage==="ready"){{const pl=app.S&&app.S.players[m.pid],nm=pl&&!pl.cpu?pl.name:null;if(nm)recSubmit(m.kind,Number(val),nm);}if(noteBest(m.kind,val))setTimeout(()=>unlock("rekord"),1200),setTimeout(()=>toast("🏆 Neuer Rekord: "+valText(m.kind,val,{q:0})),400);}if(m.kind!=="glocken"||m.stage!=="show")achMini(m.kind,Number(val),m.q);clearInterval(m.iv);clearTimeout(m.to);mg=null;app.deferRender=false;
+function miniSubmit(val){const m=mg;if(!m)return;if(m.stage==="go"||m.stage==="input"||m.stage==="done"||m.stage==="ready"){{const pl=app.S&&app.S.players[m.pid],nm=pl&&!pl.cpu?pl.name:null;if(nm)recSubmit(m.kind,Number(val),nm);}if(noteBest(m.kind,val))passAdd("record",1),setTimeout(()=>unlock("rekord"),1200),setTimeout(()=>toast("🏆 Neuer Rekord: "+valText(m.kind,val,{q:0})),400);}if(m.kind!=="glocken"||m.stage!=="show")achMini(m.kind,Number(val),m.q);clearInterval(m.iv);clearTimeout(m.to);mg=null;app.deferRender=false;
   if(m.ctx==="solo")commit(S=>actChallenge(S,val));else if(m.ctx==="tour")commitLeased(S=>actTourInput(S,m.pid,val),[m.pid]);else commitLeased(S=>actDuelInput(S,m.pid,val),[m.pid]);}
 async function commitLeased(fn,ids){
   if(!mayAct(ids))return;
@@ -2530,7 +2575,7 @@ function applyGame(d){
 /* Häuser grün, Hotel rot, mit weißem Rand, damit man sie auf jeder Gruppenfarbe sieht (Lucas, 06.10.). */
 const HAUS_SVG='<svg viewBox="0 0 10 11"><path d="M5 .9 9.3 5V10.2H.7V5Z" fill="#1d8a3a" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>';
 const HOTEL_SVG='<svg viewBox="0 0 22 11"><path d="M1 3.2 11 .8 21 3.2V10.2H1Z" fill="#c8102e" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/><text x="11" y="9.2" text-anchor="middle" font-size="6.6" font-weight="800" fill="#fff" font-family="Arial,sans-serif">HOTEL</text></svg>';
-const BUILD="rbm-v55";
+const BUILD="rbm-v56";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -2613,9 +2658,10 @@ document.addEventListener("click",async ev=>{
     case "home":if(unsubGame){unsubGame();unsubGame=null;}stopChat();app.code=null;app.duelOpen=false;app.sel=null;app.S=null;app.mode=null;go("home");break;
     case "go-local":go("local");break;
     case "go-cpu":go("cpu");break;
+    case "passtog":break;
     case "toklock":{const k=+b.dataset.k;toast("🔒 "+TOKENS[k].n+" freischalten: "+tokHint(k));break;}
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",24);render();break;
+    case "news-ok":store.set("rbm-news",25);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
