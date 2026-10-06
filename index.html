@@ -129,6 +129,22 @@ body.has-bar .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .card.trade{border-top-color:var(--g-li)}
 .card.hai{border-top-color:#5b8bd6}
 .cell.corner{background:var(--paper-2)}
+/* Feiertags-Brett: Deko liegt als Schicht über dem Brett (.board::before), Taps gehen durch. */
+.board{position:relative}
+body[class*="hol-"] .board::before,body.fest .board::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:5;border-radius:12px}
+body.hol-xmas .board::before{background-image:radial-gradient(2px 2px at 10% 10%,#fff,transparent),radial-gradient(2.5px 2.5px at 30% 30%,#fff,transparent),radial-gradient(2px 2px at 55% 15%,#fff,transparent),radial-gradient(3px 3px at 75% 40%,#fff,transparent),radial-gradient(2px 2px at 90% 20%,#fff,transparent),radial-gradient(2.5px 2.5px at 20% 60%,#fff,transparent),radial-gradient(2px 2px at 45% 70%,#fff,transparent),radial-gradient(3px 3px at 65% 85%,#fff,transparent),radial-gradient(2px 2px at 85% 65%,#fff,transparent),radial-gradient(2px 2px at 5% 90%,#fff,transparent);background-size:100% 50%;animation:snow 9s linear infinite;opacity:.95;content:"🎄                         ⭐";white-space:pre;font-size:clamp(14px,4.4vw,22px);padding:13% 13%;display:block}
+@keyframes snow{from{background-position:0 0}to{background-position:20px 100%}}
+body.hol-xmas .cell{box-shadow:inset 0 4px 0 -1px #fff}
+body.hol-silvester .board::before{background:radial-gradient(circle at 25% 25%,rgba(255,80,80,.55) 0 2px,transparent 3px),radial-gradient(circle at 25% 25%,transparent 0 22px,rgba(255,200,80,.0) 22px),repeating-conic-gradient(from 0deg at 25% 25%,rgba(255,90,90,.5) 0 4deg,transparent 4deg 30deg),repeating-conic-gradient(from 10deg at 72% 30%,rgba(120,200,255,.5) 0 4deg,transparent 4deg 30deg),repeating-conic-gradient(from 5deg at 50% 70%,rgba(255,220,90,.5) 0 4deg,transparent 4deg 30deg);-webkit-mask:radial-gradient(circle at 25% 25%,#000 0 14%,transparent 15%),radial-gradient(circle at 72% 30%,#000 0 12%,transparent 13%),radial-gradient(circle at 50% 70%,#000 0 13%,transparent 14%);mask:radial-gradient(circle at 25% 25%,#000 0 14%,transparent 15%),radial-gradient(circle at 72% 30%,#000 0 12%,transparent 13%),radial-gradient(circle at 50% 70%,#000 0 13%,transparent 14%);animation:boom 2.4s ease-out infinite}
+@keyframes boom{0%{opacity:0;transform:scale(.6)}15%{opacity:1}80%{opacity:.7;transform:scale(1.05)}100%{opacity:0;transform:scale(1.1)}}
+body.hol-halloween .board{background:#2a1238}
+body.hol-halloween .board::before{content:"🦇  🎃            🦇\A\A\A\A\A\A\A\A\A🕸️                    🎃";white-space:pre;font-size:clamp(14px,4.4vw,22px);padding:14% 13%;display:block;opacity:.9;filter:drop-shadow(0 0 6px rgba(255,140,0,.6))}
+body.hol-halloween .center{background:radial-gradient(circle at 50% 40%,#4a2a10,#1d0f20 78%)}
+body.hol-fasching .board::before{background-image:radial-gradient(circle at 12% 20%,#e0453a 0 3px,transparent 4px),radial-gradient(circle at 28% 62%,#f2c230 0 3px,transparent 4px),radial-gradient(circle at 46% 30%,#3fae5a 0 3px,transparent 4px),radial-gradient(circle at 64% 76%,#4a8bf0 0 3px,transparent 4px),radial-gradient(circle at 82% 40%,#d65bd6 0 3px,transparent 4px),radial-gradient(circle at 90% 85%,#f2c230 0 3px,transparent 4px),radial-gradient(circle at 36% 88%,#e0453a 0 3px,transparent 4px),radial-gradient(circle at 70% 14%,#3fae5a 0 3px,transparent 4px);background-size:100% 60%;animation:snow 6s linear infinite;opacity:.7}
+body.hol-ostern .center{background:radial-gradient(circle at 50% 35%,#5d8a5a,#2f5a3a 78%)}
+body.hol-ostern .board::before{content:"🐣                          🌷";white-space:pre;font-size:clamp(14px,4.4vw,22px);padding:13% 13%;display:block}
+.cell .egg{position:absolute;right:1px;top:22%;font-size:clamp(11px,3.4vw,16px);z-index:2;animation:bob 1.6s ease-in-out infinite;filter:drop-shadow(0 1px 1px rgba(0,0,0,.4))}
+body.fest .board::before{background:linear-gradient(180deg,transparent 0 0),conic-gradient(from 135deg at 50% 0,#e0453a 0 90deg,transparent 90deg) 0 0/24px 14px repeat-x,conic-gradient(from 135deg at 50% 0,#f2c230 0 90deg,transparent 90deg) 12px 0/24px 14px repeat-x;height:14px;inset:12.2% 10.5% auto;border-radius:0;filter:drop-shadow(0 2px 1px rgba(0,0,0,.4))}
 /* Nachtmodus (Lucas, 06.10.): 22 bis 6 Uhr deutscher Zeit wird das Brett dunkel und die Laternen gehen an. */
 body.night .board{--paper:#2a3247;--paper-2:#222a3c;--ink:#ece6d4;--muted:#aab4c8;background:#0b1322;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.6),0 0 0 1px #1d2a44}
 body.night .board::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:4;border-radius:12px;mix-blend-mode:screen;
@@ -630,7 +646,8 @@ function duelStat(S,W,L){st(S,W.id).dw++;st(S,L.id).dl++;}
 function log(S,t){S.lc=(S.lc||0)+1;S.log.unshift(t);if(S.log.length>40)S.log.length=40;}
 const cur=S=>S.players[S.turn];
 function newState(list,maxRounds,extra){
-  return dealQuests(Object.assign({status:"playing",players:list.map((p,i)=>({id:i,uid:p.uid||null,cpu:!!p.cpu,name:p.name,tok:p.tok??i,color:COLORS[i],pos:0,money:1500,jail:false,jailTurns:0,jailCards:0,bankrupt:false,bankruptAt:0,bonus:false})),
+  const eggs=holiday()==="ostern"?shuffle(BOARD.map((f,i)=>i).filter(i=>i&&!CORNERS.includes(i))).slice(0,6):undefined;
+  return dealQuests(Object.assign({eggs,status:"playing",players:list.map((p,i)=>({id:i,uid:p.uid||null,cpu:!!p.cpu,name:p.name,tok:p.tok??i,color:COLORS[i],pos:0,money:1500,jail:false,jailTurns:0,jailCards:0,bankrupt:false,bankruptAt:0,bonus:false})),
     board:BOARD_V,props:{},turn:0,phase:"roll",dice:[0,0],doubles:0,again:false,pot:100,round:1,maxRounds:maxRounds,log:["Das Spiel beginnt. "+list[0].name+" würfelt zuerst."],card:null,
     decks:{klatsch:shuffle(CARDS.klatsch.map((_,i)=>i)),ch:shuffle(CHALLENGES.map((_,i)=>i))},wantBuy:false,challenge:null,seq:0,started:Date.now()},extra||{}));
 }
@@ -663,6 +680,13 @@ function tombola(S){const ps=alive(S).filter(p=>p.money>=TOMB_LOS);if(ps.length<
 /* Dorf-Ereignisse: jede dritte Runde passiert im ganzen Dorf etwas, das für genau diese Runde gilt. */
 /* Nachtzeit nach deutscher Uhr, damit alle im Spiel dieselbe Nacht haben. */
 function isNight(){try{const h=+new Intl.DateTimeFormat("de-DE",{timeZone:"Europe/Berlin",hour:"numeric",hourCycle:"h23"}).format(new Date());return h>=22||h<6;}catch(e){const h=new Date().getHours();return h>=22||h<6;}}
+/* Feiertags-Brett (Lucas, 06.10.): Deko und Ereignisse passend zum Datum, nach deutscher Zeit. */
+function berlinDate(){try{const f=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Berlin",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date()).split("-").map(Number);return new Date(f[0],f[1]-1,f[2]);}catch(e){const d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate());}}
+function easterOf(y){const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;return new Date(y,mo-1,da);}
+function holiday(){if(app&&app.holi!==undefined)return app.holi;const d=berlinDate(),y=d.getFullYear(),m=d.getMonth()+1,dd=d.getDate(),E=easterOf(y),diff=Math.round((d-E)/864e5);
+  if((m===12&&dd===31)||(m===1&&dd===1))return "silvester";if(m===12&&dd<=30)return "xmas";if(m===10&&dd>=24)return "halloween";
+  if(diff>=-52&&diff<=-46)return "fasching";if(diff>=-7&&diff<=1)return "ostern";return null;}
+const HOLI={xmas:{n:"Weihnachten",ic:"🎄"},silvester:{n:"Silvester",ic:"🎆"},halloween:{n:"Halloween",ic:"🎃"},fasching:{n:"Fasching",ic:"🎭"},ostern:{n:"Ostern",ic:"🐣"}};
 const DORF_EV=[
  {k:"kerwa",ic:"🌲",n:"Waldfest",t:"Waldfest in Rottenberg!",x:"Das ganze Dorf feiert im Wald. Diese Runde sind alle Mieten 50 % höher.",rent:1.5,f:S=>tombola(S)},
  {k:"tombola",ic:"🎟️",n:"Tombola",t:"Waldfest-Tombola",x:"Der Waldfestverein verlost seinen Gabentisch.",f:S=>tombola(S)},
@@ -678,12 +702,20 @@ const DORF_EV=[
  {k:"waschbaer",ic:"🦝",n:"Waschbären",night:1,t:"Waschbären in den Kellern",x:"Nachts plündern Waschbären die Vorratskeller. Wer Häuser hat, zahlt 10 € pro Haus für die Reparatur.",f:S=>alive(S).forEach(p=>{const n=Object.values(S.props).filter(o=>o.owner===p.id).reduce((a,o)=>a+(o.h||0),0);if(n)pay(S,p,null,10*n);})},
  {k:"kontrolle",ic:"🚓",n:"Polizeikontrolle",night:1,t:"Polizeikontrolle nach der Kerb",x:"Auf dem Heimweg von der Felgeler Kerb wird kontrolliert. Wer am meisten Bargeld hat, zahlt 100 € Strafe in die Kasse.",f:S=>{const p=alive(S).slice().sort((a,b)=>b.money-a.money)[0];if(p){pay(S,p,null,100);return p.name+" ist dran.";}}},
  {k:"schnuppe",ic:"🌠",n:"Sternschnuppe",night:1,t:"Sternschnuppe!",x:"Über dem Kloster fällt eine Sternschnuppe. Einer hat sich was gewünscht und bekommt 150 €.",f:S=>{const p=pick(alive(S));if(p){p.money+=150;return p.name+" hatte Glück.";}}},
+ {k:"wmarkt",ic:"🎄",n:"Weihnachtsmarkt",hol:"xmas",t:"Weihnachtsmarkt am Kloster",x:"Glühwein, Lebkuchen und Posaunenchor. Das Christkind hat für jeden 50 € dagelassen.",f:S=>alive(S).forEach(p=>p.money+=50)},
+ {k:"schnee",ic:"❄️",n:"Eingeschneit",hol:"xmas",t:"Rottenberg ist eingeschneit",x:"Keiner kommt den Berg hoch, die Mieter bleiben daheim. Diese Runde gibt es nur die halbe Miete.",rent:.5},
+ {k:"boeller",ic:"🧨",n:"Böller",hol:"silvester",t:"Böller im Briefkasten",x:"Irgendwer hat Kilians Briefkasten gesprengt. Jeder zahlt 25 € in die Kasse im Biergarten.",f:S=>alive(S).forEach(p=>pay(S,p,null,25))},
+ {k:"neujahr",ic:"🥂",n:"Neujahrsempfang",hol:"silvester",t:"Neujahrsempfang im Rathaus",x:"Sekt für alle und gute Vorsätze. Jeder bekommt 100 €.",f:S=>alive(S).forEach(p=>p.money+=100)},
+ {k:"saures",ic:"🎃",n:"Süßes oder Saures",hol:"halloween",t:"Süßes oder Saures!",x:"Die Dorfkinder ziehen von Haus zu Haus. Jeder mit Häusern zahlt 10 € pro Haus an Süßigkeiten.",f:S=>alive(S).forEach(p=>{const n=Object.values(S.props).filter(o=>o.owner===p.id).reduce((a,o)=>a+(o.h||0),0);if(n)pay(S,p,null,10*n);})},
+ {k:"spuk",ic:"👻",n:"Spuk im Kloster",hol:"halloween",t:"Spuk im Kloster",x:"Im Kloster spukt es, die Wildsäue drehen durch. Challenges und Duelle zählen doppelt.",pay:2},
+ {k:"kamelle",ic:"🎭",n:"Rosenmontagszug",hol:"fasching",t:"Rosenmontagszug",x:"Kamelle! Vom Wagen fliegt Geld: Jeder bekommt 40 €.",f:S=>alive(S).forEach(p=>p.money+=40)},
+ {k:"osterfeuer",ic:"🔥",n:"Osterfeuer",hol:"ostern",t:"Osterfeuer am Rottenberg",x:"Das ganze Dorf steht ums Feuer. Diese Runde gibt es nur die halbe Miete, und jeder bekommt 30 €.",rent:.5,f:S=>alive(S).forEach(p=>p.money+=30)},
  {k:"finale",ic:"🏁",n:"Schlussrunde",t:"Schlussrunde!",x:"Letzte Runde in Rottenberg: Alle Mieten sind doppelt, Challenges und Duelle auch. Jetzt zählt jeder Euro!",rent:2,pay:2,fin:true}
 ];
 function evNow(S){return S.ev&&S.ev.r===S.round?DORF_EV.find(e=>e.k===S.ev.k)||null:null;}
 function evOn(S,key){const e=evNow(S);return e&&e[key]||0;}
 function roundEvent(S){
-  const nt=isNight(),pool=DORF_EV.filter(e=>!e.fin&&(!S.ev||e.k!==S.ev.k)&&(!e.night||nt)).filter((e,i,a)=>!nt||e.night||Math.random()<.5||!a.some(x=>x.night)),e=S.maxRounds&&S.round===S.maxRounds?DORF_EV.find(e=>e.fin):pick(pool);
+  const nt=isNight(),hd=holiday(),pool=DORF_EV.filter(e=>!e.fin&&(!S.ev||e.k!==S.ev.k)&&(!e.night||nt)&&(!e.hol||e.hol===hd)).filter(e=>!e.hol||Math.random()<.85).filter((e,i,a)=>!nt||e.night||Math.random()<.5||!a.some(x=>x.night)),e=S.maxRounds&&S.round===S.maxRounds?DORF_EV.find(e=>e.fin):pick(pool);
   S.ev={k:e.k,r:S.round};const extra=e.f?e.f(S):"";
   log(S,"Dorf-Ereignis: "+e.t+". "+e.x);S.card={deck:"ev",t:e.ic+" "+e.t,x:e.x+(typeof extra==="string"&&extra?" "+extra:"")};
 }
@@ -806,6 +838,7 @@ function move(S,p,steps){const np=(p.pos+steps)%N;if(p.pos+steps>=N)passGo(S,p,n
 function moveTo(S,p,t,d){if(t<p.pos)passGo(S,p,t===0);else if(t===0&&p.pos!==0)passGo(S,p,true);p.pos=t;land(S,p,(d||0)+1);}
 function land(S,p,depth){
   if(depth>3||p.bankrupt||S.status!=="playing")return;
+  if(S.eggs&&S.eggs.includes(p.pos)){S.eggs=S.eggs.filter(i=>i!==p.pos);p.money+=50;log(S,"🥚 "+p.name+" findet ein Osterei: +50 €!");}
   const f=BOARD[p.pos],here=p.pos;let canBuy=false;
   if(ownable(f)){
     const o=S.props[p.pos];
@@ -1845,7 +1878,7 @@ function header(){return `<header class="row" style="gap:14px;flex-wrap:nowrap">
 function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary><ul>
 <li>Tippe auf ein Feld für Preise, Mieten und zum Bauen. ★ heißt Challenge, ! heißt Ereignis.</li><li>2 bis 4 Spieler, jeder startet mit 1.500 €. Über Los gibt es 200, wer genau auf Los landet, bekommt 400.</li>
 <li>Kaufe Straßen und Orte. Besitzt du eine ganze Farbgruppe, verdoppelt sich die Miete und du darfst bis zu 4 Häuser und dann ein Hotel bauen. Die Mieten sind wie im Original, mit 4 Häusern und Hotel etwas günstiger. Die billigste Miete sind 10 €.</li>
-<li><b>🌙 Nachtmodus:</b> Von 22 bis 6 Uhr wird das Brett dunkel, die Laternen gehen an und es gibt eigene Nacht-Ereignisse: Laternenumzug (halbe Miete), Vollmond (Challenges und Duelle doppelt), Sperrstunde, Waschbären, Polizeikontrolle nach der Kerb und Sternschnuppe.</li><li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Waldfest (Mieten +50 %), Leeres Dorf, weil alle uf de Felgeler Kerb sind (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
+<li><b>🎄 Feiertags-Brett:</b> Zu Weihnachten schneit es, zu Silvester gibt es Feuerwerk, zu Fasching Konfetti, zu Halloween Kürbisse und Fledermäuse, zu Ostern liegen 6 Ostereier auf dem Brett (wer draufkommt, bekommt 50 €). Beim Waldfest hängen Girlanden. Dazu passende Feiertags-Ereignisse.</li><li><b>🌙 Nachtmodus:</b> Von 22 bis 6 Uhr wird das Brett dunkel, die Laternen gehen an und es gibt eigene Nacht-Ereignisse: Laternenumzug (halbe Miete), Vollmond (Challenges und Duelle doppelt), Sperrstunde, Waschbären, Polizeikontrolle nach der Kerb und Sternschnuppe.</li><li><b>🎪 Dorf-Ereignisse:</b> Jede dritte Runde passiert etwas im ganzen Dorf, das genau diese Runde gilt: Waldfest (Mieten +50 %), Leeres Dorf, weil alle uf de Felgeler Kerb sind (halbe Miete), Grundsteuer, Dorffest-Geld, Freibier-Jackpot, Bunker-Räumung oder Wildsau-Saison (Challenges und Duelle zählen doppelt). In der letzten Runde gilt die 🏁 Schlussrunde: alles doppelt.</li>
 <li><b>📜 Spielbericht und 🏅 Erfolge:</b> Am Ende gibt es Auszeichnungen wie Miethai oder Duellkönig und den Verlauf aller Vermögen. Auf jedem Handy sammelst du 37 Erfolge.</li>
 <li><b>🎟️ Waldfest-Tombola:</b> Beim Waldfest und ab und zu als eigenes Dorf-Ereignis kauft jeder ein Los für 20 €. Der Waldfestverein legt 150 € drauf, einer gewinnt den ganzen Topf, ein anderer eine Bunker-Freikarte.</li>
 <li><b>🎳 Wildsau-Bowling:</b> 3 Würfe auf 10 Kegel. Finger unten auf die Bahn und nach oben wischen. Mehr Kegel gewinnt.</li><li><b>🏛️ Hau den Kilian:</b> Kilian schaut 15 Sekunden lang aus den Rathausfenstern: antippen +1, goldenes Fenster +3, aber die Marry kostet 2 Punkte.</li><li><b>🏺 Bembel-Balance:</b> Neues Minispiel: Ein voller Bembel wackelt auf deinem Tablett. Neig das Handy nach links und rechts, damit er nicht umkippt (ohne Bewegungssensor mit dem Finger). Wer ihn am längsten hält, gewinnt, höchstens 30 Sekunden.</li><li><b>⚽ Torwandschießen:</b> Neues Minispiel: 6 Schüsse auf die Torwand, dreimal unten links, dreimal oben rechts. Wisch den Ball Richtung Loch.</li>
@@ -1871,7 +1904,8 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==26?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+  const news=store.get("rbm-news")!==27?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>🎄 Feiertags-Brett: Schnee, Feuerwerk, Konfetti, Ostereier-Suche und Halloween</li>
    <li>🌙 Nachtmodus ab 22 Uhr mit Laternen und Nacht-Ereignissen</li>
    <li>🎟️ Saison-Pass: jeden Monat 8 Aufgaben und eine exklusive Figur</li>
    <li>🎁 12 neue Figuren zum Freispielen und 30 neue Erfolge</li>
@@ -2492,7 +2526,7 @@ function renderGame(){
   const cellArr=BOARD.map((f,i)=>{
     const [r,c]=cellPos(i),o=S.props[i],corner=CORNERS.includes(i);
     const strip=f.g?`<div class="strip${o&&o.h?" bau":""}" style="background:${GROUPS[f.g].c}">${o&&o.h?(o.h===MAXH?HOTEL_SVG:HAUS_SVG.repeat(o.h)):""}</div>`:"";
-    return `<button class="cell ${corner?"corner":""} ${o?"owned":""} ${o&&o.m?"mort":""} ${app.sel===i?"sel":""}" style="grid-row:${r};grid-column:${c};${o?"--own:"+S.players[o.owner].color:""}" data-a="sel" data-i="${i}" aria-label="${esc(f.n)}">${strip}${f.fx?`<span class="fxb">${f.fx==="challenge"?"★":"!"}</span>`:""}${f.ic?`<div class="ic">${f.ic}</div>`:""}<div class="nm">${esc(S_(f.s))}</div>${ownable(f)?`<div class="pr">${f.p}</div>`:f.t==="tax"?`<div class="pr">−${f.a}</div>`:f.t==="pot"?`<div class="pr">${fmt(S.pot)}</div>`:f.t==="loewe"?`<div class="pr">−10</div>`:""}<div class="tok" id="t${i}"></div></button>`;
+    return `<button class="cell ${corner?"corner":""} ${o?"owned":""} ${o&&o.m?"mort":""} ${app.sel===i?"sel":""}" style="grid-row:${r};grid-column:${c};${o?"--own:"+S.players[o.owner].color:""}" data-a="sel" data-i="${i}" aria-label="${esc(f.n)}">${strip}${f.fx?`<span class="fxb">${f.fx==="challenge"?"★":"!"}</span>`:""}${f.ic?`<div class="ic">${f.ic}</div>`:""}<div class="nm">${esc(S_(f.s))}</div>${ownable(f)?`<div class="pr">${f.p}</div>`:f.t==="tax"?`<div class="pr">−${f.a}</div>`:f.t==="pot"?`<div class="pr">${fmt(S.pot)}</div>`:f.t==="loewe"?`<div class="pr">−10</div>`:""}${S.eggs&&S.eggs.includes(i)?`<span class="egg">🥚</span>`:""}<div class="tok" id="t${i}"></div></button>`;
   });
   const players=S.players.map(p=>{
     const props=Object.keys(S.props).filter(i=>S.props[i].owner===p.id).map(Number).sort((a,b)=>a-b);
@@ -2527,6 +2561,7 @@ function patchGame(){
 }
 function render(){
   document.body.classList.toggle("night",isNight()&&store.get("rbm-night")!==false);
+  {const h=holiday();Object.keys(HOLI).forEach(k=>document.body.classList.toggle("hol-"+k,h===k));const e=app.S&&app.screen==="game"&&evNow(app.S);document.body.classList.toggle("fest",!!(e&&e.k==="kerwa"));}
   if(app.screen==="game"&&app.lastScreen==="game"&&patchGame()){renderChat();postGame();return;}
   app.lastScreen=app.screen;if(app.screen!=="game")app.gp=null;
   const v={home:renderHome,local:renderLocal,cpu:renderCpu,create:renderCreate,join:renderJoin,lobby:renderLobby,game:renderGame}[app.screen]();
@@ -2599,7 +2634,7 @@ function applyGame(d){
 const HAUS_SVG='<svg viewBox="0 0 10 11"><path d="M5 .9 9.3 5V10.2H.7V5Z" fill="#1d8a3a" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>';
 const HOTEL_SVG='<svg viewBox="0 0 22 11"><path d="M1 3.2 11 .8 21 3.2V10.2H1Z" fill="#c8102e" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/><text x="11" y="9.2" text-anchor="middle" font-size="6.6" font-weight="800" fill="#fff" font-family="Arial,sans-serif">HOTEL</text></svg>';
 setInterval(()=>{const n=isNight()&&store.get("rbm-night")!==false;if(n!==document.body.classList.contains("night")){document.body.classList.toggle("night",n);if(n)toast("🌙 Nachtmodus: Die Laternen gehen an.");}},60000);
-const BUILD="rbm-v57";
+const BUILD="rbm-v58";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -2685,7 +2720,7 @@ document.addEventListener("click",async ev=>{
     case "passtog":break;
     case "toklock":{const k=+b.dataset.k;toast("🔒 "+TOKENS[k].n+" freischalten: "+tokHint(k));break;}
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",26);render();break;
+    case "news-ok":store.set("rbm-news",27);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
