@@ -1057,7 +1057,7 @@ function bjHTML(b,fin){
   if(fin)seen.rev=true;app.bjSeen=seen;
   return `<div class="card bjt"><b>🃏 ${fin?esc(b.t):"Blackjack · Einsatz "+b.stake+" €"}</b>${dealer}<div class="felt-line">Bank zieht bis 17 · Blackjack zahlt 3:2</div><div class="bjhands">${hands}</div></div>`;
 }
-/* Dorfmeisterschaft: jede 10. Runde spielen alle dasselbe Minispiel, ohne Einsatz. Preise für Platz 1 bis 3,
+/* Dorfmeisterschaft: jede 15. Runde (Lucas 06.10., vorher 10) spielen alle dasselbe Minispiel, ohne Einsatz. Preise für Platz 1 bis 3,
    abwechselnd Geld und (beim nächsten Mal) eine freie Straße für den Sieger. */
 const TOUR_CASH=[300,150,75];
 /* Einsatz bei der Grundstücks-Meisterschaft: das günstigste eigene Grundstück ohne Häuser in seiner Farbgruppe. */
@@ -1131,7 +1131,7 @@ function actEnd(S){
   if(S.round!==r0&&!(S.maxRounds&&S.round>S.maxRounds)){alive(S).forEach(q=>{bausparRate(S,q);loanRate(S,q);});S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));if(S.round%3===0||(S.maxRounds&&S.round===S.maxRounds))roundEvent(S);matchTick(S);}
   if(S.maxRounds&&S.round>S.maxRounds){S.round=S.maxRounds;finish(S);return S;}
   S.phase="roll";if(haiVisit(S,S.players[t])){if(S.status!=="playing")return S;if(cur(S).bankrupt)S.phase="end";return S;}
-  if(S.round!==r0&&S.round%5===0&&alive(S).length>1)stammStart(S,S.round%10===0);else{bankOffer(S);if(S.phase==="roll")haiOffer(S);}return S;
+  if(S.round!==r0&&S.round%5===0&&alive(S).length>1)stammStart(S,S.round%15===0);else{bankOffer(S);if(S.phase==="roll")haiOffer(S);}return S;
 }
 /* Hypothek: unbebaute Grundstücke bei der Dorfbank beleihen. Man bekommt den halben Kaufpreis, solange gibt es keine Miete. Auslösen kostet 10 % mehr. */
 const mortVal=f=>r5(f.p/2),unmortCost=f=>r5(f.p*.55);
@@ -1942,7 +1942,7 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>🏦 Hypothek:</b> Tippe auf ein eigenes unbebautes Grundstück und nimm eine Hypothek auf: du bekommst den halben Kaufpreis, dafür gibt es dort keine Miete und in der Gruppe wird nicht gebaut. Ablösen kostet 10 % mehr. Wer pleite zu gehen droht, beleiht automatisch, bevor er aufgeben muss.</li>
 <li><b>🏦 Dorfbank:</b> Selten (ab Runde 3) macht die Dorfbank vor dem Würfeln ein verlockendes Angebot: ein schneller Kredit (in 5 Runden mit Zinsen zurück), ein Ankauf eines deiner Grundstücke weit über Wert oder eine freie Straße zum Sonderpreis. Annehmen oder ablehnen.</li>
 <li><b>🎰 Casino:</b> Wer im Rottenberger Casino landet, wählt einen Einsatz (50, 100 oder 200 €) und spielt Glücksrad (bis zum Dreifachen, die Kasse, eine Gratis-Straße, aber auch der Bunker; ganz selten, etwa bei jedem 200. Dreh, trifft man den goldenen Jackpot und bekommt das 20-Fache) oder Blackjack am Tisch von Croupier Charly (echtes Kartenblatt, Bank zieht bis 17, Blackjack zahlt 3:2, du kannst verdoppeln, teilen oder aufgeben), den einarmigen Banditen „Wildsau-Automat“ (drei gleiche Symbole zahlen bis zum 100-fachen) oder Höher oder Tiefer (Quote nach den restlichen Karten, kassieren wann du willst, höchstens 6 Treffer) oder 🐗 Sau über die Straße: Die Wildsau quert Spur für Spur die Hauptstraße, jede Spur erhöht den Faktor (bis ×6,41) und ist gefährlicher, kassieren wann du willst, wird sie erwischt, ist der Einsatz weg. Man kann auch einfach weitergehen.</li>
-<li><b>🏆 Dorfmeisterschaft:</b> Jede 10. Runde spielen alle dasselbe Minispiel. Platz 2 bekommt 150 €, Platz 3 75 €. Platz 1 bekommt 300 €, bei jeder zweiten Meisterschaft stattdessen eine Straße vom Letzten.</li>
+<li><b>🏆 Dorfmeisterschaft:</b> Jede 15. Runde spielen alle dasselbe Minispiel. Platz 2 bekommt 150 €, Platz 3 75 €. Platz 1 bekommt 300 €, bei jeder zweiten Meisterschaft stattdessen eine Straße vom Letzten.</li>
 <li><b>💤 Alle offline:</b> Ist bei einer Online-Partie 15 Minuten lang niemand mehr im Spiel, endet sie mit dem aktuellen Stand und kommt nach Vermögen in die Rangliste (ab Runde 3).</li><li><b>👀 Zuschauen:</b> Bei Online-Spielen kann jeder mit dem Code oder über „Laufende Spiele“ zuschauen, ohne mitzuspielen, und im Chat mitreden.</li>
 <li>Pasch heißt nochmal würfeln. Drei Pasche hintereinander: ab in den Bunker bei Big A, dort wird erstmal gemeinsam einer geraucht. Raus kommst du mit Pasch, 50 € oder Freikarte.</li>
 <li><b>Rollmisch!</b> Wer eine Doppel-Eins würfelt, kassiert 50 von jedem Mitspieler.</li>
@@ -2702,7 +2702,7 @@ function applyGame(d){
 const HAUS_SVG='<svg viewBox="0 0 10 11"><path d="M5 .9 9.3 5V10.2H.7V5Z" fill="#1d8a3a" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>';
 const HOTEL_SVG='<svg viewBox="0 0 22 11"><path d="M1 3.2 11 .8 21 3.2V10.2H1Z" fill="#c8102e" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/><text x="11" y="9.2" text-anchor="middle" font-size="6.6" font-weight="800" fill="#fff" font-family="Arial,sans-serif">HOTEL</text></svg>';
 setInterval(()=>{const n=isNight()&&store.get("rbm-night")!==false;if(n!==document.body.classList.contains("night")){document.body.classList.toggle("night",n);if(n)toast("🌙 Nachtmodus: Die Laternen gehen an.");}},60000);
-const BUILD="rbm-v61";
+const BUILD="rbm-v62";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
