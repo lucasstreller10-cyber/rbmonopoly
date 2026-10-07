@@ -312,6 +312,9 @@ body{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .center .stakes .chip{padding:3px 9px;font-size:12px}
 .center .acts .allinb{border-color:#ff6b4a;color:#ffb199}
 .center .stakes .chip.allin{border-color:#ff6b4a;color:#ffb199;font-weight:900}.center .stakes .chip.allin.on{background:#ff6b4a;color:#fff}
+.lmb{position:absolute;right:1px;bottom:12px;font-size:12px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.6));z-index:2}
+.lmrow button{flex:1}
+.svp .stack button{text-align:left;white-space:normal;line-height:1.2}.svp small{opacity:.8;font-weight:400}
 .casgames{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;width:100%}
 .casg{padding:5px 2px!important;font-size:11px!important;min-width:0;white-space:normal;line-height:1.15}
 .wheelbox{position:relative;width:min(86%,232px);aspect-ratio:1;margin:12px auto 4px;container-type:inline-size}
@@ -1045,7 +1048,15 @@ function roundEvent(S){
   S.ev={k:e.k,r:S.round};const extra=e.f?e.f(S):"";
   log(S,"Dorf-Ereignis: "+e.t+". "+e.x);S.card={deck:"ev",t:e.ic+" "+e.t,x:e.x+(typeof extra==="string"&&extra?" "+extra:"")};
 }
-function rent(S,i){let r=rent0(S,i);if(isFk())r=dlcRent(S,i,r);const m=evOn(S,"rent");if(m)r=Math.max(5,Math.round(r*m/5)*5);const ru=ruleOn(S);if(ru){if(ru.k==="dmiete"&&BOARD[i].g===ru.g)r*=2;else if(ru.k==="halb"&&r>0)r=Math.max(5,Math.round(r/10)*5);else if(ru.k==="bus"&&BOARD[i].t==="bus")r=0;}return r;}
+/* Großprojekte (Lucas, 07.10.): Wer eine ganze Farbe besitzt, darf dort EIN Wahrzeichen bauen (4 Häuser teuer).
+   Es wirkt, solange dem Bauherrn die ganze Farbe gehört. */
+const LM={turm:{e:"🗼",n:"Aussichtsturm",x:"Miete auf der ganzen Farbe +50 %."},brau:{e:"🍺",n:"Brauerei",x:"Du bekommst jedes Mal 75 € extra, wenn du über Los kommst."},halle:{e:"🎪",n:"Festhalle",x:"Wer hier Miete zahlt, legt noch 10 % seines Bargelds drauf (höchstens 200 €)."}};
+const lmCost=g=>houseCost(BOARD.find(f=>f.g===g))*4;
+function lmOn(S,g){const l=S.lm&&S.lm[g];return l&&ownsGroup(S,l.o,g)&&!S.players[l.o].bankrupt?l:null;}
+function actLandmark(S,i,k){const p=cur(S),f=BOARD[i],o=S.props[i];if(!LM[k]||!o||o.owner!==p.id||f.t!=="prop"||!ownsGroup(S,p.id,f.g)||grpMort(S,f.g)||S.phase==="buy"||(S.lm&&S.lm[f.g]&&lmOn(S,f.g)))return S;
+  const c=lmCost(f.g);if(p.money<c)return S;p.money-=c;S.lm=S.lm||{};S.lm[f.g]={k,o:p.id};st(S,p.id).lm=(st(S,p.id).lm||0)+1;
+  log(S,"🏗️ "+p.name+" baut ein Wahrzeichen: "+LM[k].e+" "+LM[k].n+" auf "+GROUPS[f.g].n+"!");S.card={deck:"ch",t:"🏗️ "+LM[k].e+" "+LM[k].n+" steht!",x:p.name+" hat auf "+GROUPS[f.g].n+" gebaut. "+LM[k].x};return S;}
+function rent(S,i){let r=rent0(S,i);if(isFk())r=dlcRent(S,i,r);{const l=BOARD[i].g&&lmOn(S,BOARD[i].g);if(l&&l.k==="turm")r=Math.round(r*1.5/5)*5;}const m=evOn(S,"rent");if(m)r=Math.max(5,Math.round(r*m/5)*5);const ru=ruleOn(S);if(ru){if(ru.k==="dmiete"&&BOARD[i].g===ru.g)r*=2;else if(ru.k==="halb"&&r>0)r=Math.max(5,Math.round(r/10)*5);else if(ru.k==="bus"&&BOARD[i].t==="bus")r=0;}return r;}
 const STAMM=[
  {k:"dmiete",e:"💸",n:g=>"Doppelte Miete auf "+GROUPS[g].n,x:"Auf allen Straßen dieser Farbe kostet die Miete das Doppelte."},
  {k:"bunker",e:"🔓",n:()=>"Bunker hat zu",x:"Wer drin sitzt, kommt sofort frei. Niemand muss in den Bunker."},
@@ -1058,6 +1069,23 @@ const STAMM=[
 const STAMM_R=5;
 function ruleOn(S){return S.rule&&S.round<S.rule.until?S.rule:null;}
 function ruleName(r){const d=STAMM.find(x=>x.k===r.k);return d?d.e+" "+d.n(r.g):"";}
+/* Zuschauer-Votes (Lucas, 07.10.): Online stimmen Zuschauer alle 4 Runden über ein Ereignis ab (per Chat-Nachricht kind "vote").
+   In der nächsten Runde wertet das Handy des Spielers am Zug aus und wendet das Ereignis an. Ohne Stimmen passiert nichts. */
+const SV={freibier:{e:"🍻",n:"Freibier für alle",x:"Alle Spieler bekommen 50 €.",f:S=>{alive(S).forEach(q=>q.money+=50);}},
+  steuer:{e:"🧾",n:"Steuerprüfung",x:"Der Reichste zahlt 150 € in die Kasse.",f:S=>{const r=alive(S).sort((a,b)=>b.money-a.money)[0];if(r)pay(S,r,null,Math.min(150,r.money));}},
+  robin:{e:"🏹",n:"Robin Hood",x:"Der Reichste gibt dem Ärmsten 100 €.",f:S=>{const a=alive(S).sort((x,y)=>y.money-x.money);if(a.length>1)pay(S,a[0],a[a.length-1],Math.min(100,a[0].money));}},
+  lotto:{e:"🎟️",n:"Lottoglück",x:"Ein zufälliger Spieler gewinnt 200 €.",f:S=>{const q=pick(alive(S));q.money+=200;log(S,"🎟️ "+q.name+" gewinnt im Lotto 200 €!");}},
+  sturm:{e:"🌪️",n:"Sturm übers Dorf",x:"Jeder zahlt 15 € pro Haus für die Reparatur.",f:S=>alive(S).forEach(q=>{const n=Object.values(S.props).filter(o=>o.owner===q.id).reduce((a,o)=>a+(o.h||0),0);if(n)pay(S,q,null,Math.min(q.money,n*15));})},
+  razzia:{e:"🚨",n:"Razzia",x:"Der Reichste muss in den Bunker.",f:S=>{const r=alive(S).sort((a,b)=>b.money-a.money)[0];if(r&&!r.jail)sendJail(S,r);}}};
+function svStart(S){const ks=Object.keys(SV).sort(()=>Math.random()-.5).slice(0,3);S.svote={id:Math.floor(Math.random()*1e9),r:S.round,opts:ks};}
+function actSpecVote(S,id,k){const v=S.svote;if(!v||v.id!==id||S.round<=v.r)return S;S.svote=null;if(!k||!SV[k]||!v.opts.includes(k))return S;
+  const d=SV[k];log(S,"👀 Die Zuschauer haben entschieden: "+d.e+" "+d.n+"!");d.f(S);S.card={deck:"ev",t:"👀 Zuschauer-Ereignis: "+d.e+" "+d.n,x:d.x};return S;}
+function svTally(v){const last={};chatMsgs.filter(m=>m.kind==="vote"&&m.g===v.id&&v.opts.includes(m.v)).forEach(m=>{last[m.uid]=m.v;});const c={};Object.values(last).forEach(k=>c[k]=(c[k]||0)+1);return c;}
+function svCheck(){const S=app.S;if(app.mode!=="online"||!S||S.status!=="playing"||isSpect()||!S.svote||S.round<=S.svote.r||app.svBusy===S.svote.id||!canAct())return;
+  const v=S.svote,c=svTally(v),mx=Math.max(0,...Object.values(c)),top=Object.keys(c).filter(k=>c[k]===mx);app.svBusy=v.id;const k=mx?pick(top):null;commit(T=>actSpecVote(T,v.id,k));}
+function specVotePanel(){const S=app.S;if(app.mode!=="online"||!S||!S.svote||S.status!=="playing")return "";const v=S.svote,c=svTally(v),mine=(chatMsgs.filter(m=>m.kind==="vote"&&m.g===v.id&&m.uid===app.uid).pop()||{}).v;
+  if(!isSpect())return Object.keys(c).length?`<section class="panel svp"><h2>👀 Die Zuschauer stimmen ab</h2><p class="note">${v.opts.map(k=>SV[k].e+" "+SV[k].n+": "+(c[k]||0)).join(" · ")}. Nächste Runde passiert es.</p></section>`:"";
+  return `<section class="panel svp"><h2>👀 Zuschauer-Abstimmung</h2><p class="note">Was soll den Spielern nächste Runde passieren?</p><div class="stack">${v.opts.map(k=>`<button class="${mine===k?"gold":"ghost"}" data-a="svote" data-k="${k}">${SV[k].e} ${SV[k].n} · ${c[k]||0} Stimmen<br><small>${esc(SV[k].x)}</small></button>`).join("")}</div></section>`;}
 function stammStart(S,tour){
   const ks=STAMM.map(d=>d.k).filter(k=>!S.rule||k!==S.rule.k).sort(()=>Math.random()-.5).slice(0,3);
   const gs=[...new Set(BOARD.filter(f=>f.t==="prop").map(f=>f.g))];
@@ -1195,7 +1223,7 @@ function settle(S,p,cred){
   }
 }
 function sendJail(S,p){if(ruleOn(S)&&S.rule.k==="bunker"){S.again=false;log(S,"Der Bunker hat zu (Stammtisch-Regel). "+p.name+" bleibt frei.");return;}st(S,p.id).jail++;p.pos=9;p.jail=true;p.jailTurns=0;S.again=false;log(S,p.name+" sitzt im Bunker bei Big A. Erstmal gemeinsam einer geraucht.");}
-function passGo(S,p,landed){const ru=ruleOn(S),g=(landed?400:200)*(ru&&ru.k==="los2"?2:1);st(S,p.id).go++;p.money+=g;log(S,landed?p.name+" landet genau auf Los: "+g+"!":p.name+" kommt über Los: +"+g+".");
+function passGo(S,p,landed){const ru=ruleOn(S),g=(landed?400:200)*(ru&&ru.k==="los2"?2:1);st(S,p.id).go++;p.money+=g;if(S.lm&&Object.keys(S.lm).some(k=>{const l=lmOn(S,k);return l&&l.k==="brau"&&l.o===p.id;})){p.money+=75;log(S,"🍺 Die Brauerei von "+p.name+" zahlt 75 € aus.");}log(S,landed?p.name+" landet genau auf Los: "+g+"!":p.name+" kommt über Los: +"+g+".");
   if(ru&&ru.k==="robin"){const r=others(S,p).filter(o=>!o.bankrupt).sort((a,b)=>b.money-a.money)[0];if(r&&r.money>p.money){const x=Math.min(50,r.money);r.money-=x;p.money+=x;log(S,"Robin Hood! "+p.name+" nimmt "+r.name+" "+x+" € ab.");}}}
 function move(S,p,steps){if(isFk()){walk(S,p,steps,null);return;}
   const np=(p.pos+steps)%N;if(p.pos+steps>=N)passGo(S,p,np===0);p.pos=np;land(S,p,0);}
@@ -1209,7 +1237,7 @@ function land(S,p,depth){
     if(!o){if(p.money>=f.p)canBuy=true;else log(S,p.name+" kann sich "+f.n+" nicht leisten.");}
     else if(o.owner!==p.id&&o.m){log(S,f.n+" hat eine Hypothek, "+p.name+" zahlt keine Miete.");}
     else if(o.owner!==p.id&&freeOf(S,p.id,o.owner)>0){const ow=S.players[o.owner];p.free[ow.id]--;const left=p.free[ow.id];if(!left)delete p.free[ow.id];log(S,"🎟️ "+p.name+" steht mietfrei bei "+ow.name+" ("+rent(S,p.pos)+" € gespart"+(left?", noch "+left+"×":", Gutschein aufgebraucht")+").");}
-    else if(o.owner!==p.id){const ow=S.players[o.owner];let r=rent(S,p.pos);if(ow.bonus){r*=2;ow.bonus=false;log(S,"Waldfest-Zuschlag! Doppelte Miete.");}log(S,p.name+" zahlt "+r+" Miete an "+ow.name+".");{const a=st(S,p.id),b=st(S,ow.id);a.rp+=r;b.rg+=r;b.rgMax=Math.max(b.rgMax,r);if(evNow(S)&&evNow(S).k==="kerwa")b.wf=(b.wf||0)+r;if(r>a.mx){a.mx=r;a.mxf=p.pos;a.mxto=ow.id;}}pay(S,p,ow,r);if(r>=RACHE_MIN&&!p.bankrupt&&!ow.bankrupt&&!p.rache&&(st(S,p.id).rv||0)<RACHE_MAX&&Math.random()<RACHE_P){p.rache={to:ow.id,amt:r};st(S,p.id).rv=(st(S,p.id).rv||0)+1;log(S,"🔥 "+p.name+" schwört Rache an "+ow.name+"!");}}
+    else if(o.owner!==p.id){const ow=S.players[o.owner];let r=rent(S,p.pos);if(ow.bonus){r*=2;ow.bonus=false;log(S,"Waldfest-Zuschlag! Doppelte Miete.");}log(S,p.name+" zahlt "+r+" Miete an "+ow.name+".");{const a=st(S,p.id),b=st(S,ow.id);a.rp+=r;b.rg+=r;b.rgMax=Math.max(b.rgMax,r);if(evNow(S)&&evNow(S).k==="kerwa")b.wf=(b.wf||0)+r;if(r>a.mx){a.mx=r;a.mxf=p.pos;a.mxto=ow.id;}}pay(S,p,ow,r);{const l=BOARD[p.pos].g&&lmOn(S,BOARD[p.pos].g);if(l&&l.k==="halle"&&l.o===ow.id&&!p.bankrupt&&p.money>0){const x=Math.min(200,Math.max(5,Math.round(p.money*.1/5)*5),p.money);pay(S,p,ow,x);log(S,"🎪 Festhallen-Zuschlag: "+p.name+" legt "+x+" € drauf.");}}if(r>=RACHE_MIN&&!p.bankrupt&&!ow.bankrupt&&!p.rache&&(st(S,p.id).rv||0)<RACHE_MAX&&Math.random()<RACHE_P){p.rache={to:ow.id,amt:r};st(S,p.id).rv=(st(S,p.id).rv||0)+1;log(S,"🔥 "+p.name+" schwört Rache an "+ow.name+"!");}}
   }else if(f.t==="tax"&&ruleOn(S)&&S.rule.k==="steuer"){log(S,p.name+" hat Glück: Steuerfrei dank Stammtisch.");}else if(f.t==="tax"){log(S,p.name+" zahlt "+f.a+" ("+f.n+") in die Kasse im Biergarten.");pay(S,p,null,f.a);}
   else if(f.t==="pot"){if(S.pot>0){log(S,p.name+" räumt die Kasse im Biergarten ab: +"+S.pot+" €!");{const a=st(S,p.id);a.pot+=S.pot;a.potMax=Math.max(a.potMax,S.pot);}p.money+=S.pot;S.pot=0;}else log(S,p.name+" parkt am Dorfplatz. Die Kasse ist leer.");if(S.status==="playing"&&!p.bankrupt&&Math.random()<BRUNNEN_P)brunnen(S,p);}
   else if(DLC_T[f.t]){dlcLand(S,p,f,depth);}
@@ -1477,7 +1505,7 @@ function actEnd(S){
     if(q.sleep>0){q.sleep--;if(q.sleep){log(S,q.name+" pennt im Bunker weiter (noch "+q.sleep+").");continue;}q.jail=false;q.jailTurns=0;log(S,q.name+" wacht im Bunker auf, reibt sich die Augen und darf raus.");continue;}
     if(q.skip>0){q.skip--;log(S,q.name+(q.skipWhy==="glaab"?" muss bei Bernd Glaab nachsitzen und setzt aus":" hängt in Hermann Pfeufers eiserner Kralle und setzt aus")+(q.skip?" (noch "+q.skip+")":" (jetzt frei)")+".");continue;}break;}
   S.turn=t;
-  if(S.round!==r0&&!(S.maxRounds&&S.round>S.maxRounds)){alive(S).forEach(q=>{bausparRate(S,q);loanRate(S,q);});S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));if(S.round%3===0||(S.maxRounds&&S.round===S.maxRounds))roundEvent(S);matchTick(S);if(isFk())mayorPay(S);}
+  if(S.round!==r0&&!(S.maxRounds&&S.round>S.maxRounds)){alive(S).forEach(q=>{bausparRate(S,q);loanRate(S,q);});S.hist=S.hist||[];S.hist.push(S.players.map(q=>worth(S,q)));if(S.code&&S.round%4===2)svStart(S);if(S.round%3===0||(S.maxRounds&&S.round===S.maxRounds))roundEvent(S);matchTick(S);if(isFk())mayorPay(S);}
   if(S.maxRounds&&S.round>S.maxRounds){S.round=S.maxRounds;finish(S);return S;}
   S.phase="roll";if(haiVisit(S,S.players[t])){if(S.status!=="playing")return S;if(cur(S).bankrupt)S.phase="end";return S;}
   if(S.round!==r0&&isFk()&&S.round%10===3&&alive(S).length>1)wahlStart(S);else if(S.round!==r0&&S.round%5===0&&alive(S).length>1)stammStart(S,S.round%15===0);else{bankOffer(S);if(S.phase==="roll")haiOffer(S);}return S;
@@ -1992,6 +2020,8 @@ function cpuBj(S){const h=bjCur(S),up=bjCv(S.bj.d[0]),v=bjVal(h.c);
 function wouldComplete(S,i,pid){const g=BOARD[i].g;return !!g&&BOARD.every((f,j)=>f.g!==g||j===+i||(S.props[j]&&S.props[j].owner===pid));}
 /* Bauen: gleichmäßig auf vollen Gruppen, aber immer mit Notgroschen. */
 function cpuBuild(S,me,reserve){
+  {const gs=[...new Set(Object.keys(S.props).map(Number).filter(i=>S.props[i].owner===me.id&&BOARD[i].g).map(i=>BOARD[i].g))].filter(g=>ownsGroup(S,me.id,g)&&!grpMort(S,g)&&!lmOn(S,g)&&me.money-lmCost(g)>=reserve+400);
+   if(gs.length&&Math.random()<.35){const g=gs[0],i=BOARD.findIndex(f=>f.g===g);actLandmark(S,i,pick(Object.keys(LM)));}}
   Object.keys(S.props).map(Number).filter(i=>S.props[i].owner===me.id&&S.props[i].m).forEach(i=>{if(me.money-unmortCost(BOARD[i])>=reserve+150)actUnmortgage(S,me.id,i);});
   for(let k=0;k<12;k++){
     const opts=Object.keys(S.props).map(Number).filter(i=>{const o=S.props[i],f=BOARD[i];return o.owner===me.id&&f.t==="prop"&&o.h<MAXH&&ownsGroup(S,me.id,f.g)&&!grpMort(S,f.g)&&me.money-houseCost(f)>=reserve+60;});
@@ -2430,13 +2460,17 @@ function rulesHTML(){return `<details><summary>Spielregeln und Specials</summary
 <li><b>★ Zum Grünen Tal und Schwimmbad:</b> Charlys mobiler Casinotisch. Du spielst ein zufälliges Casinospiel (Glücksrad, Blackjack, Bandit oder Höher/Tiefer) mit Einsatz oder gehst weiter.</li><li><b>Karte „Challenge-Zeit!“:</b> Du spielst ein Handy-Minigame mit Ziel, zum Beispiel mindestens 12 Punkte bei der Wildsau-Jagd oder genau bei 5 Sekunden stoppen. Geschafft gibt Geld, verpasst kostet.</li>
 <li><b>! Ereignis-Felder</b>: Tadan bei der Marry (10 € für Freddy), Brezel in der Bäckerei Rosel, Wurstprobe in der Metzgerei, Feuerwehrfest, Matschpfütze am Wiesenweg, abfahrende Busse, Klosterglocken (alle frei aus dem Bunker), Gipfelglück am Hofberg und mehr.</li>
 <li><b>🏛️ Tauschen bei Kilian:</b> In deinem Zug kannst du anderen Grundstücke und Geld zum Tausch anbieten. Du kannst auch Mietfreiheit anbieten oder verlangen (bis zu 5 mietfreie Besuche auf allen Straßen des anderen). Bürgermeister Kilian beglaubigt und nimmt 10 € Gebühr. Tippe auf ein Feld, um zu sehen, was dort passiert.</li>
+<li><b>🏗️ Großprojekte:</b> Wem eine ganze Farbe gehört, der kann dort ein Wahrzeichen bauen (kostet so viel wie 4 Häuser): 🗼 Aussichtsturm (Miete +50 %), 🍺 Brauerei (75 € extra über Los) oder 🎪 Festhalle (wer Miete zahlt, legt 10 % seines Bargelds drauf, höchstens 200 €). Es wirkt, solange dir die ganze Farbe gehört.</li>
+<li><b>👀 Zuschauer-Votes:</b> In Online-Spielen stimmen die Zuschauer alle 4 Runden über ein Ereignis ab, zum Beispiel Freibier, Steuerprüfung, Robin Hood, Lotto, Sturm oder Razzia. In der nächsten Runde passiert es.</li>
 <li><b>💥 All-in:</b> Ab Runde 100 (also nur in Spielen „Bis zur Pleite“) darfst du im Casino dein ganzes Bargeld setzen. Außerdem darfst du einmal pro Zug vor dem Würfeln einen Mitspieler zum All-in-Duell herausfordern: Beide setzen ihr ganzes Bargeld (höchstens so viel, wie der Ärmere hat), ein Zufalls-Minigame entscheidet, und wer kneift, zahlt die Hälfte.</li>
 <li><b>⚔ Herausfordern:</b> Einmal pro Zug darfst du einen Mitspieler zu einem Minigame um 20 bis 200 € herausfordern: Wildsau-Jagd, Wildsau-Rennen, Äppler-Fangen, Klosterglocken, Stopp bei 5 Sekunden, Kopfrechen-Sprint, Farb-Chaos, Schätzen, Tic-Tac-Toe gegen die Wildsau oder Zufall. Alle Minigames laufen am Handy. Wer kneift, zahlt die Hälfte des Einsatzes an den Herausforderer.</li>
 <li><b>Dorfchat</b> im Online-Spiel: Nachrichten, Sticker wie Tadan!, Wildsau! oder Rollmisch! und Zufallssprüche.</li>
 <li>Wer kein Geld mehr hat, verkauft automatisch Häuser und Grundstücke. Reicht das nicht, ist er pleite. Ende: nur noch einer übrig oder Rundenlimit erreicht, dann gewinnt das höchste Vermögen.</li></ul></details>`;}
 function renderHome(){
   const resume=store.get("rbm-local"),onl=store.get("rbm-online");
-  const news=store.get("rbm-news")!==32?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+  const news=store.get("rbm-news")!==33?`<section class="panel news"><h2>✨ Neu im Dorf</h2><ul>
+   <li>🏗️ Großprojekte: Wahrzeichen auf einer ganzen Farbe bauen</li>
+   <li>👀 Zuschauer-Votes: Wer online zuschaut, entscheidet über Ereignisse</li>
    <li>💥 All-in ab Runde 100: im Casino und als Duell gegen einen Mitspieler</li>
    <li>🔴 Roulette bei der Marry im Casino, und Einsätze jetzt bis 1.000 €</li>
    <li>🍺 Bierbrunnen ist jetzt schwerer: Gegenhalten! Die Rekordliste startet neu</li>
@@ -2536,7 +2570,7 @@ function fieldSheet(i){
     :`<div class="row"><button class="ghost small" data-a="mort" data-i="${i}" ${o.h||grpBuilt(S,i)?"disabled":""}>🏦 Hypothek aufnehmen (+${mortVal(f)} €)</button></div>${o.h||grpBuilt(S,i)?`<p class="note">Erst die Häuser der Gruppe verkaufen.</p>`:""}`):"";
   if(o&&f.t==="prop"&&canAct()&&o.owner===cur(S).id){
     const p=cur(S),full=ownsGroup(S,p.id,f.g);
-    acts=`<div class="row"><button class="primary small" data-a="build" data-i="${i}" ${!full||o.h>=MAXH||p.money<houseCost(f)||S.phase==="buy"?"disabled":""}>${o.h===MAXH-1?"Hotel":"Haus"} bauen (${houseCost(f)})</button><button class="ghost small" data-a="sell" data-i="${i}" ${o.h<1?"disabled":""}>Haus verkaufen (+${houseCost(f)/2})</button></div>${full?"":`<p class="note">Bauen geht erst, wenn dir die ganze Gruppe ${grp.n} gehört.</p>`}`;
+    acts=`<div class="row"><button class="primary small" data-a="build" data-i="${i}" ${!full||o.h>=MAXH||p.money<houseCost(f)||S.phase==="buy"?"disabled":""}>${o.h===MAXH-1?"Hotel":"Haus"} bauen (${houseCost(f)})</button><button class="ghost small" data-a="sell" data-i="${i}" ${o.h<1?"disabled":""}>Haus verkaufen (+${houseCost(f)/2})</button></div>${full?"":`<p class="note">Bauen geht erst, wenn dir die ganze Gruppe ${grp.n} gehört.</p>`}${full&&!grpMort(S,f.g)?(lmOn(S,f.g)?`<p class="note">🏗️ Wahrzeichen: ${LM[S.lm[f.g].k].e} ${LM[S.lm[f.g].k].n}. ${LM[S.lm[f.g].k].x}</p>`:`<p class="note">🏗️ Großprojekt: ein Wahrzeichen für die ganze Farbe (${lmCost(f.g)} €)</p><div class="row lmrow">${Object.entries(LM).map(([k,l])=>`<button class="gold small" data-a="lm" data-i="${i}" data-k="${k}" ${p.money<lmCost(f.g)||S.phase==="buy"?"disabled":""}>${l.e} ${l.n}</button>`).join("")}</div><p class="note">🗼 Miete +50 % · 🍺 75 € extra über Los · 🎪 10 % vom Bargeld obendrauf</p>`):""}`;
   }
   acts+=mortRow;
   return `<section class="sheet">${grp?`<div class="bar" style="background:${grp.c}"></div>`:""}<div class="row" style="justify-content:space-between"><h3>${esc(f.n)}</h3><button class="ghost small" data-a="unsel">Schließen</button></div>${own}${f.ev?`<div class="ev"><b>${f.fx==="challenge"?"★ ":"! "}</b>${esc(f.ev)}</div>`:""}${body}${acts}</section>`;
@@ -3092,7 +3126,7 @@ function renderGame(){
   const cellArr=BOARD.map((f,i)=>{
     const [r,c]=cellPosX(i),o=S.props[i],corner=isCorner(i);
     const strip=f.g?`<div class="strip${o&&o.h?" bau":""}" style="background:${GROUPS[f.g].c}">${o&&o.h?(o.h===MAXH?HOTEL_SVG:HAUS_SVG.repeat(o.h)):""}</div>`:"";
-    return `<button class="cell ${corner?"corner":""} ${o?"owned":""} ${o&&o.m?"mort":""} ${app.sel===i?"sel":""}" style="grid-row:${r};grid-column:${c};${o?"--own:"+S.players[o.owner].color:""}" data-a="sel" data-i="${i}" aria-label="${esc(f.n)}">${strip}${f.fx?`<span class="fxb">${f.fx==="challenge"?"★":"!"}</span>`:""}${f.ic?`<div class="ic">${f.ic}</div>`:""}<div class="nm">${esc(S_(f.s))}</div>${ownable(f)?`<div class="pr">${f.p}</div>`:f.t==="tax"?`<div class="pr">−${f.a}</div>`:f.t==="pot"?`<div class="pr">${fmt(S.pot)}</div>`:f.t==="loewe"?`<div class="pr">−10</div>`:""}${S.eggs&&S.eggs.includes(i)?`<span class="egg">🥚</span>`:""}<div class="tok" id="t${i}"></div></button>`;
+    return `<button class="cell ${corner?"corner":""} ${o?"owned":""} ${o&&o.m?"mort":""} ${app.sel===i?"sel":""}" style="grid-row:${r};grid-column:${c};${o?"--own:"+S.players[o.owner].color:""}" data-a="sel" data-i="${i}" aria-label="${esc(f.n)}">${strip}${f.g&&lmOn(S,f.g)?`<span class="lmb">${LM[S.lm[f.g].k].e}</span>`:""}${f.fx?`<span class="fxb">${f.fx==="challenge"?"★":"!"}</span>`:""}${f.ic?`<div class="ic">${f.ic}</div>`:""}<div class="nm">${esc(S_(f.s))}</div>${ownable(f)?`<div class="pr">${f.p}</div>`:f.t==="tax"?`<div class="pr">−${f.a}</div>`:f.t==="pot"?`<div class="pr">${fmt(S.pot)}</div>`:f.t==="loewe"?`<div class="pr">−10</div>`:""}${S.eggs&&S.eggs.includes(i)?`<span class="egg">🥚</span>`:""}<div class="tok" id="t${i}"></div></button>`;
   });
   const players=S.players.map(p=>{
     const props=Object.keys(S.props).filter(i=>S.props[i].owner===p.id).map(Number).sort((a,b)=>a-b);
@@ -3103,7 +3137,7 @@ function renderGame(){
   const over=S.status==="over"?`<section class="panel"><h2>Endstand</h2><div class="podium">${S.ranking.map(r=>`<div><span class="pl-place">${r.place}.</span><span class="dot" style="background:${r.color}"></span><b>${esc(r.name)}</b><span class="w">${r.left?"ausgestiegen":r.bankrupt?"pleite":fmt(r.worth)+" €"}</span></div>`).join("")}</div>${reportHTML(S)}<p class="note">${S.unranked?"Das Spiel wurde abgebrochen und zählt nicht für die Rangliste.":"Das Ergebnis steht jetzt in der Rangliste."}</p><h2>Rangliste</h2>${lbHTML()}</section>`:"";
   const top=`<div class="gtop"><div class="eyebrow">${isSpect()?"👀 ":""}${app.mode==="online"?esc(app.code)+" · ":""}Runde ${S.round}${S.maxRounds?"/"+S.maxRounds:""}</div><div class="gbtns">${app.mode==="online"?`<button class="ghost small" data-a="tochat" aria-label="Chat">💬</button>`:""}<button class="ghost small" data-a="snd" aria-label="${SND.on?"Ton aus":"Ton an"}">${SND.on?"🔊":"🔇"}</button><button class="ghost small" data-a="zoom" aria-label="${app.zoom?"Brett verkleinern":"Brett vergrößern"}">${app.zoom?"🔍−":"🔍+"}</button>${app.mode==="online"&&S.status==="playing"&&!isSpect()?`<button class="ghost small" data-a="push-open" aria-label="Bescheid, wenn du dran bist">${store.get("rbm-ntfy-on")||(("Notification" in window)&&Notification.permission==="granted")?"🔔":"🔕"}</button>`:""}${S.status==="playing"&&!isSpect()?`<button class="ghost small" data-a="quit-open">⏻ Beenden</button>`:""}${isSpect()?`<button class="ghost small" data-a="leave">👀 Verlassen</button>`:""}<button class="ghost small" data-a="home" aria-label="Menü">☰</button></div></div>${evNow(S)&&S.status==="playing"?`<div class="evbar">${evNow(S).ic} <b>${evNow(S).n}</b> · ${esc(evNow(S).x)}</div>`:""}`;
   const abortNote=S.status==="playing"&&S.abort&&Object.keys(S.abort).length&&!app.quitOpen?`<button class="ghost small abortnote" data-a="quit-open">⏻ ${Object.keys(S.abort).length} von ${alive(S).length} wollen aufhören. Tippen zum Abstimmen</button>`:"";
-  const center=centerHTML(),below=`${questPanel()}${pushPanel()}${quitPanel()}${abortNote}${app.sel!=null?fieldSheet(app.sel):""}${allInPanel()}${duelPanel()}${tradePanel()}${over}<div class="players">${players}</div>${rulesHTML()}`;
+  const center=centerHTML(),below=`${specVotePanel()}${questPanel()}${pushPanel()}${quitPanel()}${abortNote}${app.sel!=null?fieldSheet(app.sel):""}${allInPanel()}${duelPanel()}${tradePanel()}${over}<div class="players">${players}</div>${rulesHTML()}`;
   const top2=top+(S.map==="fk"?miniMap(S):"");
   app.gp={top:top2,cells:cellArr,center,below,zoom:(app.zoom?"z":"")+(S.map==="fk"?app.mainV+(app.wide?"w":""):"")};
   return `<div id="g-top">${top2}</div>${boardsHTML(S,cellArr,center)}<div id="g-below">${below}</div>`;
@@ -3135,7 +3169,7 @@ function render(){
   const v={home:renderHome,local:renderLocal,cpu:renderCpu,create:renderCreate,join:renderJoin,lobby:renderLobby,game:renderGame}[app.screen]();
   const keep={};document.querySelectorAll("#app input,#app select").forEach(el=>{if(el.id)keep[el.id]=el.type==="checkbox"?el.checked:el.value});
   const bw=document.querySelector(".boardwrap"),scr=bw?[bw.scrollLeft,bw.scrollTop]:null;
-  document.getElementById("app").innerHTML=v;renderChat();
+  document.getElementById("app").innerHTML=v;renderChat();try{svCheck();}catch(e){}
   for(const id in keep){const el=document.getElementById(id);if(!el)continue;if(el.type==="checkbox")el.checked=keep[id];else if(!(id==="t-to"))el.value=keep[id];}
   const bw2=document.querySelector(".boardwrap");if(bw2&&scr){bw2.scrollLeft=scr[0];bw2.scrollTop=scr[1];}
   postGame();
@@ -3202,7 +3236,7 @@ function applyGame(d){
 const HAUS_SVG='<svg viewBox="0 0 10 11"><path d="M5 .9 9.3 5V10.2H.7V5Z" fill="#1d8a3a" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>';
 const HOTEL_SVG='<svg viewBox="0 0 22 11"><path d="M1 3.2 11 .8 21 3.2V10.2H1Z" fill="#c8102e" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/><text x="11" y="9.2" text-anchor="middle" font-size="6.6" font-weight="800" fill="#fff" font-family="Arial,sans-serif">HOTEL</text></svg>';
 setInterval(()=>{const n=isNight()&&store.get("rbm-night")!==false;if(n!==document.body.classList.contains("night")){document.body.classList.toggle("night",n);if(n)toast("🌙 Nachtmodus: Die Laternen gehen an.");}},60000);
-const BUILD="rbm-v67";
+const BUILD="rbm-v68";
 function checkUpdate(){
   if(location.protocol!=="https:"||!/github\.io$/.test(location.hostname)||checkUpdate.shown)return;
   fetch("index.html",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/const BUILD="([^"]+)"/);if(!m||m[1]===BUILD)return;
@@ -3288,7 +3322,7 @@ document.addEventListener("click",async ev=>{
     case "passtog":break;
     case "toklock":{const k=+b.dataset.k;toast("🔒 "+TOKENS[k].n+" freischalten: "+tokHint(k));break;}
     case "ctok":app.ctok=+b.dataset.k;store.set("rbm-me",document.getElementById("cname").value.trim());render();break;
-    case "news-ok":store.set("rbm-news",32);render();break;
+    case "news-ok":store.set("rbm-news",33);render();break;
     case "lb-tab":app.lbTab=b.dataset.v;render();break;
     case "snd":SND.on=!SND.on;store.set("rbm-snd",SND.on);if(SND.on){au();sfx("coin");}render();break;
     case "share-report":{const txt=reportText(app.S);if(navigator.share)navigator.share({title:"Rottenberg-Monopoly",text:txt}).catch(()=>{});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>toast("Spielbericht kopiert."),()=>toast("Kopieren ging nicht."));break;}
@@ -3358,6 +3392,8 @@ document.addEventListener("click",async ev=>{
     case "jailpay":commit(actJailPay);break;
     case "jailcard":commit(actJailCard);break;
     case "build":commit(S=>actBuild(S,i));break;
+    case "svote":{const v=app.S&&app.S.svote;if(v&&isSpect()){sendChat({kind:"vote",g:v.id,v:b.dataset.k,text:"stimmt für "+SV[b.dataset.k].e+" "+SV[b.dataset.k].n});}break;}
+    case "lm":commit(S=>actLandmark(S,i,b.dataset.k));break;
     case "mort":{const pid=app.S.props[i]&&app.S.props[i].owner;if(pid!=null)(app.mode==="local"?commit:commitLeased)(S=>actMortgage(S,pid,i),[pid]);break;}
     case "unmort":{const pid=app.S.props[i]&&app.S.props[i].owner;if(pid!=null)(app.mode==="local"?commit:commitLeased)(S=>actUnmortgage(S,pid,i),[pid]);break;}
     case "sell":commit(S=>actSell(S,i));break;
@@ -3531,7 +3567,7 @@ function watchChat(code){
     const fresh=chatMsgs.filter(m=>m.at>chatSeen&&m.uid!==app.uid);
     if(fresh.length){const m=fresh[fresh.length-1];toast(m.name+": "+(m.kind==="sticker"&&STICKERS[m.s]?STICKERS[m.s][0]+" "+STICKERS[m.s][1]:String(m.text||"").slice(0,80)));}
     if(chatMsgs.length)chatSeen=Math.max(chatSeen,chatMsgs[chatMsgs.length-1].at);
-    renderChat();
+    renderChat();if(app.S&&app.S.svote&&app.screen==="game")render();
   },()=>{});
 }
 function stopChat(){if(unsubChat){unsubChat();unsubChat=null;}chatMsgs=[];renderChat();}
@@ -3544,6 +3580,7 @@ function renderChat(){
   const atBottom=box.scrollHeight-box.scrollTop-box.clientHeight<40;
   box.innerHTML=chatMsgs.map(m=>{
     const me=m.uid===app.uid,who=`<div class="who"><span class="dot" style="background:${esc(m.color||"#ccc")};width:8px;height:8px"></span>${esc(m.name||"Jemand")}</div>`;
+    if(m.kind==="vote")return `<div class="m ${me?"me":""}">${who}👀 ${esc(m.text||"hat abgestimmt")}</div>`;
     if(m.kind==="sticker"&&STICKERS[m.s])return `<div class="m st ${me?"me":""}">${who}<span class="big">${STICKERS[m.s][0]}</span><span class="lbl">${esc(STICKERS[m.s][1])}</span></div>`;
     return `<div class="m ${m.kind==="spruch"?"sp":""} ${me?"me":""}">${who}${esc(m.text||"")}</div>`;
   }).join("");
