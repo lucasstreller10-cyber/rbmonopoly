@@ -591,12 +591,12 @@ function useMap(x){BOARD=x&&x.map==="fk"?BOARD_FK:BOARD_RB;N=BOARD.length;}
 const isFk=()=>BOARD===BOARD_FK;
 const inFk=i=>i>=FK0;
 const vill=i=>i>=FK0?"fk":"rb";
-function stepNext(i,p){
+function stepNext(i,p,dir){
   if(!isFk())return (i+1)%N;
   if(i===27)return G_GOLF;
-  if(i===G_GOLF)return p&&p.via&&p.via.fk===false?28:FK0+2;
+  if(i===G_GOLF)return (dir!=null?!dir:p&&p.via&&p.via.fk===false)?28:FK0+2;
   if(i<34)return (i+1)%34;
-  if(i===G_KAP)return p&&p.via&&p.via.rb===false?FK0+29:32;
+  if(i===G_KAP)return (dir!=null?!dir:p&&p.via&&p.via.rb===false)?FK0+29:32;
   const k=i-FK0;return k===28?G_KAP:FK0+(k+1)%30;
 }
 function stepPrev(i){
@@ -627,12 +627,26 @@ function cellPosX(i){
 }
 const isCorner=i=>CORNERS.includes(i)||(isFk()&&FK_CORNERS.includes(i));
 /* Weiche: Will der Spieler am Golfplatz rüber bzw. an der Kapelle zurück? Standard: ja. */
-function actVia(S,k){const p=cur(S);if(S.phase!=="roll"||!isFk())return S;p.via=Object.assign({fk:true,rb:true},p.via||{});p.via[k]=!p.via[k];return S;}
-function viaChip(S,p){
-  if(!isFk()||p.jail)return "";const v=Object.assign({fk:true,rb:true},p.via||{});
-  return inFk(p.pos)?`<button class="ghost small via" data-a="via" data-k="rb">🔔 An der Kapelle zurück nach Rottenberg: <b>${v.rb?"Ja":"Nein"}</b></button>`
-    :`<button class="ghost small via" data-a="via" data-k="fk">⛳ Am Golfplatz rüber nach Feldkahl: <b>${v.fk?"Ja":"Nein"}</b></button>`;
+/* Lucas 07.10.: Gefragt wird erst, wenn die Figur am Golfplatz oder an der Kapelle steht und weiterläuft. */
+function walk(S,p,steps,dir){
+  let i=p.pos;
+  for(let k=0;k<steps;k++){
+    if((i===G_GOLF||i===G_KAP)&&dir==null){p.pos=i;S.fork={left:steps-k,at:i};S.phase="fork";
+      S.card=i===G_GOLF?{deck:"ev",t:"⛳ Am Rottenberger Golfplatz",x:p.name+" kommt am Golfplatz vorbei. Rüber nach Feldkahl oder in Rottenberg bleiben? Noch "+(steps-k)+" Felder."}
+        :{deck:"ev",t:"🔔 An der Feldkahler Kapelle",x:p.name+" kommt an der Kapelle vorbei. Zurück nach Rottenberg oder in Feldkahl bleiben? Noch "+(steps-k)+" Felder."};return;}
+    const j=stepNext(i,p,dir);dir=null;if(j===0)passGo(S,p,k===steps-1);dlcPass(S,p,i,j);i=j;
+  }
+  p.pos=i;land(S,p,0);
 }
+function actFork(S,yes){
+  const p=cur(S),f=S.fork;if(S.phase!=="fork"||!f)return S;S.fork=null;S.phase="x";
+  p.via=Object.assign({fk:true,rb:true},p.via||{});p.via[f.at===G_GOLF?"fk":"rb"]=!!yes;
+  if(!yes)log(S,p.name+(f.at===G_GOLF?" bleibt in Rottenberg.":" bleibt in Feldkahl."));
+  walk(S,p,f.left,!!yes);if(S.phase==="x")settlePhase(S);return S;
+}
+function forkHTML(S){const f=S.fork;return f.at===G_GOLF
+  ?`<button class="gold" data-a="fork" data-y="1">⚽ Rüber nach Feldkahl</button><button class="ghost" data-a="fork" data-y="0">🐗 In Rottenberg bleiben</button>`
+  :`<button class="gold" data-a="fork" data-y="1">🐗 Zurück nach Rottenberg</button><button class="ghost" data-a="fork" data-y="0">⚽ In Feldkahl bleiben</button>`;}
 function dlcLand(S,p,f,depth){
   switch(f.t){
     case "golf":{S.challenge={kind:"torwand",w:50,l:20,dlc:"golf"};S.phase="challenge";
@@ -1182,7 +1196,7 @@ function settle(S,p,cred){
 function sendJail(S,p){if(ruleOn(S)&&S.rule.k==="bunker"){S.again=false;log(S,"Der Bunker hat zu (Stammtisch-Regel). "+p.name+" bleibt frei.");return;}st(S,p.id).jail++;p.pos=9;p.jail=true;p.jailTurns=0;S.again=false;log(S,p.name+" sitzt im Bunker bei Big A. Erstmal gemeinsam einer geraucht.");}
 function passGo(S,p,landed){const ru=ruleOn(S),g=(landed?400:200)*(ru&&ru.k==="los2"?2:1);st(S,p.id).go++;p.money+=g;log(S,landed?p.name+" landet genau auf Los: "+g+"!":p.name+" kommt über Los: +"+g+".");
   if(ru&&ru.k==="robin"){const r=others(S,p).filter(o=>!o.bankrupt).sort((a,b)=>b.money-a.money)[0];if(r&&r.money>p.money){const x=Math.min(50,r.money);r.money-=x;p.money+=x;log(S,"Robin Hood! "+p.name+" nimmt "+r.name+" "+x+" € ab.");}}}
-function move(S,p,steps){if(isFk()){let i=p.pos;for(let k=0;k<steps;k++){const j=stepNext(i,p);if(j===0)passGo(S,p,k===steps-1);dlcPass(S,p,i,j);i=j;}p.pos=i;land(S,p,0);return;}
+function move(S,p,steps){if(isFk()){walk(S,p,steps,null);return;}
   const np=(p.pos+steps)%N;if(p.pos+steps>=N)passGo(S,p,np===0);p.pos=np;land(S,p,0);}
 function moveTo(S,p,t,d){if(isFk()){const rk=i=>i===G_GOLF?27.5:i;if(t===0&&p.pos!==0)passGo(S,p,true);else if(!inFk(t)&&!inFk(p.pos)&&rk(t)<rk(p.pos))passGo(S,p,false);p.pos=t;land(S,p,(d||0)+1);return;}if(t<p.pos)passGo(S,p,t===0);else if(t===0&&p.pos!==0)passGo(S,p,true);p.pos=t;land(S,p,(d||0)+1);}
 function land(S,p,depth){
@@ -1433,7 +1447,7 @@ function tourResolve(S){
   S.card={deck:"ev",t:"🏆 "+head+" ist Dorfmeister!",x:res.join(" · ")+(t.kind==="schaetz"?" · Richtig: "+fmt(SCHAETZ[t.q].a):"")};
   if(S.status==="playing")S.phase=cur(S).bankrupt?"end":t.prev;return S;
 }
-function settlePhase(S){const p=cur(S);if(S.status!=="playing"||S.phase==="buy"||S.phase==="challenge"||S.phase==="penalty"||S.phase==="casino"||S.phase==="kap")return;S.phase=(S.again&&!p.jail&&!p.bankrupt)?"roll":"end";}
+function settlePhase(S){const p=cur(S);if(S.status!=="playing"||S.phase==="buy"||S.phase==="challenge"||S.phase==="penalty"||S.phase==="casino"||S.phase==="kap"||S.phase==="fork")return;S.phase=(S.again&&!p.jail&&!p.bankrupt)?"roll":"end";}
 function actRoll(S){
   const p=cur(S);if(S.phase!=="roll"||S.status!=="playing")return S;
   const a=d6(),b=d6(),dbl=a===b;S.dice=[a,b];S.card=null;S.miniHere=false;S.wantBuy=false;S.rollId=(S.rollId||0)+1;S.rollBy=p.id;
@@ -1914,6 +1928,7 @@ function cpuMove(S,id){
     if(d.state==="play")return actDuelInput(S,id,cpuScore(d.kind,lvl,d.q));
     return S;}
   if(S.phase==="tour"&&S.tour)return actTourInput(S,id,cpuScore(S.tour.kind,lvl,S.tour.q));
+  if(S.phase==="fork"&&S.fork)return actFork(S,Math.random()<.55);
   if(S.phase==="kap"&&S.kap)return actKapVote(S,id,me.money>400&&Math.random()<.7);
   if(S.phase==="stamm"&&S.stamm)return actStammVote(S,id,Math.floor(Math.random()*S.stamm.opts.length));
   if(S.phase==="trade"&&S.trade){const t=S.trade;
@@ -2426,8 +2441,8 @@ function centerHTML(){
   else if(act){
     if(S.phase==="roll"){
       if(p.jail){acts+=`<button class="ghost" data-a="jailpay" ${p.money<50?"disabled":""}>50 zahlen</button>`;if(p.jailCards)acts+=`<button class="ghost" data-a="jailcard">Freikarte</button>`;}
-      acts+=`<button class="primary" data-a="roll">${p.jail?"Pasch versuchen":"Würfeln"}</button>`;acts+=viaChip(S,p);
-    }else if(S.phase==="buy"){const f=BOARD[p.pos];acts+=`<button class="gold" data-a="buy">${esc(f.s.replace(/\|/g,""))} kaufen (${f.p})</button><button class="ghost" data-a="skip">Nein</button>`;}
+      acts+=`<button class="primary" data-a="roll">${p.jail?"Pasch versuchen":"Würfeln"}</button>`;
+    }else if(S.phase==="fork"&&S.fork){acts+=forkHTML(S);}else if(S.phase==="buy"){const f=BOARD[p.pos];acts+=`<button class="gold" data-a="buy">${esc(f.s.replace(/\|/g,""))} kaufen (${f.p})</button><button class="ghost" data-a="skip">Nein</button>`;}
     else if(S.phase==="challenge"&&S.challenge)acts+=soloHTML(S.challenge);
     else if(S.phase==="bank"&&S.offer){const o=S.offer;acts+=`<button class="gold" data-a="bank-yes" ${o.k==="rabatt"&&p.money<o.amt?"disabled":""}>Annehmen</button><button class="ghost" data-a="bank-no">Ablehnen</button>`;}
     else if(S.phase==="casino"){if(S.cr){const c=S.cr;acts+=`<button class="gold" data-a="sau-go">🐗 Weiter ×${SAU_M[c.n].toFixed(2).replace(".",",")}</button>${c.n?`<button class="primary" data-a="sau-cash">💰 Kassieren ${fmt(sauPot(c))} €</button>`:""}`;}else if(S.hl){const o=hlOdds(S.hl);acts+=`<button class="gold" data-a="hl" data-d="hi" ${o.hi?"":"disabled"}>⬆ Höher${o.hi?" ×"+o.hi.toFixed(2).replace(".",","):""}</button><button class="gold" data-a="hl" data-d="lo" ${o.lo?"":"disabled"}>⬇ Tiefer${o.lo?" ×"+o.lo.toFixed(2).replace(".",","):""}</button>${S.hl.n?`<button class="primary" data-a="hl-cash">💰 Kassieren ${fmt(S.hl.pot)} €</button>`:""}`;}else if(S.rou)acts+=`<div class="note">Tippe auf dem Tisch, worauf du setzt.</div>`;else if(S.bj)acts+=`<button class="gold" data-a="bj-hit">Karte</button><button class="primary" data-a="bj-stand">Stehen</button>${bjCanDbl(S)?`<button class="ghost" data-a="bj-dbl">Verdoppeln</button>`:""}${bjCanSplit(S)?`<button class="ghost" data-a="bj-split">Teilen</button>`:""}${bjCanSur(S)?`<button class="ghost" data-a="bj-sur">Aufgeben</button>`:""}`;
@@ -3286,7 +3301,7 @@ document.addEventListener("click",async ev=>{
     case "duel-win":{const d=app.S.duel;commitLeased(S=>actDuelJudge(S,b.dataset.w===""?null:+b.dataset.w),[d.from,d.to]);break;}
     case "mg-start":{const d=app.S.duel;motionPerm(d.kind);mgBegin("duel",+b.dataset.p,d.kind,d.q);break;}
     case "kap-vote":{const pid=+b.dataset.p,y=b.dataset.y==="1";commitLeased(S=>actKapVote(S,pid,y),[pid]);break;}
-    case "via":{const k=b.dataset.k;commit(S=>actVia(S,k));break;}
+    case "fork":{const y=b.dataset.y==="1";commit(S=>actFork(S,y));break;}
     case "vw":{app.vw=b.dataset.v;render();break;}
     case "map":{app.map=b.dataset.v;store.set("rbm-map",app.map);app.err="";render();break;}
     case "lhome":{const i=+b.dataset.i;app.lhome[i]=app.lhome[i]==="fk"?"rb":"fk";store.set("rbm-lhome",app.lhome);render();break;}
