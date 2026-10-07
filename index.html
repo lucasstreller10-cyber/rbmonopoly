@@ -450,6 +450,29 @@ details ul{padding-left:18px;margin:8px 0 0;display:flex;flex-direction:column;g
 @media (max-width:600px){.mappick{grid-template-columns:1fr}}
 body.dlcwide .wrap{max-width:1360px}
 @media (max-width:600px){.center .via{font-size:11px;padding:3px 7px}}
+.mmtabs{margin:6px 0 2px}
+.mmtabs .mdots{display:inline-flex;margin-left:6px;vertical-align:middle}
+.mmtabs .mdots i{width:10px;height:10px;border-radius:50%;border:1.5px solid #fff;margin-left:-3px}
+.board .gtab{display:none}
+@media (orientation:landscape) and (max-height:600px){body.dlcwide .dlcwrap{gap:6px}body.dlcwide .board .nm{display:none}body.dlcwide .center .crest,body.dlcwide .center .mark{display:none}}
+.board.rbx .cell[data-i="34"],.board.rbx .cell[data-i="65"],.board.fkx .cell[data-i="65"]{box-shadow:inset 0 0 0 2px var(--gold)}
+.board.rbx .cell[data-i="34"] .nm,.board.fkx .cell[data-i="65"] .nm{display:block}
+/* Handy quer: beide Bretter passen in die Bildschirmhöhe, die Kontoleiste unten wird schmal. */
+@media (orientation:landscape) and (max-height:600px){
+  body.dlcwide .dlcwrap{justify-content:center}
+  body.dlcwide .dlcwrap>.board{flex:0 0 auto;height:calc(100svh - 64px);width:auto}
+  body.dlcwide .wrap{padding-top:6px;gap:6px}
+  body.dlcwide #mybar{display:none}
+  body.dlcwide #app{padding-bottom:16px}
+  body.dlcwide .cell .ic{font-size:clamp(10px,3.4vh,16px)}
+  body.dlcwide .cell .pr{font-size:8px}
+  body.dlcwide .center{padding:4px;gap:3px}
+  body.dlcwide .center .card{font-size:11px;line-height:1.25;padding:5px 7px}
+  body.dlcwide .center .stammhd,body.dlcwide .center .msg{font-size:12px}
+  body.dlcwide .center .acts{gap:4px}
+  body.dlcwide .center .acts button{padding:5px 10px;font-size:13px}
+  body.dlcwide .center .turnchip,body.dlcwide .center .quip{display:none}
+}
 
 </style>
 
@@ -724,16 +747,14 @@ function dlcView(S){
   if(S.map!=="fk"){app.mainV="rb";return;}
   const key=S.turn+"/"+S.round;if(app.vwKey!==key){app.vwKey=key;app.vw=null;}
   const p=cur(S),own=p&&!p.bankrupt?vill(p.pos):"rb";
-  app.wide=window.innerWidth>=1100;app.mainV=app.wide?own:(app.vw||own);document.body.classList.toggle("dlcwide",app.wide);
+  app.wide=isWide();app.mainV=app.wide?own:(app.vw||own);document.body.classList.toggle("dlcwide",app.wide);
 }
+/* Lucas 07.10.: keine Übersichtskarte, nur zwei Dorf-Knöpfe mit den Figuren, die gerade dort stehen. Quer und am PC beide Bretter nebeneinander. */
+const isWide=()=>window.innerWidth>=1100||(window.innerWidth>window.innerHeight&&window.innerWidth>=560);
 function miniMap(S){
-  if(app.wide)return "";
-  const cells=BOARD.map((f,i)=>{let [r,c]=cellPosX(i);if(i===G_GOLF)c=11;else if(i===G_KAP)c=11;else if(inFk(i))c+=10;
-    const dots=S.players.filter(p=>!p.bankrupt&&p.pos===i).map(p=>`<i style="background:${p.color}"></i>`).join("");
-    const o=S.props[i];return `<b style="grid-row:${r};grid-column:${c};${f.g?"border-top:3px solid "+GROUPS[f.g].c+";":""}${o?"background:color-mix(in srgb,"+S.players[o.owner].color+" 35%,var(--paper));":""}">${dots}</b>`;}).join("");
-  const v=app.mainV;
-  return `<div class="mmwrap"><div class="mmap">${cells}<button class="mmhit ${v==="rb"&&!app.wide?"on":""}" style="grid-row:1/10;grid-column:1/12" data-a="vw" data-v="rb" aria-label="Rottenberg zeigen"></button><button class="mmhit ${v==="fk"&&!app.wide?"on":""}" style="grid-row:1/10;grid-column:12/20" data-a="vw" data-v="fk" aria-label="Feldkahl zeigen"></button></div>
-  ${app.wide?"":`<div class="mmtabs"><button class="${v==="rb"?"on":""}" data-a="vw" data-v="rb">🐗 Rottenberg</button><button class="${v==="fk"?"on":""}" data-a="vw" data-v="fk">⚽ Feldkahl</button></div>`}</div>`;
+  if(app.wide)return "";const v=app.mainV;
+  const dots=k=>S.players.filter(p=>!p.bankrupt&&vill(p.pos)===k).map(p=>`<i style="background:${p.color}"></i>`).join("");
+  return `<div class="mmtabs"><button class="${v==="rb"?"on":""}" data-a="vw" data-v="rb">🐗 Rottenberg <span class="mdots">${dots("rb")}</span></button><button class="${v==="fk"?"on":""}" data-a="vw" data-v="fk">⚽ Feldkahl <span class="mdots">${dots("fk")}</span></button></div>`;
 }
 function boardsHTML(S,cellArr,center){
   if(S.map!=="fk")return `<div class="boardwrap"><div class="board ${app.zoom?"zoom":""}">${cellArr.join("")}<div class="center" id="g-center">${center}</div></div></div>`;
@@ -753,7 +774,7 @@ function mapPicker(){const m=mapNow();
   return `<div class="mappick"><button class="${m==="rb"?"on":""}" data-a="map" data-v="rb"><b>🐗 Rottenberg</b><small>34 Felder · 2 bis 4 Spieler</small></button><button class="${m==="fk"?"on":""}" data-a="map" data-v="fk"><b>⚽ Rottenberg + Feldkahl <span class="new">NEU</span></b><small>66 Felder · 2 bis 8 Spieler</small></button></div>`;}
 const homeSel=(id,v)=>`<select id="${id}" class="homesel" aria-label="Heimatdorf"><option value="rb" ${v!=="fk"?"selected":""}>🐗 Rottenberg</option><option value="fk" ${v==="fk"?"selected":""}>⚽ Feldkahl</option></select>`;
 
-window.addEventListener("resize",()=>{const S=app.S;if(S&&app.screen==="game"&&S.map==="fk"&&(window.innerWidth>=1100)!==!!app.wide){app.gp=null;app.lastScreen=null;render();}});
+window.addEventListener("resize",()=>{const S=app.S;if(S&&app.screen==="game"&&S.map==="fk"&&isWide()!==!!app.wide){app.gp=null;app.lastScreen=null;render();}});
 
 const ownable=f=>f.t==="prop"||f.t==="bus"||f.t==="werk";
 const houseCost=f=>f.hc||100;
